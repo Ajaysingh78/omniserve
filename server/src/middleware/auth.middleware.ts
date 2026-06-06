@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthService } from '../services/auth.service.js';
+import { TokenBlacklistService } from '../services/tokenblacklist.service.js';
 import { UserRole } from '../enums/enums.js';
 
 
@@ -19,16 +20,27 @@ declare global {
 }
 
 /** Verify JWT access token and attach user to request */
-export const verifyToken = (
+export const verifyToken = async (
   req: Request,
   res: Response,
   next: NextFunction
-): void => {
+): Promise<void> => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
+    const token = req.cookies.accessToken || req.headers.authorization?.split(' ')[1];
 
     if (!token) {
       res.status(401).json({ success: false, message: 'No token provided' });
+      return;
+    }
+
+    // Check if token is blacklisted (revoked)
+    const isBlacklisted = await TokenBlacklistService.isBlacklisted(token);
+    if (isBlacklisted) {
+      res.status(401).json({
+        success: false,
+        message: 'Token has been revoked. Please login again.',
+        code: 'TOKEN_REVOKED',
+      });
       return;
     }
 

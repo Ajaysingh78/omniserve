@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { AuthService } from '../services/auth.service.js';
+import { TokenBlacklistService } from '../services/tokenblacklist.service.js';
 import { AuditAction } from '../enums/enums.js';
 
 export class AuthController {
@@ -83,14 +84,14 @@ export class AuthController {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
-        maxAge: 24 * 60 * 60 * 1000,
+        maxAge: Number(process.env.JWT_EXPIRY) || 24 * 60 * 60 * 1000,
       });
 
       res.cookie('refreshToken', result.refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
+        maxAge: Number(process.env.JWT_REFRESH_EXPIRY) || 7 * 24 * 60 * 60 * 1000,
       });
 
       res.status(200).json({
@@ -116,24 +117,34 @@ export class AuthController {
    */
   static async logout(req: Request, res: Response): Promise<void> {
     try {
+      const accessToken = req.cookies.accessToken || req.headers.authorization?.split(' ')[1];
       const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
 
-      if (!refreshToken) {
+      if (!refreshToken && !accessToken) {
         res.status(400).json({
           success: false,
-          message: 'Refresh token is required',
+          message: 'At least one token is required',
         });
         return;
       }
 
-      await AuthService.logout(refreshToken);
+      // Revoke refresh token in database
+      if (refreshToken) {
+        await AuthService.logout(refreshToken);
+      }
+
+      // Add access token to Redis blacklist if provided
+      if (accessToken) {
+        const expiresIn = TokenBlacklistService.getTokenExpirationTime(accessToken);
+        await TokenBlacklistService.addToBlacklist(accessToken, expiresIn);
+      }
 
       res.clearCookie('accessToken');
       res.clearCookie('refreshToken');
 
       res.status(200).json({
         success: true,
-        message: 'Logout successful',
+        message: 'Logout successful. Tokens have been revoked.',
       });
     } catch (error: any) {
       res.status(500).json({
@@ -165,14 +176,14 @@ export class AuthController {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
-        maxAge: 24 * 60 * 60 * 1000,
+        maxAge: Number(process.env.JWT_EXPIRY) || 24 * 60 * 60 * 1000,
       });
 
       res.cookie('refreshToken', result.refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
+        maxAge: Number(process.env.JWT_REFRESH_EXPIRY) || 7 * 24 * 60 * 60 * 1000,
       });
 
       res.status(200).json({
@@ -306,7 +317,18 @@ export class AuthController {
         return;
       }
 
+      // Revoke all refresh tokens in database
       await AuthService.revokeAllTokens(req.user.userId);
+
+      // Add current access token to blacklist
+      const accessToken = req.cookies.accessToken || req.headers.authorization?.split(' ')[1];
+      if (accessToken) {
+        const expiresIn = TokenBlacklistService.getTokenExpirationTime(accessToken);
+        await TokenBlacklistService.addToBlacklist(accessToken, expiresIn);
+      }
+
+      // Revoke all user's tokens in Redis
+      await TokenBlacklistService.revokeAllUserTokens(req.user.userId);
 
       res.clearCookie('accessToken');
       res.clearCookie('refreshToken');
