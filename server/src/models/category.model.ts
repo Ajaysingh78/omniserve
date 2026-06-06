@@ -1,0 +1,82 @@
+import mongoose, { Document, Model, Schema, Types } from "mongoose";
+
+export interface ICategory extends Document {
+  outletId: Types.ObjectId;
+  tenantId: Types.ObjectId;
+  name: string;
+  displayOrder: number;
+  isActive: boolean;
+  createdBy: Types.ObjectId | null;
+  updatedBy: Types.ObjectId | null;
+  isDeleted: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const categorySchema = new Schema<ICategory>(
+  {
+    outletId: {
+      type: Schema.Types.ObjectId,
+      ref: "Outlet",
+      required: [true, "Outlet is required"],
+    },
+    tenantId: {
+      type: Schema.Types.ObjectId,
+      ref: "Tenant",
+      required: [true, "Tenant is required"],
+    },
+    name: {
+      type: String,
+      required: [true, "Category name is required"],
+      trim: true,
+      maxlength: [100, "Category name cannot exceed 100 characters"],
+    },
+    displayOrder: {
+      type: Number,
+      default: 0,
+      min: [0, "Display order cannot be negative"],
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    updatedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  {
+    timestamps: true,
+    versionKey: false,
+  }
+);
+
+categorySchema.index({ tenantId: 1 });
+categorySchema.index({ outletId: 1 });
+categorySchema.index({ outletId: 1, displayOrder: 1 });
+categorySchema.index({ tenantId: 1, outletId: 1 });
+categorySchema.index({ isDeleted: 1 });
+
+categorySchema.pre("find", function () {
+  this.where({ isDeleted: false });
+});
+
+categorySchema.pre("findOne", function () {
+  this.where({ isDeleted: false });
+});
+
+const Category: Model<ICategory> = mongoose.model<ICategory>(
+  "Category",
+  categorySchema
+);
+export default Category;
