@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
 import { AuthService } from '../services/auth.service.js';
 import { TokenBlacklistService } from '../services/tokenblacklist.service.js';
-import { AuditAction } from '../enums/enums.js';
+import { AuditAction, UserRole } from '../enums/enums.js';
+
 
 export class AuthController {
   /**
@@ -10,12 +11,12 @@ export class AuthController {
    */
   static async register(req: Request, res: Response): Promise<void> {
     try {
-      const { email, password, firstName, lastName, role, tenantName, tenantSlug } = req.body;
+      const { email, password, firstName, lastName, tenantName } = req.body;
 
-      if (!email || !password || !firstName || !lastName  || !role || !tenantName || !tenantSlug) {
+      if (!email || !password || !firstName || !lastName || !tenantName) {
         res.status(400).json({
           success: false,
-          message: 'Email, password, firstName, lastName, tenantId, and role are required',
+          message: 'Email, password, firstName, lastName, and tenantName are required',
         });
         return;
       }
@@ -35,9 +36,7 @@ export class AuthController {
         password,
         firstName,
         lastName,
-        role,
         tenantName,
-        tenantSlug
       );
 
       res.status(201).json({
@@ -45,6 +44,7 @@ export class AuthController {
         message: 'User registered successfully',
         user: {
           id: user._id,
+          tenantId: user.tenantId,
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,

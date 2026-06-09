@@ -7,10 +7,7 @@ import { SubscriptionPlan, UserRole, UserStatus } from '../enums/enums.js';
 import { Types } from 'mongoose';
 import Tenant from '../models/tenant.model.js';
 
-const JWT_SECRET: string  = process.env.JWT_SECRET || 'your-secret-key';
-const JWT_REFRESH_SECRET: string = process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key';
-const JWT_EXPIRY: string | number = process.env.JWT_EXPIRY || '24h';
-const JWT_REFRESH_EXPIRY: string | number = process.env.JWT_REFRESH_EXPIRY || '7d';
+
 
 interface TokenPayload {
   userId: string;
@@ -41,8 +38,9 @@ export class AuthService {
 
   /**  Generate JWT access token */
   static generateAccessToken(payload: TokenPayload): string {
-    return jwt.sign(payload, JWT_SECRET, {
-      expiresIn: JWT_EXPIRY,
+    if(!process.env.JWT_SECRET || !process.env.JWT_EXPIRY) throw new Error('JWT_SECRET or JWT_EXPIRY is not defined');
+    return jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: process.env.JWT_EXPIRY,
     } as any);
   }
 
@@ -53,11 +51,13 @@ export class AuthService {
     ipAddress?: string,
     userAgent?: string
   ): Promise<string> {
+
+    if(!process.env.JWT_REFRESH_SECRET || !process.env.JWT_REFRESH_EXPIRY) throw new Error('JWT_REFRESH_SECRET or JWT_REFRESH_EXPIRY is not defined');
     const token = jwt.sign(
       { userId, tenantId },
-      JWT_REFRESH_SECRET,
+      process.env.JWT_REFRESH_SECRET,
       {
-        expiresIn: JWT_REFRESH_EXPIRY,
+        expiresIn: process.env.JWT_REFRESH_EXPIRY,
       } as any
     );
 
@@ -80,7 +80,8 @@ export class AuthService {
   /** Verify JWT token */
   static verifyAccessToken(token: string): TokenPayload | null {
     try {
-      return jwt.verify(token, JWT_SECRET) as TokenPayload;
+      if(!process.env.JWT_SECRET) throw new Error('JWT_SECRET is not defined');
+      return jwt.verify(token, process.env.JWT_SECRET) as TokenPayload;
     } catch (error) {
       return null;
     }
@@ -89,10 +90,15 @@ export class AuthService {
   /** Verify refresh token  */
   static verifyRefreshToken(token: string): { userId: string; tenantId: string } | null {
     try {
-      return jwt.verify(token, JWT_REFRESH_SECRET) as { userId: string; tenantId: string };
+      if(!process.env.JWT_REFRESH_SECRET) throw new Error('JWT_REFRESH_SECRET is not defined');
+      return jwt.verify(token, process.env.JWT_REFRESH_SECRET) as { userId: string; tenantId: string };
     } catch (error) {
       return null;
     }
+  }
+
+  static tenantSlagGenerator(tenantName: string): string {
+    return tenantName.replace(/\s+/g, '-').toLowerCase();
   }
 
   /** Register a new user */
@@ -101,9 +107,7 @@ export class AuthService {
     password: string,
     firstName: string,
     lastName: string,
-    role: string,
     tenantName: string,
-    tenantSlug: string,
   ): Promise<IUser> {
 
     const existingUser = await User.findOne({ email });
@@ -111,6 +115,8 @@ export class AuthService {
       throw new Error('Email already exists');
     }
 
+
+    const tenantSlug = this.tenantSlagGenerator(tenantName);
     const existingTenant = await Tenant.findOne({ slug: tenantSlug });
     if (existingTenant) {
       throw new Error('Tenant slug already taken');
@@ -126,15 +132,6 @@ export class AuthService {
 
     const passwordHash = await this.hashPassword(password);
 
-    // const user = await User.create({
-    //   email,
-    //   passwordHash,
-    //   firstName,
-    //   lastName,
-    //   tenantId: new Types.ObjectId(tenantId),
-    //   role,
-    // });
-
 
     const user = await User.create({
       tenantId: tenant._id,
@@ -142,10 +139,14 @@ export class AuthService {
       lastName,
       email,
       passwordHash,
-      role: role || UserRole.SUPER_ADMIN,   // first user of a tenant is always super_admin
+      role: UserRole.SUPER_ADMIN,   // first user of a tenant is always super_admin
       status: UserStatus.ACTIVE,
       createdBy: null,
     });
+
+    //update tenant owner
+    tenant.ownerId = user._id;
+    await tenant.save();
 
     return user;
   }
@@ -183,7 +184,7 @@ export class AuthService {
       role: user.role,
       status: user.status,
     };
-
+    
     const accessToken = this.generateAccessToken(tokenPayload);
     const refreshToken = await this.generateRefreshToken(
       user._id.toString(),
