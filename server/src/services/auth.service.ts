@@ -7,6 +7,7 @@ import { UserStatus, SubscriptionPlan, UserRole } from '../enums/enums.js';
 import { Types } from 'mongoose';
 import Tenant from '../models/tenant.model.js';
 
+
 interface TokenPayload {
   userId: string;
   tenantId: string;
