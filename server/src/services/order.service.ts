@@ -8,7 +8,8 @@ import Variant from '../models/variant.model.js';
 import Addon from '../models/addon.model.js';
 import Inventory from '../models/inventory.model.js';
 import Payment from '../models/payment.model.js';
-import { OrderStatus, PaymentStatus } from '../enums/enums.js';
+import { OrderStatus, PaymentStatus, NotificationType } from '../enums/enums.js';
+import { NotificationService } from './notification.service.js';
 
 export class OrderService {
   /**
@@ -163,6 +164,18 @@ export class OrderService {
       }
 
       await session.commitTransaction();
+
+      // Dispatch ORDER_PLACED notification to all active tenant users
+      NotificationService.notifyTenantUsers(
+        tenantId,
+        'New Order Placed',
+        `Order ${savedOrder.orderNumber} has been placed. Total amount: ${savedOrder.totalAmount}.`,
+        NotificationType.ORDER_PLACED,
+        savedOrder._id.toString(),
+        'Order',
+        userId
+      ).catch(err => console.error('Failed to dispatch ORDER_PLACED notification:', err));
+
       return savedOrder;
     } catch (error) {
       await session.abortTransaction();
@@ -361,6 +374,44 @@ export class OrderService {
       );
 
       await session.commitTransaction();
+
+      // Dispatch status update notification to all active tenant users
+      if (updatedOrder) {
+        let title = '';
+        let message = '';
+        let nType: any = null;
+
+        if (newStatus === OrderStatus.ACCEPTED) {
+          title = 'Order Accepted';
+          message = `Order ${updatedOrder.orderNumber} has been accepted.`;
+          nType = NotificationType.ORDER_ACCEPTED;
+        } else if (newStatus === OrderStatus.PREPARING) {
+          title = 'Order Preparing';
+          message = `Order ${updatedOrder.orderNumber} is now being prepared.`;
+          nType = NotificationType.ORDER_PREPARING;
+        } else if (newStatus === OrderStatus.READY) {
+          title = 'Order Ready';
+          message = `Order ${updatedOrder.orderNumber} is ready for pickup/delivery.`;
+          nType = NotificationType.ORDER_READY;
+        } else if (newStatus === OrderStatus.DELIVERED) {
+          title = 'Order Delivered';
+          message = `Order ${updatedOrder.orderNumber} has been successfully delivered.`;
+          nType = NotificationType.ORDER_DELIVERED;
+        }
+
+        if (nType) {
+          NotificationService.notifyTenantUsers(
+            tenantId,
+            title,
+            message,
+            nType,
+            updatedOrder._id.toString(),
+            'Order',
+            userId
+          ).catch(err => console.error('Failed to dispatch status update notification:', err));
+        }
+      }
+
       return updatedOrder;
     } catch (error) {
       await session.abortTransaction();
@@ -440,6 +491,20 @@ export class OrderService {
       );
 
       await session.commitTransaction();
+
+      // Dispatch ORDER_CANCELLED notification to all active tenant users
+      if (updatedOrder) {
+        NotificationService.notifyTenantUsers(
+          tenantId,
+          'Order Cancelled',
+          `Order ${updatedOrder.orderNumber} has been cancelled. Reason: ${cancellationReason}`,
+          NotificationType.ORDER_CANCELLED,
+          updatedOrder._id.toString(),
+          'Order',
+          userId
+        ).catch(err => console.error('Failed to dispatch ORDER_CANCELLED notification:', err));
+      }
+
       return updatedOrder;
     } catch (error) {
       await session.abortTransaction();

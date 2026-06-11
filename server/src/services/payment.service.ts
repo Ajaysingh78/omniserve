@@ -1,7 +1,8 @@
 import mongoose, { Types } from 'mongoose';
 import Payment, { IPayment } from '../models/payment.model.js';
 import Order from '../models/order.model.js';
-import { PaymentStatus, PaymentMethod } from '../enums/enums.js';
+import { PaymentStatus, PaymentMethod, NotificationType } from '../enums/enums.js';
+import { NotificationService } from './notification.service.js';
 
 export class PaymentService {
   /**
@@ -85,6 +86,25 @@ export class PaymentService {
       );
 
       await session.commitTransaction();
+
+      // Dispatch Payment Notification to all active tenant users
+      const isSuccess = savedPayment.status === PaymentStatus.SUCCESS;
+      const title = isSuccess ? 'Payment Successful' : 'Payment Failed';
+      const message = isSuccess
+        ? `Payment of ${savedPayment.amount} ${savedPayment.currency} for Order ${order.orderNumber} was successful. Transaction: ${savedPayment.transactionId}.`
+        : `Payment of ${savedPayment.amount} ${savedPayment.currency} for Order ${order.orderNumber} failed. Transaction: ${savedPayment.transactionId}.`;
+      const nType = isSuccess ? NotificationType.PAYMENT_SUCCESS : NotificationType.PAYMENT_FAILED;
+
+      NotificationService.notifyTenantUsers(
+        tenantId,
+        title,
+        message,
+        nType,
+        savedPayment._id.toString(),
+        'Payment',
+        userId
+      ).catch(err => console.error('Failed to dispatch payment notification:', err));
+
       return savedPayment;
     } catch (error) {
       await session.abortTransaction();

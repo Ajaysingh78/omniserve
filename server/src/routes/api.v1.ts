@@ -12,6 +12,7 @@ import inventoryRouter from "./inventory.route.js";
 import customerRouter from "./customer.route.js";
 import orderRouter from "./order.route.js";
 import paymentRouter from "./payment.route.js";
+import notificationRouter from "./notification.route.js";
 
 const router = Router();
 
@@ -27,5 +28,6 @@ router.use("/inventory", inventoryRouter);
 router.use("/customers", customerRouter);
 router.use("/orders", orderRouter);
 router.use("/payments", paymentRouter);
+router.use("/notifications", notificationRouter);
 
 export default router;
