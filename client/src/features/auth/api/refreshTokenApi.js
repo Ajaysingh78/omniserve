@@ -1,6 +1,6 @@
 import axiosInstance from "@/services/axios";
 
-export const loginApi = async (payload) => {
+export const refreshTokenApi = async (payload) => {
   const response = await axiosInstance.post(
     "/auth/refreshtoken",
     payload

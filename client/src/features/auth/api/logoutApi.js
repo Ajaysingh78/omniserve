@@ -1,6 +1,6 @@
 import axiosInstance from "@/services/axios";
 
-export const loginApi = async (payload) => {
+export const logoutApi = async (payload) => {
   const response = await axiosInstance.post(
     "/auth/logout",
     payload

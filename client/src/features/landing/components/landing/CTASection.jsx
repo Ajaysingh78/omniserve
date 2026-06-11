@@ -9,7 +9,7 @@ export default function CTASection() {
         <div
           className="
           rounded-3xl
-          bg-blue-600
+          bg-blue-400
           text-white
           p-16
           text-center

@@ -1,9 +1,10 @@
 import { motion } from "framer-motion";
 import { Button } from "../ui/button";
+import img from '../../../../assets/images.png'
 
 export default function HeroSection() {
   return (
-    <section className="overflow-hidden py-24">
+    <section className="overflow-hidden py-24 ">
       <div className="container mx-auto px-6">
 
         <div className="grid lg:grid-cols-2 gap-16 items-center">
@@ -33,20 +34,48 @@ export default function HeroSection() {
             </div>
           </motion.div>
 
-          <motion.div
+          {/* <motion.div
             initial={{ opacity:0, scale:.95 }}
             animate={{ opacity:1, scale:1 }}
             transition={{ duration:.8 }}
           >
             <div className="rounded-3xl border bg-white  dark:bg-slate-900 shadow-2xl p-6">
               <img
-                src="/dashboard-preview.png"
+                src={img}
                 alt="FoodMesh Dashboard"
                 className="rounded-xl"
                 loading="lazy"
               />
             </div>
-          </motion.div>
+          </motion.div> */}
+          <motion.div
+  initial={{ opacity: 0, scale: 0.95 }}
+  animate={{ opacity: 1, scale: 1 }}
+  transition={{ duration: 0.8 }}
+  className="relative"
+>
+  {/* Background Glow */}
+  <div className="absolute -inset-4 bg-blue-500/10 blur-3xl rounded-full" />
+
+  <div
+    className="
+      relative
+      overflow-hidden
+      rounded-3xl
+      border
+      border-slate-200
+      bg-white
+      shadow-2xl
+    "
+  >
+    <img
+      src={img}
+      alt="FoodMesh Restaurant Operating System Dashboard"
+      className="w-full rounded-3xl object-cover"
+      loading="lazy"
+    />
+  </div>
+</motion.div>
 
         </div>
       </div>

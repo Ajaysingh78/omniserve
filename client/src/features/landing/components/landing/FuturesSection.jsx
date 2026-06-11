@@ -57,7 +57,6 @@ export default function FeaturesSection() {
             <div
               key={feature.title}
               className="
-              border
               rounded-2xl
               p-8 bg-slate-200
               hover:shadow-xl

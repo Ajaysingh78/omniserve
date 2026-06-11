@@ -25,7 +25,7 @@ export default function BenefitsSection() {
           {benefits.map((item) => (
             <div
               key={item}
-              className="border rounded-2xl p-6"
+              className=" rounded-2xl p-6 bg-sky-100 "
             >
               <CheckCircle2 className="text-green-500" />
 
