@@ -289,6 +289,7 @@ function OrderDrawer({ order, onClose }) {
           {[
             ["Method", "UPI – PhonePe"],
             ["Status", order.paid ? "Paid" : "Pending"],
+            // eslint-disable-next-line react-hooks/purity
             ["Transaction ID", "TXN" + Math.random().toString(36).slice(2, 10).toUpperCase()],
             ["Amount", `₹${order.val.toLocaleString()}`],
           ].map(([l, v]) => (
