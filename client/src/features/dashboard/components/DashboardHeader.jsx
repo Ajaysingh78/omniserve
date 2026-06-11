@@ -1,12 +1,18 @@
 
 import { useState, useEffect } from "react";
-// import {
-//   AreaChart, Area, BarChart, Bar, XAxis, YAxis,
-//   Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
-// } from "recharts";
-import {  NAMES, CH_COLORS, CH_SRC, ITEMS_POOL, COL_META } from "../../../data/data";
-import { Topbar } from "../../../view/layout/Topbar";
-import { Sidebar } from "../../../view/layout/Sidebar";
+import {
+  AreaChart, Area, BarChart, Bar, XAxis, YAxis,
+  Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
+} from "recharts";
+import {
+  NAMES, CH_COLORS, CH_SRC, ITEMS_POOL, COL_META,
+  KITCHEN_LOAD, AI_RECS, STAFF, INVENTORY_RISK,
+  CHANNELS, HOUR_DATA, PIE_DATA
+} from "../../../data/data";
+import { Sidebar } from "./Sidebar";
+import { Topbar } from "./Topbar";
+import StatsCards from "./StateCard";
+
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 
@@ -138,76 +144,76 @@ function CommandCenter({ orders, onSelect }) {
 
 // ─── INTEL PANEL ─────────────────────────────────────────────────────────────
 
-// function IntelPanel() {
-//   return (
-//     <div className="intel-panel">
-//       <div className="intel-header">
-//         <div className="section-title">Operational Intelligence</div>
-//         <div className="section-sub">AI-powered real-time insights</div>
-//       </div>
+function IntelPanel() {
+  return (
+    <div className="intel-panel">
+      <div className="intel-header">
+        <div className="section-title">Operational Intelligence</div>
+        <div className="section-sub">AI-powered real-time insights</div>
+      </div>
 
-//       <div className="intel-sections">
-//         {/* Kitchen Load */}
-//         <div className="intel-block">
-//           <div className="ib-title">Kitchen Load</div>
-//           {KITCHEN_LOAD.map(({ name, pct, color }) => (
-//             <div key={name}>
-//               <div className="load-label">
-//                 <span>{name}</span>
-//                 <span style={{ color }}>{pct}%</span>
-//               </div>
-//               <div className="load-bar">
-//                 <div className="load-fill" style={{ width: `${pct}%`, background: color }} />
-//               </div>
-//             </div>
-//           ))}
-//         </div>
+      <div className="intel-sections">
+        {/* Kitchen Load */}
+        <div className="intel-block">
+          <div className="ib-title">Kitchen Load</div>
+          {KITCHEN_LOAD.map(({ name, pct, color }) => (
+            <div key={name}>
+              <div className="load-label">
+                <span>{name}</span>
+                <span style={{ color }}>{pct}%</span>
+              </div>
+              <div className="load-bar">
+                <div className="load-fill" style={{ width: `${pct}%`, background: color }} />
+              </div>
+            </div>
+          ))}
+        </div>
 
-//         {/* AI Recommendations */}
-//         <div className="intel-block">
-//           <div className="ib-title">AI Recommendations</div>
-//           {AI_RECS.map((r, i) => (
-//             <div key={i} className="ai-rec">
-//               <div className={`ai-icon ${r.type}`}>{r.icon}</div>
-//               <div className="ai-text">{r.text}</div>
-//             </div>
-//           ))}
-//         </div>
+        {/* AI Recommendations */}
+        <div className="intel-block">
+          <div className="ib-title">AI Recommendations</div>
+          {AI_RECS.map((r, i) => (
+            <div key={i} className="ai-rec">
+              <div className={`ai-icon ${r.type}`}>{r.icon}</div>
+              <div className="ai-text">{r.text}</div>
+            </div>
+          ))}
+        </div>
 
-//         {/* Staff Utilization */}
-//         <div className="intel-block">
-//           <div className="ib-title">Staff Utilization</div>
-//           {STAFF.map(({ name, role, util, color }) => (
-//             <div key={name} className="staff-row">
-//               <div className="staff-avatar">{name[0]}</div>
-//               <div className="staff-info">
-//                 <div className="staff-name">{name}</div>
-//                 <div className="staff-role">{role}</div>
-//               </div>
-//               <div className="staff-util" style={{ color }}>{util}</div>
-//             </div>
-//           ))}
-//         </div>
+        {/* Staff Utilization */}
+        <div className="intel-block">
+          <div className="ib-title">Staff Utilization</div>
+          {STAFF.map(({ name, role, util, color }) => (
+            <div key={name} className="staff-row">
+              <div className="staff-avatar">{name[0]}</div>
+              <div className="staff-info">
+                <div className="staff-name">{name}</div>
+                <div className="staff-role">{role}</div>
+              </div>
+              <div className="staff-util" style={{ color }}>{util}</div>
+            </div>
+          ))}
+        </div>
 
-//         {/* Inventory Risk */}
-//         <div className="intel-block">
-//           <div className="ib-title">Inventory Risk</div>
-//           {INVENTORY_RISK.map(({ item, pct, color }) => (
-//             <div key={item}>
-//               <div className="load-label">
-//                 <span>{item}</span>
-//                 <span style={{ color }}>{pct}%</span>
-//               </div>
-//               <div className="load-bar">
-//                 <div className="load-fill" style={{ width: `${pct}%`, background: color }} />
-//               </div>
-//             </div>
-//           ))}
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
+        {/* Inventory Risk */}
+        <div className="intel-block">
+          <div className="ib-title">Inventory Risk</div>
+          {INVENTORY_RISK.map(({ item, pct, color }) => (
+            <div key={item}>
+              <div className="load-label">
+                <span>{item}</span>
+                <span style={{ color }}>{pct}%</span>
+              </div>
+              <div className="load-bar">
+                <div className="load-fill" style={{ width: `${pct}%`, background: color }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ─── ORDER DRAWER ─────────────────────────────────────────────────────────────
 
@@ -316,82 +322,90 @@ function OrderDrawer({ order, onClose }) {
 
 // ─── CHARTS ───────────────────────────────────────────────────────────────────
 
-// function Charts() {
-//   const axisProps = {
-//     style: { fontSize: 10, fill: "var(--text3)" },
-//     axisLine: false,
-//     tickLine: false,
-//   };
+function Charts() {
+  const axisProps = {
+    style: { fontSize: 10, fill: "var(--text3)" },
+    axisLine: false,
+    tickLine: false,
+  };
 
-//   return (
-//     <div className="charts-grid">
-//       {/* Orders by Hour */}
-//       <div className="chart-card">
-//         <div className="section-header">
-//           <div className="section-title">Orders by Hour</div>
-//           <div style={{ fontSize: 11, color: "var(--green)" }}>+18% vs yesterday</div>
-//         </div>
-//         <ResponsiveContainer width="100%" height={140}>
-//           <AreaChart data={HOUR_DATA} margin={{ top: 5, right: 0, bottom: 0, left: -20 }}>
-//             <defs>
-//               <linearGradient id="ordersGrad" x1="0" y1="0" x2="0" y2="1">
-//                 <stop offset="5%"  stopColor="#3b82f6" stopOpacity={0.3} />
-//                 <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-//               </linearGradient>
-//             </defs>
-//             <XAxis dataKey="h" {...axisProps} />
-//             <YAxis {...axisProps} />
-//             <Tooltip {...TOOLTIP_STYLE} />
-//             <Area type="monotone" dataKey="orders" stroke="#3b82f6" strokeWidth={1.5} fill="url(#ordersGrad)" />
-//           </AreaChart>
-//         </ResponsiveContainer>
-//       </div>
+  const tooltipStyle = {
+    contentStyle: {
+      background: "var(--bg3)", border: "1px solid var(--border)",
+      borderRadius: 6, fontSize: 11, color: "var(--text)",
+    },
+    labelStyle: { color: "var(--text2)" },
+  };
 
-//       {/* Status Donut */}
-//       <div className="chart-card">
-//         <div className="section-header">
-//           <div className="section-title">Order Status</div>
-//         </div>
-//         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-//           <ResponsiveContainer width={120} height={120}>
-//             <PieChart>
-//               <Pie data={PIE_DATA} cx="50%" cy="50%" innerRadius={30} outerRadius={50} paddingAngle={2} dataKey="value">
-//                 {PIE_DATA.map((e, i) => <Cell key={i} fill={e.color} />)}
-//               </Pie>
-//             </PieChart>
-//           </ResponsiveContainer>
-//           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-//             {PIE_DATA.map((d) => (
-//               <div key={d.name} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11 }}>
-//                 <div style={{ width: 8, height: 8, borderRadius: 2, background: d.color }} />
-//                 <span style={{ color: "var(--text2)", minWidth: 70 }}>{d.name}</span>
-//                 <span style={{ fontWeight: 600 }}>{d.value}%</span>
-//               </div>
-//             ))}
-//           </div>
-//         </div>
-//       </div>
+  return (
+    <div className="charts-grid">
+      {/* Orders by Hour */}
+      <div className="chart-card">
+        <div className="section-header">
+          <div className="section-title">Orders by Hour</div>
+          <div style={{ fontSize: 11, color: "var(--green)" }}>+18% vs yesterday</div>
+        </div>
+        <ResponsiveContainer width="100%" height={140}>
+          <AreaChart data={HOUR_DATA} margin={{ top: 5, right: 0, bottom: 0, left: -20 }}>
+            <defs>
+              <linearGradient id="ordersGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%"  stopColor="#3b82f6" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <XAxis dataKey="h" {...axisProps} />
+            <YAxis {...axisProps} />
+            <Tooltip {...tooltipStyle} />
+            <Area type="monotone" dataKey="orders" stroke="#3b82f6" strokeWidth={1.5} fill="url(#ordersGrad)" />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
 
-//       {/* Revenue by Channel */}
-//       <div className="chart-card">
-//         <div className="section-header">
-//           <div className="section-title">Revenue by Channel</div>
-//         </div>
-//         <ResponsiveContainer width="100%" height={140}>
-//           <BarChart
-//             data={CHANNELS.map((c) => ({ name: c.name.slice(0, 3), rev: parseFloat(c.rev.replace(/[₹L]/g, "")) }))}
-//             margin={{ top: 5, right: 0, bottom: 0, left: -20 }}
-//           >
-//             <XAxis dataKey="name" {...axisProps} />
-//             <YAxis {...axisProps} />
-//             <Tooltip {...TOOLTIP_STYLE} />
-//             <Bar dataKey="rev" fill="#3b82f6" opacity={0.8} radius={[3, 3, 0, 0]} />
-//           </BarChart>
-//         </ResponsiveContainer>
-//       </div>
-//     </div>
-//   );
-// }
+      {/* Status Donut */}
+      <div className="chart-card">
+        <div className="section-header">
+          <div className="section-title">Order Status</div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <ResponsiveContainer width={120} height={120}>
+            <PieChart>
+              <Pie data={PIE_DATA} cx="50%" cy="50%" innerRadius={30} outerRadius={50} paddingAngle={2} dataKey="value">
+                {PIE_DATA.map((e, i) => <Cell key={i} fill={e.color} />)}
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {PIE_DATA.map((d) => (
+              <div key={d.name} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11 }}>
+                <div style={{ width: 8, height: 8, borderRadius: 2, background: d.color }} />
+                <span style={{ color: "var(--text2)", minWidth: 70 }}>{d.name}</span>
+                <span style={{ fontWeight: 600 }}>{d.value}%</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Revenue by Channel */}
+      <div className="chart-card">
+        <div className="section-header">
+          <div className="section-title">Revenue by Channel</div>
+        </div>
+        <ResponsiveContainer width="100%" height={140}>
+          <BarChart
+            data={CHANNELS.map((c) => ({ name: c.name.slice(0, 3), rev: parseFloat(c.rev.replace(/[₹L]/g, "")) }))}
+            margin={{ top: 5, right: 0, bottom: 0, left: -20 }}
+          >
+            <XAxis dataKey="name" {...axisProps} />
+            <YAxis {...axisProps} />
+            <Tooltip {...tooltipStyle} />
+            <Bar dataKey="rev" fill="#3b82f6" opacity={0.8} radius={[3, 3, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
 
 // ─── ROOT APP ─────────────────────────────────────────────────────────────────
 
@@ -685,36 +699,20 @@ export default function Dashboard() {
             </div>
 
             {/* KPI Cards */}
-            {/* <div className="kpi-grid">
-              <KPICard label="Total Orders Today"    value="684"         trend="↑ 12.4%"  sub="vs 608 yesterday"     accent="#3b82f6" trendUp={true}  />
-              <KPICard label="Revenue Today"         value="₹9.14L"      trend="↑ 8.7%"   sub="vs ₹8.41L yesterday" accent="#10b981" trendUp={true}  />
-              <KPICard label="Avg Order Value"       value="₹1,336"      trend="↑ 3.2%"   sub="vs ₹1,294 yesterday" accent="#06b6d4" trendUp={true}  />
-              <KPICard label="Pending Orders"        value={String(totalPending)} trend="Live count" accent="#f59e0b" trendUp={null} />
-              <KPICard label="Prep Efficiency"       value="18.4m"       trend="↑ 2.1m slower" sub="Target: 16m"   accent="#f59e0b" trendUp={false} />
-              <KPICard label="SLA Compliance"        value="91.2%"       trend="↓ 1.8%"   sub="Target: 95%"          accent="#ef4444" trendUp={false} />
-            </div> */}
-
-            {/* Channel Intelligence */}
-            {/* <div>
-              <div className="section-header">
-                <div className="section-title">Sales Channel Intelligence</div>
-                <div className="section-sub">
-                  {CHANNELS.reduce((a, c) => a + c.orders, 0)} total orders today
-                </div>
-              </div>
-              <div className="channel-grid">
-                {CHANNELS.map((ch) => <ChannelCard key={ch.id} ch={ch} />)}
-              </div>
-            </div> */}
+            <div style={{ marginBottom: 20 }}>
+              <StatsCards />
+            </div>
 
             {/* Command Center + Intel Panel */}
             <div className="two-col">
               <CommandCenter orders={orders} onSelect={setSelectedOrder} />
-              {/* <IntelPanel /> */}
+              <IntelPanel />
             </div>
 
             {/* Charts */}
-            {/* <Charts /> */}
+            <div style={{ marginTop: 20 }}>
+              <Charts />
+            </div>
           </div>
         </div>
 
