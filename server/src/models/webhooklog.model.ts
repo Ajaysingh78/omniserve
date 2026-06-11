@@ -1,5 +1,5 @@
 import mongoose, { Document, Model, Schema, Types } from 'mongoose';
-import { WebhookProvider } from '../enums/enums.js';
+import { WebhookProvider, WebhookStatus } from '../enums/enums.js';
 
 export interface IWebhookLog extends Document {
   tenantId: Types.ObjectId;
@@ -12,6 +12,8 @@ export interface IWebhookLog extends Document {
   errorMessage: string | null;
   httpStatusCode: number | null;
   signature?: string;
+  status: WebhookStatus;
+  externalEventId: string | null;
   createdBy: Types.ObjectId | null;
   updatedBy: Types.ObjectId | null;
   isDeleted: boolean;
@@ -72,6 +74,19 @@ const webhookLogSchema = new Schema<IWebhookLog>(
       select: false,
       default: null,
     },
+    status: {
+      type: String,
+      enum: {
+        values: Object.values(WebhookStatus),
+        message: 'Invalid webhook status: {VALUE}',
+      },
+      default: WebhookStatus.PENDING,
+    },
+    externalEventId: {
+      type: String,
+      trim: true,
+      default: null,
+    },
     createdBy: {
       type: Schema.Types.ObjectId,
       ref: 'User',
@@ -100,6 +115,7 @@ webhookLogSchema.index({ tenantId: 1, processed: 1 });
 webhookLogSchema.index({ createdAt: -1 });
 // TTL: auto-delete webhook logs after 90 days
 webhookLogSchema.index({ createdAt: 1 }, { expireAfterSeconds: 7_776_000 });
+webhookLogSchema.index({ tenantId: 1, provider: 1, externalEventId: 1 }, { unique: true, sparse: true });
 webhookLogSchema.index({ isDeleted: 1 });
 
 webhookLogSchema.pre('find', function () {

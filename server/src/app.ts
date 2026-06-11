@@ -3,6 +3,7 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import router from './routes/api.v1.js';
 import { errorHandler } from './middleware/errorHandler.middleware.js';
+import { rateLimiter } from './middleware/rateLimiter.middleware.js';
 
 const app = express();
 
@@ -10,14 +11,20 @@ app.use(express.json());
 app.use(cookieParser())
 
 app.use(cors({
-   // origin: 'http://localhost:5174',
-   origin: '*',
+   origin: process.env.CLIENT_URL,
    credentials: true
 }))
 
 app.get("/", (req, res) => {
    res.json({connection: "OK"});
 })
+
+// Apply global rate limiter to all api routes: 100 requests per 15 minutes
+app.use('/api', rateLimiter({
+   windowMs: 15 * 60 * 1000,
+   max: 100,
+   message: 'Too many requests from this IP, please try again after 15 minutes'
+}));
 
 app.use('/api', router);
 

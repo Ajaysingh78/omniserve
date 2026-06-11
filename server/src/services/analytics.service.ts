@@ -1,0 +1,155 @@
+import mongoose, { Types } from 'mongoose';
+import AnalyticsDaily, { IAnalyticsDaily } from '../models/analyticsdaily.model.js';
+
+export class AnalyticsService {
+  /**
+   * Upsert metrics for a daily analytics record using compound index: tenantId + outletId + reportDate
+   */
+  static async upsertDailyMetrics(
+    tenantId: string,
+    outletId: string,
+    reportDateStr: string,
+    metrics: {
+      totalOrders?: number;
+      totalRevenue?: number;
+      cancelledOrders?: number;
+      newCustomers?: number;
+      repeatCustomers?: number;
+    },
+    userId?: string
+  ): Promise<IAnalyticsDaily> {
+    const reportDate = new Date(reportDateStr);
+    reportDate.setUTCHours(0, 0, 0, 0);
+
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      let record = await AnalyticsDaily.findOne({
+        tenantId: new Types.ObjectId(tenantId),
+        outletId: new Types.ObjectId(outletId),
+        reportDate,
+        isDeleted: false,
+      }).session(session);
+
+      if (!record) {
+        record = new AnalyticsDaily({
+          tenantId: new Types.ObjectId(tenantId),
+          outletId: new Types.ObjectId(outletId),
+          reportDate,
+          totalOrders: metrics.totalOrders || 0,
+          totalRevenue: metrics.totalRevenue || 0,
+          cancelledOrders: metrics.cancelledOrders || 0,
+          newCustomers: metrics.newCustomers || 0,
+          repeatCustomers: metrics.repeatCustomers || 0,
+          createdBy: userId ? new Types.ObjectId(userId) : null,
+          updatedBy: userId ? new Types.ObjectId(userId) : null,
+          isDeleted: false,
+        });
+      } else {
+        if (metrics.totalOrders !== undefined) record.totalOrders += metrics.totalOrders;
+        if (metrics.totalRevenue !== undefined) record.totalRevenue += metrics.totalRevenue;
+        if (metrics.cancelledOrders !== undefined) record.cancelledOrders += metrics.cancelledOrders;
+        if (metrics.newCustomers !== undefined) record.newCustomers += metrics.newCustomers;
+        if (metrics.repeatCustomers !== undefined) record.repeatCustomers += metrics.repeatCustomers;
+        record.updatedBy = userId ? new Types.ObjectId(userId) : null;
+      }
+
+      // Recompute average order value
+      const orders = record.totalOrders;
+      const revenue = record.totalRevenue;
+      record.averageOrderValue = orders > 0 ? Number((revenue / orders).toFixed(2)) : 0;
+
+      const savedRecord = await record.save({ session });
+      await session.commitTransaction();
+      return savedRecord;
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
+  }
+
+  /**
+   * Retrieve list of daily analytics records (tenant isolated)
+   * Sorted by reportDate ascending
+   */
+  static async getDailyStats(
+    tenantId: string,
+    filters: { outletId?: string; from?: string; to?: string }
+  ): Promise<IAnalyticsDaily[]> {
+    const query: any = {
+      tenantId: new Types.ObjectId(tenantId),
+      isDeleted: false,
+    };
+
+    if (filters.outletId) {
+      query.outletId = new Types.ObjectId(filters.outletId);
+    }
+
+    if (filters.from || filters.to) {
+      query.reportDate = {};
+      if (filters.from) {
+        const fromDate = new Date(filters.from);
+        fromDate.setUTCHours(0, 0, 0, 0);
+        query.reportDate.$gte = fromDate;
+      }
+      if (filters.to) {
+        const toDate = new Date(filters.to);
+        toDate.setUTCHours(23, 59, 59, 999);
+        query.reportDate.$lte = toDate;
+      }
+    }
+
+    return await AnalyticsDaily.find(query).sort({ reportDate: 1 });
+  }
+
+  /**
+   * Aggregate statistics for the tenant
+   */
+  static async getSummaryStats(tenantId: string): Promise<{
+    totalRevenue: number;
+    totalOrders: number;
+    averageOrderValue: number;
+    outletCount: number;
+  }> {
+    const tenantObjectId = new Types.ObjectId(tenantId);
+
+    const result = await AnalyticsDaily.aggregate([
+      {
+        $match: {
+          tenantId: tenantObjectId,
+          isDeleted: false,
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalRevenue: { $sum: '$totalRevenue' },
+          totalOrders: { $sum: '$totalOrders' },
+          outlets: { $addToSet: '$outletId' },
+        },
+      },
+    ]);
+
+    if (result.length === 0) {
+      return {
+        totalRevenue: 0,
+        totalOrders: 0,
+        averageOrderValue: 0,
+        outletCount: 0,
+      };
+    }
+
+    const { totalRevenue, totalOrders, outlets } = result[0];
+    const averageOrderValue = totalOrders > 0 ? Number((totalRevenue / totalOrders).toFixed(2)) : 0;
+
+    return {
+      totalRevenue,
+      totalOrders,
+      averageOrderValue,
+      outletCount: outlets.length,
+    };
+  }
+}
