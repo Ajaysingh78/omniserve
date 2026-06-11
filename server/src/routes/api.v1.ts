@@ -5,6 +5,7 @@ import subscriptionRoutes from "./subscription.route.js";
 import restaurantRouter from "./restaurant.route.js";
 import outletRoutes from "./outlet.routes.js";
 import categoryRouter from "./category.route.js";
+import menuItemRouter from "./menuitem.route.js";
 
 const router = Router();
 
@@ -13,5 +14,6 @@ router.use("/subscriptions", subscriptionRoutes);
 router.use("/restaurants", restaurantRouter);
 router.use("/outlets", outletRoutes);
 router.use("/categories", categoryRouter);
+router.use("/menu-items", menuItemRouter);
 
 export default router;
