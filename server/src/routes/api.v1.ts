@@ -14,6 +14,7 @@ import orderRouter from "./order.route.js";
 import paymentRouter from "./payment.route.js";
 import notificationRouter from "./notification.route.js";
 import analyticsRouter from "./analytics.route.js";
+import webhookRouter from "./webhook.route.js";
 
 const router = Router();
 
@@ -31,5 +32,6 @@ router.use("/orders", orderRouter);
 router.use("/payments", paymentRouter);
 router.use("/notifications", notificationRouter);
 router.use("/analytics", analyticsRouter);
+router.use("/webhooks", webhookRouter);
 
 export default router;
