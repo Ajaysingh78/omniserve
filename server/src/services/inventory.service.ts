@@ -2,6 +2,8 @@ import { Types } from 'mongoose';
 import Inventory, { IInventory } from '../models/inventory.model.js';
 import MenuItem from '../models/menuitems.model.js';
 import Outlet from '../models/outlet.model.js';
+import { NotificationType } from '../enums/enums.js';
+import { NotificationService } from './notification.service.js';
 
 export class InventoryService {
   /**
@@ -63,7 +65,22 @@ export class InventoryService {
         updatedBy: userId ? new Types.ObjectId(userId) : null,
       });
 
-      return await inventory.save();
+      const savedInventory = await inventory.save();
+
+      // Trigger LOW_INVENTORY notification if created under threshold
+      if (savedInventory.isLowStock) {
+        NotificationService.notifyTenantUsers(
+          tenantId,
+          'Low Stock Warning',
+          `Inventory for Menu Item ${savedInventory.menuItemId} is running low at Outlet ${savedInventory.outletId}. Quantity: ${savedInventory.quantity}, Threshold: ${savedInventory.threshold}.`,
+          NotificationType.LOW_INVENTORY,
+          savedInventory._id.toString(),
+          'Inventory',
+          userId
+        ).catch(err => console.error('Failed to dispatch LOW_INVENTORY notification:', err));
+      }
+
+      return savedInventory;
     } catch (error: any) {
       if (error.code === 11000) {
         throw new Error('Inventory record already exists for this menu item at this outlet');
@@ -142,27 +159,17 @@ export class InventoryService {
     // 2. Recompute low stock flag manually (bypass pre-save hook for findOneAndUpdate)
     const isLowStockNow = quantity <= inventory.threshold;
 
-    // 3. Documented LOW_INVENTORY integration point
-    if (isLowStockNow && !inventory.isLowStock) {
-      /**
-       * LOW_INVENTORY Integration Point:
-       * Trigger low stock alert/notification if stock falls below threshold.
-       * 
-       * Example:
-       * await NotificationService.createNotification({
-       *   tenantId: new Types.ObjectId(tenantId),
-       *   type: NotificationType.LOW_INVENTORY,
-       *   message: `Inventory for Menu Item ${inventory.menuItemId} is running low at Outlet ${inventory.outletId}. Current quantity: ${quantity}`,
-       *   metadata: {
-       *     inventoryId: inventory._id,
-       *     menuItemId: inventory.menuItemId,
-       *     outletId: inventory.outletId,
-       *     quantity,
-       *     threshold: inventory.threshold
-       *   }
-       * });
-       */
-      console.log(`[LOW_INVENTORY ALERT]: Stock for MenuItem ${inventory.menuItemId} at Outlet ${inventory.outletId} is low: ${quantity}/${inventory.threshold}`);
+    if (isLowStockNow) {
+      // Dispatch LOW_INVENTORY notification to all active tenant users
+      NotificationService.notifyTenantUsers(
+        tenantId,
+        'Low Stock Warning',
+        `Inventory for Menu Item ${inventory.menuItemId} is running low at Outlet ${inventory.outletId}. Quantity: ${quantity}, Threshold: ${inventory.threshold}.`,
+        NotificationType.LOW_INVENTORY,
+        inventory._id.toString(),
+        'Inventory',
+        userId
+      ).catch(err => console.error('Failed to dispatch LOW_INVENTORY notification:', err));
     }
 
     // 4. Update quantity, isLowStock and updatedBy fields

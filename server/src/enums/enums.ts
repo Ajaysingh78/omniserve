@@ -61,6 +61,19 @@ export enum NotificationType {
   GENERAL = "GENERAL",
 }
 
+export enum WebhookStatus {
+  PENDING = "PENDING",
+  PROCESSING = "PROCESSING",
+  SUCCESS = "SUCCESS",
+  FAILED = "FAILED",
+}
+
+export enum SubscriptionStatus {
+  ACTIVE = "ACTIVE",
+  INACTIVE = "INACTIVE",
+  CANCELLED = "CANCELLED",
+}
+
 export enum PaymentMethod {
   CASH = "CASH",
   CARD = "CARD",
