@@ -21,7 +21,7 @@ const testimonials = [
 
 export default function TestimonialsSection() {
   return (
-    <section className="py-28 bg-slate-50 dark:bg-slate-400">
+    <section className="py-28 bg-slate-50">
 
       <div className="container mx-auto px-6">
 
@@ -29,12 +29,12 @@ export default function TestimonialsSection() {
           Loved By Restaurant Teams
         </h2>
 
-        <div className="grid md:grid-cols-3 gap-8 mt-16">
+        <div className="grid md:grid-cols-3 gap-8 mt-16 ">
 
           {testimonials.map((item) => (
             <div
               key={item.name}
-              className="bg-white  p-8 rounded-2xl border"
+              className="  p-8 rounded-2xl border bg-sky-100"
             >
               <p>"{item.review}"</p>
 

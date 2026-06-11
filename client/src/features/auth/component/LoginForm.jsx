@@ -1,9 +1,13 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useDispatch } from "react-redux";
+
+import { loginApi } from "../api/loginApi";
+import { setUser } from "../authSlice";// Update path
 
 const loginSchema = z.object({
   email: z
@@ -19,6 +23,9 @@ const loginSchema = z.object({
 export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [serverError, setServerError] = useState("");
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const {
     register,
@@ -26,22 +33,47 @@ export default function LoginForm() {
     formState: { errors },
   } = useForm({
     resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+      rememberMe: false,
+    },
   });
 
   const onSubmit = async (data) => {
     try {
       setLoading(true);
+      setServerError("");
 
-      console.log("Login Data:", data);
+      const response = await loginApi({
+        email: data.email,
+        password: data.password,
+      });
 
-      // API Call Here
-      // const response = await loginApi(data)
+      if (!response?.success) {
+        throw new Error(
+          response?.message || "Login failed"
+        );
+      }
 
-      // dispatch(setUser(response.user))
+      dispatch(
+        setUser({
+          user: response.data.user,
+          accessToken: response.data.accessToken,
+          refreshToken: response.data.refreshToken,
+        })
+      );
 
-      // navigate("/app/dashboard")
+      navigate("/dashboard", {
+        replace: true,
+      });
     } catch (error) {
-      console.error(error);
+
+      setServerError(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Login failed. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -89,7 +121,11 @@ export default function LoginForm() {
 
         <div className="relative">
           <input
-            type={showPassword ? "text" : "password"}
+            type={
+              showPassword
+                ? "text"
+                : "password"
+            }
             placeholder="Enter password"
             {...register("password")}
             className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 pr-12 text-white outline-none focus:border-indigo-500"
@@ -98,7 +134,9 @@ export default function LoginForm() {
           <button
             type="button"
             onClick={() =>
-              setShowPassword(!showPassword)
+              setShowPassword(
+                !showPassword
+              )
             }
             className="absolute right-3 top-3 text-slate-400"
           >
@@ -118,21 +156,29 @@ export default function LoginForm() {
       </div>
 
       {/* Remember Me */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center">
         <label className="flex items-center gap-2 text-sm text-slate-400">
           <input
             type="checkbox"
-            className="h-4 w-4 rounded border-slate-700 bg-slate-800"
+            {...register("rememberMe")}
+            className="h-4 w-4 rounded border-slate-700"
           />
           Remember me
         </label>
       </div>
 
+      {/* Server Error */}
+      {serverError && (
+        <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400">
+          {serverError}
+        </div>
+      )}
+
       {/* Submit Button */}
       <button
         type="submit"
         disabled={loading}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-70"
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-70"
       >
         {loading ? (
           <>
@@ -150,7 +196,7 @@ export default function LoginForm() {
       {/* Divider */}
       <div className="relative py-2">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-slate-700"></div>
+          <div className="w-full border-t border-slate-700" />
         </div>
 
         <div className="relative flex justify-center">
@@ -167,10 +213,9 @@ export default function LoginForm() {
       >
         <img
           src="https://www.svgrepo.com/show/475656/google-color.svg"
-          alt="google"
+          alt="Google"
           className="h-5 w-5"
         />
-
         Continue with Google
       </button>
 

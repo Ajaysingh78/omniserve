@@ -1,33 +1,43 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
+import { registerApi } from "../api/registeApi";
+
 const registerSchema = z
   .object({
     firstName: z
       .string()
-      .min(2, "First name is required"),
+      .trim()
+      .min(2, "First name must be at least 2 characters"),
 
     lastName: z
       .string()
-      .min(2, "Last name is required"),
+      .trim()
+      .min(2, "Last name must be at least 2 characters"),
 
     email: z
       .string()
+      .trim()
       .email("Invalid email address"),
 
     phone: z
       .string()
-      .min(10, "Phone number is required"),
+      .trim()
+      .min(10, "Phone number must be at least 10 digits"),
 
     password: z
       .string()
       .min(
         8,
         "Password must be at least 8 characters"
+      )
+      .regex(
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/,
+        "Password must contain uppercase, lowercase, number and special character"
       ),
 
     confirmPassword: z.string(),
@@ -50,41 +60,75 @@ const registerSchema = z
   );
 
 export default function RegisterForm() {
-  const [showPassword, setShowPassword] =
-    useState(false);
-
-  const [
-    showConfirmPassword,
-    setShowConfirmPassword,
-  ] = useState(false);
-
-  const [loading, setLoading] =
-    useState(false);
-
-  const {
-    register,
-    handleSubmit,
+  const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [serverError, setServerError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const {register, handleSubmit, reset,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(registerSchema),
+
     defaultValues: {
+      firstName: "",
+      lastName: "",
+      email: "",
+      phone: "",
+      password: "",
+      confirmPassword: "",
       terms: false,
     },
   });
 
-  const onSubmit = async (data) => {
+  const onSubmit = async (formData) => {
     try {
       setLoading(true);
+      setServerError("");
+      setSuccessMessage("");
 
-      console.log(data);
+      const payload = {
+        firstName:
+          formData.firstName.trim(),
 
-      // API Call
-      // const response = await registerApi(data)
+        lastName:
+          formData.lastName.trim(),
 
-      // navigate("/verify-email")
+        email:
+          formData.email.toLowerCase().trim(),
 
+        password: formData.password,
+
+        // Replace dynamically later
+        tenantId:
+          "6a2a8dce9c8155a526a0983c",
+
+        role: "SUPER_ADMIN",
+      };
+
+      const response =
+        await registerApi(payload);
+
+      if (!response?.success) {
+        throw new Error(
+          response?.message ||
+            "Registration failed"
+        );
+      }
+
+      setSuccessMessage(
+        "Account created successfully."
+      );
+
+      reset();
+
+      setTimeout(() => {
+        navigate("/login");
+      }, 1500);
     } catch (error) {
-      console.error(error);
+      setServerError(
+        error?.response?.data?.message || error?.message || "Registration failed"
+      );
     } finally {
       setLoading(false);
     }
@@ -95,8 +139,7 @@ export default function RegisterForm() {
       onSubmit={handleSubmit(onSubmit)}
       className="space-y-5"
     >
-      {/* First + Last Name */}
-
+      {/* Names */}
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="mb-2 block text-sm font-medium text-slate-300">
@@ -105,7 +148,6 @@ export default function RegisterForm() {
 
           <input
             type="text"
-            placeholder="Nitish"
             {...register("firstName")}
             className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-indigo-500"
           />
@@ -124,7 +166,6 @@ export default function RegisterForm() {
 
           <input
             type="text"
-            placeholder="Kumar"
             {...register("lastName")}
             className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-indigo-500"
           />
@@ -138,7 +179,6 @@ export default function RegisterForm() {
       </div>
 
       {/* Email */}
-
       <div>
         <label className="mb-2 block text-sm font-medium text-slate-300">
           Email Address
@@ -146,7 +186,6 @@ export default function RegisterForm() {
 
         <input
           type="email"
-          placeholder="john@example.com"
           {...register("email")}
           className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-indigo-500"
         />
@@ -159,7 +198,6 @@ export default function RegisterForm() {
       </div>
 
       {/* Phone */}
-
       <div>
         <label className="mb-2 block text-sm font-medium text-slate-300">
           Phone Number
@@ -167,7 +205,6 @@ export default function RegisterForm() {
 
         <input
           type="tel"
-          placeholder="+91 9876543210"
           {...register("phone")}
           className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-indigo-500"
         />
@@ -180,7 +217,6 @@ export default function RegisterForm() {
       </div>
 
       {/* Password */}
-
       <div>
         <label className="mb-2 block text-sm font-medium text-slate-300">
           Password
@@ -193,7 +229,6 @@ export default function RegisterForm() {
                 ? "text"
                 : "password"
             }
-            placeholder="Create password"
             {...register("password")}
             className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 pr-12 text-white outline-none focus:border-indigo-500"
           />
@@ -223,42 +258,20 @@ export default function RegisterForm() {
       </div>
 
       {/* Confirm Password */}
-
       <div>
         <label className="mb-2 block text-sm font-medium text-slate-300">
           Confirm Password
         </label>
 
-        <div className="relative">
-          <input
-            type={
-              showConfirmPassword
-                ? "text"
-                : "password"
-            }
-            placeholder="Confirm password"
-            {...register(
-              "confirmPassword"
-            )}
-            className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 pr-12 text-white outline-none focus:border-indigo-500"
-          />
-
-          <button
-            type="button"
-            onClick={() =>
-              setShowConfirmPassword(
-                !showConfirmPassword
-              )
-            }
-            className="absolute right-3 top-3 text-slate-400"
-          >
-            {showConfirmPassword ? (
-              <EyeOff size={20} />
-            ) : (
-              <Eye size={20} />
-            )}
-          </button>
-        </div>
+        <input
+          type={
+            showPassword
+              ? "text"
+              : "password"
+          }
+          {...register("confirmPassword")}
+          className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-indigo-500"
+        />
 
         {errors.confirmPassword && (
           <p className="mt-1 text-sm text-red-500">
@@ -271,7 +284,6 @@ export default function RegisterForm() {
       </div>
 
       {/* Terms */}
-
       <div>
         <label className="flex items-start gap-3 text-sm text-slate-400">
           <input
@@ -281,20 +293,8 @@ export default function RegisterForm() {
           />
 
           <span>
-            I agree to the{" "}
-            <Link
-              to="/terms"
-              className="text-indigo-400"
-            >
-              Terms of Service
-            </Link>{" "}
-            and{" "}
-            <Link
-              to="/privacy"
-              className="text-indigo-400"
-            >
-              Privacy Policy
-            </Link>
+            I agree to the Terms of Service
+            and Privacy Policy
           </span>
         </label>
 
@@ -305,12 +305,24 @@ export default function RegisterForm() {
         )}
       </div>
 
-      {/* Register Button */}
+      {/* Server Messages */}
+      {serverError && (
+        <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400">
+          {serverError}
+        </div>
+      )}
 
+      {successMessage && (
+        <div className="rounded-xl border border-green-500/20 bg-green-500/10 p-3 text-sm text-green-400">
+          {successMessage}
+        </div>
+      )}
+
+      {/* Submit */}
       <button
         type="submit"
         disabled={loading}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-70"
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 font-semibold text-white hover:bg-indigo-700 disabled:opacity-70"
       >
         {loading ? (
           <>
@@ -325,42 +337,11 @@ export default function RegisterForm() {
         )}
       </button>
 
-      {/* Divider */}
-
-      <div className="relative py-2">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-slate-700"></div>
-        </div>
-
-        <div className="relative flex justify-center">
-          <span className="bg-slate-900 px-4 text-sm text-slate-500">
-            OR
-          </span>
-        </div>
-      </div>
-
-      {/* Google Register */}
-
-      <button
-        type="button"
-        className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-white hover:bg-slate-700"
-      >
-        <img
-          src="https://www.svgrepo.com/show/475656/google-color.svg"
-          alt="google"
-          className="h-5 w-5"
-        />
-
-        Continue with Google
-      </button>
-
-      {/* Login Link */}
-
       <div className="text-center text-sm text-slate-400">
         Already have an account?{" "}
         <Link
           to="/login"
-          className="font-medium text-indigo-400 hover:text-indigo-300"
+          className="font-medium text-indigo-400"
         >
           Sign In
         </Link>
