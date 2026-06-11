@@ -100,9 +100,9 @@ reviewAnalyticsSchema.index({ isDeleted: 1 });
 
 // Auto-compute sentiment label from score
 reviewAnalyticsSchema.pre('save', async function (this: IReviewAnalytics) {
-  if (this.sentimentScore > 0.1) {
+  if (this.sentimentScore > 0.2) {
     this.sentimentLabel = SentimentLabel.POSITIVE;
-  } else if (this.sentimentScore < -0.1) {
+  } else if (this.sentimentScore < -0.2) {
     this.sentimentLabel = SentimentLabel.NEGATIVE;
   } else {
     this.sentimentLabel = SentimentLabel.NEUTRAL;

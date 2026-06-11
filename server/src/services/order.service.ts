@@ -163,6 +163,16 @@ export class OrderService {
         await orderItem.save({ session });
       }
 
+      // TODO: Future Analytics Integration Point - Order Placement
+      // Inside transaction session:
+      // await AnalyticsService.upsertDailyMetrics(
+      //   tenantId,
+      //   outletId,
+      //   new Date().toISOString().split('T')[0],
+      //   { totalOrders: 1, totalRevenue: Number(totalAmount) },
+      //   userId
+      // );
+
       await session.commitTransaction();
 
       // Dispatch ORDER_PLACED notification to all active tenant users
@@ -489,6 +499,16 @@ export class OrderService {
         },
         { new: true, session }
       );
+
+      // TODO: Future Analytics Integration Point - Order Cancellation
+      // Inside transaction session:
+      // await AnalyticsService.upsertDailyMetrics(
+      //   tenantId,
+      //   order.outletId.toString(),
+      //   new Date().toISOString().split('T')[0],
+      //   { cancelledOrders: 1, totalRevenue: -Number(order.totalAmount) },
+      //   userId
+      // );
 
       await session.commitTransaction();
 
