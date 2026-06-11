@@ -2,6 +2,7 @@ import bcrypt from 'bcrypt';
 import { Types } from 'mongoose';
 import User, { IUser } from '../models/user.model.js';
 import { UserStatus } from '../enums/enums.js';
+import { escapeRegex } from '../utils/sanitize.utils.js';
 
 export class UserService {
   /**
@@ -64,7 +65,8 @@ export class UserService {
     };
 
     if (filters.search) {
-      const regex = new RegExp(filters.search, 'i');
+      const safeSearch = escapeRegex(filters.search);
+      const regex = new RegExp(safeSearch, 'i');
       query.$or = [
         { firstName: { $regex: regex } },
         { lastName: { $regex: regex } },

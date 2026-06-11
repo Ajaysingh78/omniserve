@@ -144,11 +144,7 @@ export class RestaurantController {
          const restaurant = await RestaurantService.updateRestaurant(
             tenantId,
             restaurantId,
-            name,
-            description,
-            brandName,
-            gstNumber,
-            logoUrl
+            { name, description, brandName, gstNumber, logoUrl }
          );
 
          if (!restaurant) {
