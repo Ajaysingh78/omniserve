@@ -1,4 +1,5 @@
 import { NAV_ITEMS } from "../../../data/data";
+import { NavLink } from "react-router-dom";
 
 const SvgIcon = ({ d, size = 14, className = "" }) => (
   <svg
@@ -32,6 +33,20 @@ const IChevLeft = () => (
   </svg>
 );
 
+const pathMap = {
+  "Overview": "/dashboard",
+  "Online Orders": "/orders",
+  "Offline Orders": "/pos",
+  "Payment": "/subscriptions",
+  "Inventory": "/inventory",
+  "Procurement": "/inventory",
+  "CRM": "/dashboard",
+  "Staff": "/dashboard",
+  "WhatsApp": "/dashboard",
+  "Analytics": "/analytics",
+  "Settings": "/settings",
+};
+
 export function Sidebar({ collapsed, onToggle }) {
   return (
     <aside className={`sidebar${collapsed ? " collapsed" : ""}`}>
@@ -44,18 +59,23 @@ export function Sidebar({ collapsed, onToggle }) {
       </div>
 
       <nav className="nav">
-        {NAV_ITEMS.map((item) => (
-          <div
-            key={item.label}
-            className={`nav-item${item.active ? " active" : ""}`}
-          >
-            <SvgIcon d={item.icon} size={15} />
-            <span className="nav-label">{item.label}</span>
-            {item.badge && !collapsed && (
-              <span className="nav-badge">{item.badge}</span>
-            )}
-          </div>
-        ))}
+        {NAV_ITEMS.map((item) => {
+          const path = pathMap[item.label] || "/dashboard";
+          return (
+            <NavLink
+              key={item.label}
+              to={path}
+              className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}
+              style={{ textDecoration: "none" }}
+            >
+              <SvgIcon d={item.icon} size={15} />
+              <span className="nav-label">{item.label}</span>
+              {item.badge && !collapsed && (
+                <span className="nav-badge">{item.badge}</span>
+              )}
+            </NavLink>
+          );
+        })}
       </nav>
 
       <div className="collapse-btn" onClick={onToggle}>
@@ -73,3 +93,4 @@ export function Sidebar({ collapsed, onToggle }) {
     </aside>
   );
 }
+
