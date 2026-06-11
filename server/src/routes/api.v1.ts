@@ -8,6 +8,7 @@ import categoryRouter from "./category.route.js";
 import menuItemRouter from "./menuitem.route.js";
 import variantRouter from "./variant.route.js";
 import addonRouter from "./addon.route.js";
+import inventoryRouter from "./inventory.route.js";
 
 const router = Router();
 
@@ -19,5 +20,6 @@ router.use("/categories", categoryRouter);
 router.use("/menu-items", menuItemRouter);
 router.use("/variants", variantRouter);
 router.use("/addons", addonRouter);
+router.use("/inventory", inventoryRouter);
 
 export default router;
