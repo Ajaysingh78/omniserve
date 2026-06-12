@@ -9,6 +9,15 @@ const initialState = {
   refreshToken:
     localStorage.getItem("refreshToken") || null,
 
+  selectedOutlet:
+    (() => {
+      try {
+        return JSON.parse(localStorage.getItem("selectedOutlet")) || null;
+      } catch (e) {
+        return null;
+      }
+    })(),
+
   permissions: [],
 
   isAuthenticated: !!localStorage.getItem(
@@ -150,6 +159,22 @@ const authSlice = createSlice({
     },
 
     // ========================
+    // SET SELECTED OUTLET
+    // ========================
+
+    setSelectedOutlet: (
+      state,
+      action
+    ) => {
+      state.selectedOutlet = action.payload;
+      if (action.payload) {
+        localStorage.setItem("selectedOutlet", JSON.stringify(action.payload));
+      } else {
+        localStorage.removeItem("selectedOutlet");
+      }
+    },
+
+    // ========================
     // LOGOUT
     // ========================
 
@@ -159,6 +184,8 @@ const authSlice = createSlice({
       state.accessToken = null;
 
       state.refreshToken = null;
+
+      state.selectedOutlet = null;
 
       state.permissions = [];
 
@@ -175,6 +202,10 @@ const authSlice = createSlice({
       localStorage.removeItem(
         "refreshToken"
       );
+
+      localStorage.removeItem(
+        "selectedOutlet"
+      );
     },
   },
 });
@@ -187,6 +218,7 @@ export const {
   updateTokens,
   authFailure,
   clearAuthError,
+  setSelectedOutlet,
   logout,
 } = authSlice.actions;
 

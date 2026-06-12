@@ -1,5 +1,6 @@
 import { NAV_ITEMS } from "../../../data/data";
 import { NavLink } from "react-router-dom";
+import { useSelector } from "react-redux";
 
 const SvgIcon = ({ d, size = 14, className = "" }) => (
   <svg
@@ -40,7 +41,7 @@ const pathMap = {
   "Payment": "/subscriptions",
   "Inventory": "/inventory",
   "Procurement": "/inventory",
-  "CRM": "/dashboard",
+  "CRM": "/crm",
   "Staff": "/dashboard",
   "WhatsApp": "/dashboard",
   "Analytics": "/analytics",
@@ -48,6 +49,9 @@ const pathMap = {
 };
 
 export function Sidebar({ collapsed, onToggle }) {
+  const user = useSelector((state) => state.auth.user);
+  const isAdminOrOwner = user?.role === "SUPER_ADMIN" || user?.role === "RESTAURANT_OWNER";
+
   return (
     <aside className={`sidebar${collapsed ? " collapsed" : ""}`}>
       <div className="logo">
@@ -76,6 +80,30 @@ export function Sidebar({ collapsed, onToggle }) {
             </NavLink>
           );
         })}
+
+        {isAdminOrOwner && (
+          <>
+            <div style={{ height: 1, background: "var(--border)", margin: "10px 4px" }} />
+            
+            <NavLink
+              to="/audit-logs"
+              className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}
+              style={{ textDecoration: "none" }}
+            >
+              <SvgIcon d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" size={15} />
+              <span className="nav-label">Audit Logs</span>
+            </NavLink>
+
+            <NavLink
+              to="/webhooks"
+              className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}
+              style={{ textDecoration: "none" }}
+            >
+              <SvgIcon d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" size={15} />
+              <span className="nav-label">Webhook Logs</span>
+            </NavLink>
+          </>
+        )}
       </nav>
 
       <div className="collapse-btn" onClick={onToggle}>

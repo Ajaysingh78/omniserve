@@ -1,30 +1,47 @@
-const menuItems = [
-  // Appetizers
-  { id: "A1", name: "Spring Rolls", price: 180, category: "Appetizers", stock: 12, tags: ["Veg"] },
-  { id: "A2", name: "Paneer Tikka", price: 250, category: "Appetizers", stock: 4, tags: ["Veg", "Spicy"] },
-  { id: "A3", name: "Veg Manchurian", price: 210, category: "Appetizers", stock: 0, tags: ["Veg"] },
-  { id: "A4", name: "French Fries", price: 120, category: "Appetizers", stock: 35, tags: ["Veg"] },
+import { useState, useEffect } from "react";
+import axiosInstance from "@/services/axios";
 
-  // Mains
-  { id: "M1", name: "Paneer Tikka Masala", price: 280, category: "Mains", stock: 20, tags: ["Veg", "Popular"] },
-  { id: "M2", name: "Dal Makhani", price: 240, category: "Mains", stock: 18, tags: ["Veg"] },
-  { id: "M3", name: "Chicken Biryani", price: 320, category: "Mains", stock: 6, tags: ["Non-Veg", "Popular"] },
-  { id: "M4", name: "Veg Fried Rice", price: 190, category: "Mains", stock: 15, tags: ["Veg"] },
+export default function POSMenuGrid({ categoryId, outletId, search, onSelectItem }) {
+  const [menuItems, setMenuItems] = useState([]);
+  const [inventoryMap, setInventoryMap] = useState({});
+  const [loading, setLoading] = useState(false);
 
-  // Desserts
-  { id: "D1", name: "Gulab Jamun", price: 90, category: "Desserts", stock: 40, tags: ["Veg", "Sweet"] },
-  { id: "D2", name: "Rasmalai", price: 110, category: "Desserts", stock: 2, tags: ["Veg", "Low Stock"] },
-  { id: "D3", name: "Brownie with Ice Cream", price: 160, category: "Desserts", stock: 10, tags: ["Veg"] },
+  useEffect(() => {
+    if (!outletId) return;
 
-  // Drinks
-  { id: "DR1", name: "Masala Chai", price: 40, category: "Drinks", stock: 50, tags: ["Veg"] },
-  { id: "DR2", name: "Mango Lassi", price: 90, category: "Drinks", stock: 14, tags: ["Veg"] },
-  { id: "DR3", name: "Fresh Lime Soda", price: 70, category: "Drinks", stock: 30, tags: ["Veg"] },
-];
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // Fetch menu items for this outlet
+        const itemsRes = await axiosInstance.get(`/menu-items?outletId=${outletId}&limit=100`);
+        const fetchedItems = itemsRes.data?.data?.menuItems || [];
+        setMenuItems(fetchedItems);
 
-export default function POSMenuGrid({ category, search, onSelectItem }) {
+        // Fetch inventory for this outlet
+        const invRes = await axiosInstance.get(`/inventory?outletId=${outletId}&limit=100`);
+        const fetchedInv = invRes.data?.data?.inventory || [];
+        
+        // Map menuItemId -> quantity
+        const invMap = {};
+        fetchedInv.forEach((inv) => {
+          const mId = inv.menuItemId?._id || inv.menuItemId?.id || inv.menuItemId;
+          if (mId) {
+            invMap[mId] = inv.quantity;
+          }
+        });
+        setInventoryMap(invMap);
+      } catch (err) {
+        console.error("Failed to load catalog menu items or inventory", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [outletId]);
+
   const filtered = menuItems.filter((item) => {
-    if (category !== "All" && item.category !== category) return false;
+    if (categoryId !== "All" && item.categoryId !== categoryId) return false;
     if (search.trim() !== "") {
       const matches = item.name.toLowerCase().includes(search.toLowerCase());
       if (!matches) return false;
@@ -47,14 +64,19 @@ export default function POSMenuGrid({ category, search, onSelectItem }) {
         .tag-out { color: var(--red); border: 1px solid var(--red); background: rgba(239,68,68,.1); }
       `}</style>
 
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div style={{ gridColumn: "1/-1", padding: 24, textAlign: "center", color: "var(--text3)" }}>
+          Loading menu items…
+        </div>
+      ) : filtered.length === 0 ? (
         <div style={{ gridColumn: "1/-1", padding: 24, textAlign: "center", color: "var(--text3)" }}>
           No menu items found.
         </div>
       ) : (
         filtered.map((item) => {
-          const isVeg = item.tags.includes("Veg");
-          const isOutOfStock = item.stock === 0;
+          const isVeg = item.isVeg;
+          const stock = inventoryMap[item.id] !== undefined ? inventoryMap[item.id] : (item.isAvailable ? 99 : 0);
+          const isOutOfStock = stock === 0 || !item.isAvailable;
 
           return (
             <div 
@@ -68,7 +90,7 @@ export default function POSMenuGrid({ category, search, onSelectItem }) {
                   <span className={isVeg ? "tag-veg" : "tag-non-veg"}>
                     {isVeg ? "VEG" : "NON-VEG"}
                   </span>
-                  {item.stock < 5 && item.stock > 0 && <span className="tag-other" style={{ color: "var(--amber)", borderColor: "var(--amber)" }}>LOW STOCK</span>}
+                  {stock < 5 && stock > 0 && <span className="tag-other" style={{ color: "var(--amber)", borderColor: "var(--amber)" }}>LOW STOCK</span>}
                 </div>
                 <div className="pos-item-name">{item.name}</div>
               </div>
@@ -76,7 +98,7 @@ export default function POSMenuGrid({ category, search, onSelectItem }) {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
                 <span className="pos-item-price">₹{item.price}</span>
                 <span className="pos-item-stock">
-                  {isOutOfStock ? <span className="tag-veg tag-out">OUT</span> : `Stock: ${item.stock}`}
+                  {isOutOfStock ? <span className="tag-veg tag-out">OUT</span> : `Stock: ${stock}`}
                 </span>
               </div>
             </div>

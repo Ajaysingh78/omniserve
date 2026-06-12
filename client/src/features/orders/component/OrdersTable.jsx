@@ -1,13 +1,10 @@
 import { useState } from "react";
 
 const CH_COLORS = {
-  Swiggy: "badge-amber",
-  Zomato: "badge-red",
-  ONDC: "badge-purple",
-  Website: "badge-blue",
-  App: "badge-blue",
-  WhatsApp: "badge-green",
-  Call: "badge-gray",
+  DINE_IN: "badge-blue",
+  TAKEAWAY: "badge-green",
+  DELIVERY: "badge-purple",
+  ONLINE: "badge-amber",
 };
 
 export default function OrdersTable({ orders, onSelectOrder }) {
@@ -43,45 +40,43 @@ export default function OrdersTable({ orders, onSelectOrder }) {
         <table className="data-table">
           <thead>
             <tr>
-              <th>Order ID</th>
+              <th>Order Number</th>
               <th>Customer</th>
-              <th>Channel</th>
+              <th>Channel Source</th>
               <th>Items</th>
               <th>Bill Amount</th>
-              <th>Paid</th>
-              <th>Type</th>
-              <th>Priority</th>
-              <th>Status</th>
+              <th>Payment Status</th>
+              <th>Date Placed</th>
+              <th>Order Status</th>
             </tr>
           </thead>
           <tbody>
             {displayedOrders.map((o) => {
-              const chVariant = CH_COLORS[o.ch] || "badge-gray";
-              const priorityClass = o.pr === "high" ? "badge-red" : o.pr === "med" ? "badge-amber" : "badge-gray";
-              const paidClass = o.paid ? "badge-green" : "badge-amber";
+              const chVariant = CH_COLORS[o.source] || "badge-gray";
+              const paidClass = o.paymentStatus === "PAID" ? "badge-green" : "badge-amber";
+              const customerName = o.customerId 
+                ? `${o.customerId.firstName} ${o.customerId.lastName || ""}`
+                : "Walk-in Customer";
 
               return (
                 <tr key={o.id} onClick={() => onSelectOrder(o)}>
-                  <td style={{ fontWeight: 700 }}>{o.id}</td>
-                  <td>{o.name}</td>
+                  <td style={{ fontWeight: 700 }}>{o.orderNumber || o.id}</td>
+                  <td>{customerName}</td>
                   <td>
-                    <span className={`badge ${chVariant}`}>{o.ch}</span>
+                    <span className={`badge ${chVariant}`}>{o.source}</span>
                   </td>
                   <td>
-                    {o.items?.map((item) => `${item.name} x${item.qty}`).join(", ") || "No Items"}
+                    {o.items?.map((item) => `${item.name} x${item.quantity}`).join(", ") || "Click to view items"}
                   </td>
-                  <td style={{ fontWeight: 600 }}>₹{o.val.toLocaleString()}</td>
+                  <td style={{ fontWeight: 600 }}>₹{o.totalAmount?.toLocaleString() || "0"}</td>
                   <td>
-                    <span className={`badge ${paidClass}`}>{o.paid ? "Paid" : "Pending"}</span>
+                    <span className={`badge ${paidClass}`}>{o.paymentStatus}</span>
                   </td>
-                  <td>
-                    <span className="badge badge-gray">{o.delivery}</span>
-                  </td>
-                  <td>
-                    <span className={`badge ${priorityClass}`}>{o.pr.toUpperCase()}</span>
+                  <td style={{ fontSize: 11.5 }}>
+                    {o.createdAt ? new Date(o.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : "N/A"}
                   </td>
                   <td>
-                    <span className="badge badge-blue">{o.col.toUpperCase()}</span>
+                    <span className="badge badge-blue">{o.orderStatus}</span>
                   </td>
                 </tr>
               );

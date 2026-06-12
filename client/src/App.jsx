@@ -17,6 +17,9 @@ import OfflinePOSPage from "./features/orders/pages/OfflinePOSPage";
 import InventoryDashboard from "./features/inventory/pages/InventoryDashboard";
 import AnalyticsPage from "./features/analytics/pages/AnalyticsPage";
 import PlanManagement from "./features/subscriptions/pages/PlanManagement";
+import AuditLogsPage from "./features/admin/pages/AuditLogsPage";
+import WebhookLogsPage from "./features/admin/pages/WebhookLogsPage";
+import CustomerDirectory from "./features/crm/pages/CustomerDirectory";
 
 // Guard rails
 import ProtectedRoute from "./features/auth/component/ProtectedRoute";
@@ -48,23 +51,38 @@ export default function App() {
               <Route path="/analytics" element={<AnalyticsPage />} />
               <Route path="/subscriptions" element={<PlanManagement />} />
               <Route path="/settings" element={<OwnerDashboard />} />
+              <Route path="/crm" element={<CustomerDirectory />} />
+              <Route path="/audit-logs" element={<AuditLogsPage />} />
+              <Route path="/webhooks" element={<WebhookLogsPage />} />
 
               {/* Super Admin Area */}
-              <Route 
-                path="/super-admin" 
+              <Route
+                path="/super-admin"
                 element={
-                  <RoleGuard allowedRoles={["superAdmin"]}>
+                  <RoleGuard allowedRoles={["SUPER_ADMIN"]}>
                     <SuperAdminDashboard />
                   </RoleGuard>
-                } 
+                }
               />
 
               {/* Unauthorized Redirect */}
-              <Route path="/unauthorized" element={
-                <div style={{ padding: 40, textAlign: "center", color: "var(--red)", fontSize: 16, fontWeight: 600 }}>
-                  Unauthorized Access. You do not have permission to view this page.
-                </div>
-              } />
+              <Route
+                path="/unauthorized"
+                element={
+                  <div
+                    style={{
+                      padding: 40,
+                      textAlign: "center",
+                      color: "var(--red)",
+                      fontSize: 16,
+                      fontWeight: 600,
+                    }}
+                  >
+                    Unauthorized Access. You do not have permission to view this
+                    page.
+                  </div>
+                }
+              />
             </Route>
           </Route>
 
