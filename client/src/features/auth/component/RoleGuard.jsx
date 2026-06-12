@@ -8,7 +8,7 @@ export default function RoleGuard({ allowedRoles, children }) {
     return <Navigate to="/login" replace />;
   }
 
-  const role = user.role; // e.g. 'superAdmin', 'restaurantOwner', 'outletManager', 'kitchenStaff'
+  const role = user.role; // e.g. 'SUPER_ADMIN', 'RESTAURANT_OWNER', 'OUTLET_MANAGER', 'STAFF'
 
   if (!allowedRoles.includes(role)) {
     return <Navigate to="/dashboard" replace />;

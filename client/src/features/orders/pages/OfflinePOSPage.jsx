@@ -1,40 +1,83 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
 import POSMenuGrid from "../component/POSMenuGrid";
+import axiosInstance from "@/services/axios";
 import toast from "react-hot-toast";
 
-const categories = ["All", "Appetizers", "Mains", "Desserts", "Drinks"];
-
 export default function OfflinePOSPage() {
+  const selectedOutlet = useSelector((state) => state.auth.selectedOutlet);
+
+  const [categories, setCategories] = useState([{ id: "All", name: "All" }]);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [search, setSearch] = useState("");
   const [cart, setCart] = useState([]);
   
   // Customization modal state
   const [customizingItem, setCustomizingItem] = useState(null);
-  const [selectedVariant, setSelectedVariant] = useState("Regular");
+  const [selectedVariant, setSelectedVariant] = useState(null);
   const [selectedAddons, setSelectedAddons] = useState([]);
   
   // Discount percentage
   const [discount, setDiscount] = useState(0);
+  const [checkingOut, setCheckingOut] = useState(false);
 
-  // Trigger modal or immediately add to cart
-  const handleSelectItem = (item) => {
-    // If it's a main dish or sweet, show customization modal for premium look
-    if (item.category === "Mains" || item.id === "A2") {
-      setCustomizingItem(item);
-      setSelectedVariant("Regular");
-      setSelectedAddons([]);
-    } else {
-      addToCart(item, "Regular", []);
+  // Fetch categories when outlet changes
+  useEffect(() => {
+    if (!selectedOutlet) return;
+    const fetchCategories = async () => {
+      try {
+        const res = await axiosInstance.get(`/categories?outletId=${selectedOutlet.id}`);
+        if (res.data && res.data.data && res.data.data.categories) {
+          setCategories([{ id: "All", name: "All" }, ...res.data.data.categories]);
+          setSelectedCategory("All");
+        }
+      } catch (err) {
+        console.error("Failed to load categories for POS page", err);
+      }
+    };
+    fetchCategories();
+  }, [selectedOutlet]);
+
+  // Fetch complete item details (including variants/addons) on selection
+  const handleSelectItem = async (item) => {
+    const loadingToast = toast.loading("Loading customizations…");
+    try {
+      const res = await axiosInstance.get(`/menu-items/${item.id}`);
+      toast.dismiss(loadingToast);
+      if (res.data && res.data.data) {
+        const itemDetails = res.data.data;
+        const hasVariants = itemDetails.variants && itemDetails.variants.length > 0;
+        const hasAddons = itemDetails.addons && itemDetails.addons.length > 0;
+
+        if (hasVariants || hasAddons) {
+          setCustomizingItem(itemDetails);
+          setSelectedVariant(hasVariants ? itemDetails.variants[0] : null);
+          setSelectedAddons([]);
+        } else {
+          addToCart(itemDetails, null, []);
+        }
+      }
+    } catch (err) {
+      toast.dismiss(loadingToast);
+      console.error("Failed to load item details", err);
+      // Fallback directly to cart using basic item properties
+      addToCart(item, null, []);
     }
   };
 
   const addToCart = (item, variant, addons) => {
-    const cartItemId = `${item.id}-${variant}-${addons.sort().join("-")}`;
+    const variantId = variant ? variant.id : "base";
+    const addonIds = addons.map((a) => a.id).sort().join("-");
+    const cartItemId = `${item.id}-${variantId}-${addonIds}`;
     
     // Addon pricing
-    const addonsPrice = addons.length * 30; // ₹30 flat per addon
-    const itemUnitPrice = item.price + addonsPrice;
+    const addonsPrice = addons.reduce((sum, a) => sum + a.price, 0);
+    const itemUnitPrice = (variant ? variant.price : item.price) + addonsPrice;
+
+    // Display Name building
+    const displayName = `${item.name}${variant ? ` (${variant.name})` : ""}${
+      addons.length ? ` + ${addons.map((a) => a.name).join(", ")}` : ""
+    }`;
 
     setCart((prevCart) => {
       const existing = prevCart.find((ci) => ci.cartItemId === cartItemId);
@@ -48,10 +91,12 @@ export default function OfflinePOSPage() {
         {
           cartItemId,
           id: item.id,
-          name: `${item.name} (${variant}${addons.length ? `, +${addons.join(", ")}` : ""})`,
+          name: displayName,
           basePrice: item.price,
           unitPrice: itemUnitPrice,
           qty: 1,
+          variant,
+          addons,
         }
       ];
     });
@@ -76,12 +121,6 @@ export default function OfflinePOSPage() {
     );
   };
 
-  const toggleAddon = (addon) => {
-    setSelectedAddons(prev => 
-      prev.includes(addon) ? prev.filter(a => a !== addon) : [...prev, addon]
-    );
-  };
-
   // Billing math
   const subtotal = cart.reduce((sum, item) => sum + (item.unitPrice * item.qty), 0);
   const discountAmount = (subtotal * discount) / 100;
@@ -89,15 +128,97 @@ export default function OfflinePOSPage() {
   const gst = taxableAmount * 0.05; // 5% GST
   const total = taxableAmount + gst;
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (cart.length === 0) {
       toast.error("Cart is empty!");
       return;
     }
-    toast.success(`Bill generated! Total: ₹${total.toFixed(2)}`);
-    setCart([]);
-    setDiscount(0);
+
+    setCheckingOut(true);
+    const loadingToast = toast.loading("Processing checkout...");
+
+    try {
+      // 1. Create or upsert a Walk-in Customer record
+      const customerRes = await axiosInstance.post("/customers", {
+        firstName: "Walk-in",
+        lastName: "Customer",
+        phone: "9999999999",
+      });
+
+      const customerId = customerRes.data?.data?.id;
+      if (!customerId) {
+        throw new Error("Failed to resolve customer ID from backend");
+      }
+
+      // 2. Place Order
+      const orderPayload = {
+        outletId: selectedOutlet.id,
+        customerId: customerId,
+        source: "TAKEAWAY",
+        subtotal: parseFloat(subtotal.toFixed(2)),
+        tax: parseFloat(gst.toFixed(2)),
+        discount: parseFloat(discountAmount.toFixed(2)),
+        totalAmount: parseFloat(total.toFixed(2)),
+        items: cart.map((item) => ({
+          menuItemId: item.id,
+          name: item.name,
+          quantity: item.qty,
+          unitPrice: item.unitPrice,
+          variantId: item.variant?.id || undefined,
+          addons: item.addons?.map((a) => ({
+            addonId: a.id,
+            name: a.name,
+            price: a.price,
+          })) || [],
+        })),
+      };
+
+      const orderRes = await axiosInstance.post("/orders", orderPayload);
+      const orderId = orderRes.data?.data?.id;
+      const orderNumber = orderRes.data?.data?.orderNumber;
+      if (!orderId) {
+        throw new Error("Failed to place order on backend");
+      }
+
+      // 3. Process payment
+      await axiosInstance.post("/payments", {
+        orderId: orderId,
+        transactionId: `TXN-POS-${Date.now()}`,
+        paymentMethod: "COD",
+        amount: parseFloat(total.toFixed(2)),
+      });
+
+      // 4. Update status to ACCEPTED
+      try {
+        await axiosInstance.patch(`/orders/${orderId}/status`, {
+          orderStatus: "ACCEPTED",
+        });
+      } catch (err) {
+        console.warn("Failed to automatically update order status to ACCEPTED", err);
+      }
+
+      toast.dismiss(loadingToast);
+      toast.success(`Order #${orderNumber || ""} settled and placed!`);
+      setCart([]);
+      setDiscount(0);
+    } catch (err) {
+      toast.dismiss(loadingToast);
+      console.error(err);
+      toast.error(err.response?.data?.message || err.message || "Checkout failed");
+    } finally {
+      setCheckingOut(false);
+    }
   };
+
+  if (!selectedOutlet) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "calc(100vh - 92px)", color: "var(--text3)", gap: 10 }}>
+        <div style={{ fontSize: 32 }}>🏪</div>
+        <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text)" }}>No Active Outlet Selected</div>
+        <div style={{ fontSize: 13, maxWidth: 300, textAlign: "center" }}>Please select an active outlet from the header dropdown to start taking POS orders.</div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 360px", gap: 16, height: "calc(100vh - 92px)", overflow: "hidden" }}>
@@ -129,7 +250,7 @@ export default function OfflinePOSPage() {
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
           <div>
             <div className="page-title">Offline Point of Sale</div>
-            <div className="page-sub">Generate and settle tables or walks quickly.</div>
+            <div className="page-sub">Generate and settle tables or walks quickly for {selectedOutlet.name}.</div>
           </div>
           <input 
             type="text" 
@@ -145,18 +266,23 @@ export default function OfflinePOSPage() {
         <div className="pos-category-row">
           {categories.map((c) => (
             <button 
-              key={c}
-              className={`btn${selectedCategory === c ? " primary" : ""}`}
-              onClick={() => setSelectedCategory(c)}
+              key={c.id}
+              className={`btn${selectedCategory === c.id ? " primary" : ""}`}
+              onClick={() => setSelectedCategory(c.id)}
             >
-              {c}
+              {c.name}
             </button>
           ))}
         </div>
 
         {/* Menu Grid */}
         <div style={{ flex: 1, overflowY: "auto", paddingBottom: 16 }}>
-          <POSMenuGrid category={selectedCategory} search={search} onSelectItem={handleSelectItem} />
+          <POSMenuGrid 
+            categoryId={selectedCategory} 
+            outletId={selectedOutlet.id} 
+            search={search} 
+            onSelectItem={handleSelectItem} 
+          />
         </div>
       </div>
 
@@ -220,8 +346,9 @@ export default function OfflinePOSPage() {
             className="btn primary" 
             style={{ width: "100%", padding: "10px", marginTop: 8, fontSize: 13, fontWeight: 700 }}
             onClick={handleCheckout}
+            disabled={checkingOut}
           >
-            Settle & Checkout (Cash/UPI)
+            {checkingOut ? "Settling..." : "Settle & Checkout (Cash/UPI)"}
           </button>
         </div>
       </div>
@@ -239,40 +366,49 @@ export default function OfflinePOSPage() {
             </div>
             <div className="pos-modal-body">
               {/* Variants */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text3)", textTransform: "uppercase" }}>Select Size Variant</span>
+              {customizingItem.variants && customizingItem.variants.length > 0 && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {["Regular", "Large (+₹50)"].map((v) => (
-                    <div 
-                      key={v}
-                      className={`variant-option${(v.startsWith("Regular") && selectedVariant === "Regular") || (v.startsWith("Large") && selectedVariant === "Large") ? " selected" : ""}`}
-                      onClick={() => setSelectedVariant(v.startsWith("Regular") ? "Regular" : "Large")}
-                    >
-                      <span>{v}</span>
-                    </div>
-                  ))}
+                  <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text3)", textTransform: "uppercase" }}>Select Size Variant</span>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {customizingItem.variants.map((v) => (
+                      <div 
+                        key={v.id}
+                        className={`variant-option${selectedVariant?.id === v.id ? " selected" : ""}`}
+                        onClick={() => setSelectedVariant(v)}
+                      >
+                        <span>{v.name}</span>
+                        <span style={{ fontWeight: 600 }}>₹{v.price}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Addons */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text3)", textTransform: "uppercase" }}>Addons (₹30 each)</span>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  {["Extra Cheese", "Extra Paneer", "Extra Spices", "Butter Dip"].map((a) => {
-                    const isChecked = selectedAddons.includes(a);
-                    return (
-                      <button 
-                        key={a}
-                        onClick={() => toggleAddon(a)}
-                        className={`btn${isChecked ? " primary" : ""}`}
-                        style={{ fontSize: 11.5, padding: "5px 10px" }}
-                      >
-                        {a}
-                      </button>
-                    );
-                  })}
+              {customizingItem.addons && customizingItem.addons.length > 0 && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text3)", textTransform: "uppercase" }}>Addons</span>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {customizingItem.addons.map((a) => {
+                      const isChecked = selectedAddons.some((sa) => sa.id === a.id);
+                      return (
+                        <button 
+                          key={a.id}
+                          onClick={() => {
+                            setSelectedAddons(prev => 
+                              isChecked ? prev.filter((sa) => sa.id !== a.id) : [...prev, a]
+                            );
+                          }}
+                          className={`btn${isChecked ? " primary" : ""}`}
+                          style={{ fontSize: 11.5, padding: "5px 10px" }}
+                        >
+                          {a.name} (+₹{a.price})
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
             <div className="pos-modal-footer">
               <button className="btn" onClick={() => setCustomizingItem(null)}>Cancel</button>

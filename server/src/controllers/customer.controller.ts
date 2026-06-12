@@ -1,7 +1,7 @@
-import { Request, Response } from 'express';
-import { Types } from 'mongoose';
-import { CustomerService } from '../services/customer.service.js';
-import { ApiResponseHandler } from '../utils/response.handler.js';
+import { Request, Response } from "express";
+import { Types } from "mongoose";
+import { CustomerService } from "../services/customer.service.js";
+import { ApiResponseHandler } from "../utils/response.handler.js";
 
 export class CustomerController {
   // Regex patterns from the customer model
@@ -14,19 +14,33 @@ export class CustomerController {
    */
   private static validateAddressPayload(res: Response, address: any): boolean {
     if (address.pincode && !this.PINCODE_REGEX.test(address.pincode)) {
-      ApiResponseHandler.badRequest(res, 'Please provide a valid 6-digit pincode');
+      ApiResponseHandler.badRequest(
+        res,
+        "Please provide a valid 6-digit pincode",
+      );
       return false;
     }
 
     if (address.location) {
       const { type, coordinates } = address.location;
-      if (type && type !== 'Point') {
-        ApiResponseHandler.badRequest(res, 'Address location type must be Point');
+      if (type && type !== "Point") {
+        ApiResponseHandler.badRequest(
+          res,
+          "Address location type must be Point",
+        );
         return false;
       }
       if (coordinates) {
-        if (!Array.isArray(coordinates) || coordinates.length !== 2 || isNaN(coordinates[0]) || isNaN(coordinates[1])) {
-          ApiResponseHandler.badRequest(res, 'Address location coordinates must be an array of two numbers [longitude, latitude]');
+        if (
+          !Array.isArray(coordinates) ||
+          coordinates.length !== 2 ||
+          isNaN(coordinates[0]) ||
+          isNaN(coordinates[1])
+        ) {
+          ApiResponseHandler.badRequest(
+            res,
+            "Address location coordinates must be an array of two numbers [longitude, latitude]",
+          );
           return false;
         }
       }
@@ -41,7 +55,10 @@ export class CustomerController {
   static async upsertCustomer(req: Request, res: Response): Promise<void> {
     try {
       if (!req.user?.tenantId) {
-        ApiResponseHandler.unauthorized(res, 'User not authenticated or tenantId not found');
+        ApiResponseHandler.unauthorized(
+          res,
+          "User not authenticated or tenantId not found",
+        );
         return;
       }
 
@@ -49,32 +66,53 @@ export class CustomerController {
 
       // Validate required fields
       if (!firstName || !phone) {
-        ApiResponseHandler.badRequest(res, 'firstName and phone are required');
+        ApiResponseHandler.badRequest(res, "firstName and phone are required");
         return;
       }
 
-      if (typeof firstName !== 'string' || firstName.trim().length === 0 || firstName.length > 50) {
-        ApiResponseHandler.badRequest(res, 'firstName must be a non-empty string and under 50 characters');
+      if (
+        typeof firstName !== "string" ||
+        firstName.trim().length === 0 ||
+        firstName.length > 50
+      ) {
+        ApiResponseHandler.badRequest(
+          res,
+          "firstName must be a non-empty string and under 50 characters",
+        );
         return;
       }
 
-      if (lastName && (typeof lastName !== 'string' || lastName.trim().length === 0 || lastName.length > 50)) {
-        ApiResponseHandler.badRequest(res, 'lastName must be a non-empty string and under 50 characters');
+      if (
+        lastName &&
+        (typeof lastName !== "string" ||
+          lastName.trim().length === 0 ||
+          lastName.length > 50)
+      ) {
+        ApiResponseHandler.badRequest(
+          res,
+          "lastName must be a non-empty string and under 50 characters",
+        );
         return;
       }
 
-      if (!this.PHONE_REGEX.test(phone)) {
-        ApiResponseHandler.badRequest(res, 'Please provide a valid phone number');
+      if (!CustomerController.PHONE_REGEX.test(phone)) {
+        ApiResponseHandler.badRequest(
+          res,
+          "Please provide a valid phone number",
+        );
         return;
       }
 
-      if (email && !this.EMAIL_REGEX.test(email)) {
-        ApiResponseHandler.badRequest(res, 'Please provide a valid email address');
+      if (email && !CustomerController.EMAIL_REGEX.test(email)) {
+        ApiResponseHandler.badRequest(
+          res,
+          "Please provide a valid email address",
+        );
         return;
       }
 
       // Address structure validation if provided
-      if (address && !this.validateAddressPayload(res, address)) {
+      if (address && !CustomerController.validateAddressPayload(res, address)) {
         return;
       }
 
@@ -89,11 +127,13 @@ export class CustomerController {
       const { customer, isNew } = await CustomerService.upsertCustomer(
         req.user.tenantId,
         customerData,
-        req.user.userId
+        req.user.userId,
       );
 
       const responseCode = isNew ? 201 : 200;
-      const responseMessage = isNew ? 'Customer created successfully' : 'Customer updated successfully';
+      const responseMessage = isNew
+        ? "Customer created successfully"
+        : "Customer updated successfully";
 
       ApiResponseHandler.success(res, responseCode, responseMessage, {
         id: customer._id,
@@ -109,7 +149,10 @@ export class CustomerController {
         updatedAt: customer.updatedAt,
       });
     } catch (error: any) {
-      ApiResponseHandler.badRequest(res, error.message || 'Failed to upsert customer');
+      ApiResponseHandler.badRequest(
+        res,
+        error.message || "Failed to upsert customer",
+      );
     }
   }
 
@@ -120,7 +163,10 @@ export class CustomerController {
   static async listCustomers(req: Request, res: Response): Promise<void> {
     try {
       if (!req.user?.tenantId) {
-        ApiResponseHandler.unauthorized(res, 'User not authenticated or tenantId not found');
+        ApiResponseHandler.unauthorized(
+          res,
+          "User not authenticated or tenantId not found",
+        );
         return;
       }
 
@@ -129,15 +175,21 @@ export class CustomerController {
       const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
       const skip = (page - 1) * limit;
 
-      const filters: { limit: number; skip: number; search?: string } = { limit, skip };
+      const filters: { limit: number; skip: number; search?: string } = {
+        limit,
+        skip,
+      };
       if (search && search.trim().length > 0) {
         filters.search = search.trim();
       }
 
-      const { customers, total } = await CustomerService.getCustomers(req.user.tenantId, filters);
+      const { customers, total } = await CustomerService.getCustomers(
+        req.user.tenantId,
+        filters,
+      );
 
-      ApiResponseHandler.success(res, 200, 'Customers retrieved successfully', {
-        customers: customers.map(c => ({
+      ApiResponseHandler.success(res, 200, "Customers retrieved successfully", {
+        customers: customers.map((c) => ({
           id: c._id,
           firstName: c.firstName,
           lastName: c.lastName,
@@ -158,7 +210,10 @@ export class CustomerController {
         },
       });
     } catch (error: any) {
-      ApiResponseHandler.internalError(res, error.message || 'Failed to list customers');
+      ApiResponseHandler.internalError(
+        res,
+        error.message || "Failed to list customers",
+      );
     }
   }
 
@@ -169,37 +224,51 @@ export class CustomerController {
   static async getCustomerById(req: Request, res: Response): Promise<void> {
     try {
       if (!req.user?.tenantId) {
-        ApiResponseHandler.unauthorized(res, 'User not authenticated or tenantId not found');
+        ApiResponseHandler.unauthorized(
+          res,
+          "User not authenticated or tenantId not found",
+        );
         return;
       }
 
       const { id } = req.params as { id: string };
       if (!Types.ObjectId.isValid(id)) {
-        ApiResponseHandler.badRequest(res, 'Invalid customer ID format');
+        ApiResponseHandler.badRequest(res, "Invalid customer ID format");
         return;
       }
 
-      const customer = await CustomerService.getCustomerById(id, req.user.tenantId);
+      const customer = await CustomerService.getCustomerById(
+        id,
+        req.user.tenantId,
+      );
       if (!customer) {
-        ApiResponseHandler.notFound(res, 'Customer not found');
+        ApiResponseHandler.notFound(res, "Customer not found");
         return;
       }
 
-      ApiResponseHandler.success(res, 200, 'Customer details retrieved successfully', {
-        id: customer._id,
-        firstName: customer.firstName,
-        lastName: customer.lastName,
-        fullName: customer.fullName,
-        phone: customer.phone,
-        email: customer.email,
-        totalOrders: customer.totalOrders,
-        totalSpent: customer.totalSpent,
-        address: customer.address,
-        createdAt: customer.createdAt,
-        updatedAt: customer.updatedAt,
-      });
+      ApiResponseHandler.success(
+        res,
+        200,
+        "Customer details retrieved successfully",
+        {
+          id: customer._id,
+          firstName: customer.firstName,
+          lastName: customer.lastName,
+          fullName: customer.fullName,
+          phone: customer.phone,
+          email: customer.email,
+          totalOrders: customer.totalOrders,
+          totalSpent: customer.totalSpent,
+          address: customer.address,
+          createdAt: customer.createdAt,
+          updatedAt: customer.updatedAt,
+        },
+      );
     } catch (error: any) {
-      ApiResponseHandler.internalError(res, error.message || 'Failed to retrieve customer');
+      ApiResponseHandler.internalError(
+        res,
+        error.message || "Failed to retrieve customer",
+      );
     }
   }
 
@@ -210,40 +279,64 @@ export class CustomerController {
   static async updateCustomer(req: Request, res: Response): Promise<void> {
     try {
       if (!req.user?.tenantId) {
-        ApiResponseHandler.unauthorized(res, 'User not authenticated or tenantId not found');
+        ApiResponseHandler.unauthorized(
+          res,
+          "User not authenticated or tenantId not found",
+        );
         return;
       }
 
       const { id } = req.params as { id: string };
       if (!Types.ObjectId.isValid(id)) {
-        ApiResponseHandler.badRequest(res, 'Invalid customer ID format');
+        ApiResponseHandler.badRequest(res, "Invalid customer ID format");
         return;
       }
 
       const { firstName, lastName, phone, email } = req.body;
 
       if (!firstName || !phone) {
-        ApiResponseHandler.badRequest(res, 'firstName and phone are required');
+        ApiResponseHandler.badRequest(res, "firstName and phone are required");
         return;
       }
 
-      if (typeof firstName !== 'string' || firstName.trim().length === 0 || firstName.length > 50) {
-        ApiResponseHandler.badRequest(res, 'firstName must be a non-empty string and under 50 characters');
+      if (
+        typeof firstName !== "string" ||
+        firstName.trim().length === 0 ||
+        firstName.length > 50
+      ) {
+        ApiResponseHandler.badRequest(
+          res,
+          "firstName must be a non-empty string and under 50 characters",
+        );
         return;
       }
 
-      if (lastName && (typeof lastName !== 'string' || lastName.trim().length === 0 || lastName.length > 50)) {
-        ApiResponseHandler.badRequest(res, 'lastName must be a non-empty string and under 50 characters');
+      if (
+        lastName &&
+        (typeof lastName !== "string" ||
+          lastName.trim().length === 0 ||
+          lastName.length > 50)
+      ) {
+        ApiResponseHandler.badRequest(
+          res,
+          "lastName must be a non-empty string and under 50 characters",
+        );
         return;
       }
 
-      if (!this.PHONE_REGEX.test(phone)) {
-        ApiResponseHandler.badRequest(res, 'Please provide a valid phone number');
+      if (!CustomerController.PHONE_REGEX.test(phone)) {
+        ApiResponseHandler.badRequest(
+          res,
+          "Please provide a valid phone number",
+        );
         return;
       }
 
-      if (email && !this.EMAIL_REGEX.test(email)) {
-        ApiResponseHandler.badRequest(res, 'Please provide a valid email address');
+      if (email && !CustomerController.EMAIL_REGEX.test(email)) {
+        ApiResponseHandler.badRequest(
+          res,
+          "Please provide a valid email address",
+        );
         return;
       }
 
@@ -258,29 +351,37 @@ export class CustomerController {
         id,
         req.user.tenantId,
         updateData,
-        req.user.userId
+        req.user.userId,
       );
 
       if (!customer) {
-        ApiResponseHandler.notFound(res, 'Customer not found');
+        ApiResponseHandler.notFound(res, "Customer not found");
         return;
       }
 
-      ApiResponseHandler.success(res, 200, 'Customer details updated successfully', {
-        id: customer._id,
-        firstName: customer.firstName,
-        lastName: customer.lastName,
-        fullName: customer.fullName,
-        phone: customer.phone,
-        email: customer.email,
-        totalOrders: customer.totalOrders,
-        totalSpent: customer.totalSpent,
-        address: customer.address,
-        createdAt: customer.createdAt,
-        updatedAt: customer.updatedAt,
-      });
+      ApiResponseHandler.success(
+        res,
+        200,
+        "Customer details updated successfully",
+        {
+          id: customer._id,
+          firstName: customer.firstName,
+          lastName: customer.lastName,
+          fullName: customer.fullName,
+          phone: customer.phone,
+          email: customer.email,
+          totalOrders: customer.totalOrders,
+          totalSpent: customer.totalSpent,
+          address: customer.address,
+          createdAt: customer.createdAt,
+          updatedAt: customer.updatedAt,
+        },
+      );
     } catch (error: any) {
-      ApiResponseHandler.badRequest(res, error.message || 'Failed to update customer');
+      ApiResponseHandler.badRequest(
+        res,
+        error.message || "Failed to update customer",
+      );
     }
   }
 
@@ -291,25 +392,35 @@ export class CustomerController {
   static async deleteCustomer(req: Request, res: Response): Promise<void> {
     try {
       if (!req.user?.tenantId) {
-        ApiResponseHandler.unauthorized(res, 'User not authenticated or tenantId not found');
+        ApiResponseHandler.unauthorized(
+          res,
+          "User not authenticated or tenantId not found",
+        );
         return;
       }
 
       const { id } = req.params as { id: string };
       if (!Types.ObjectId.isValid(id)) {
-        ApiResponseHandler.badRequest(res, 'Invalid customer ID format');
+        ApiResponseHandler.badRequest(res, "Invalid customer ID format");
         return;
       }
 
-      const customer = await CustomerService.deleteCustomer(id, req.user.tenantId, req.user.userId);
+      const customer = await CustomerService.deleteCustomer(
+        id,
+        req.user.tenantId,
+        req.user.userId,
+      );
       if (!customer) {
-        ApiResponseHandler.notFound(res, 'Customer not found');
+        ApiResponseHandler.notFound(res, "Customer not found");
         return;
       }
 
-      ApiResponseHandler.success(res, 200, 'Customer deleted successfully');
+      ApiResponseHandler.success(res, 200, "Customer deleted successfully");
     } catch (error: any) {
-      ApiResponseHandler.internalError(res, error.message || 'Failed to delete customer');
+      ApiResponseHandler.internalError(
+        res,
+        error.message || "Failed to delete customer",
+      );
     }
   }
 
@@ -320,13 +431,16 @@ export class CustomerController {
   static async addAddress(req: Request, res: Response): Promise<void> {
     try {
       if (!req.user?.tenantId) {
-        ApiResponseHandler.unauthorized(res, 'User not authenticated or tenantId not found');
+        ApiResponseHandler.unauthorized(
+          res,
+          "User not authenticated or tenantId not found",
+        );
         return;
       }
 
       const { id } = req.params as { id: string };
       if (!Types.ObjectId.isValid(id)) {
-        ApiResponseHandler.badRequest(res, 'Invalid customer ID format');
+        ApiResponseHandler.badRequest(res, "Invalid customer ID format");
         return;
       }
 
@@ -340,17 +454,25 @@ export class CustomerController {
         id,
         req.user.tenantId,
         addressData,
-        req.user.userId
+        req.user.userId,
       );
 
       if (!address) {
-        ApiResponseHandler.notFound(res, 'Customer not found');
+        ApiResponseHandler.notFound(res, "Customer not found");
         return;
       }
 
-      ApiResponseHandler.success(res, 201, 'Address added successfully', address);
+      ApiResponseHandler.success(
+        res,
+        201,
+        "Address added successfully",
+        address,
+      );
     } catch (error: any) {
-      ApiResponseHandler.badRequest(res, error.message || 'Failed to add address');
+      ApiResponseHandler.badRequest(
+        res,
+        error.message || "Failed to add address",
+      );
     }
   }
 
@@ -361,19 +483,22 @@ export class CustomerController {
   static async updateAddress(req: Request, res: Response): Promise<void> {
     try {
       if (!req.user?.tenantId) {
-        ApiResponseHandler.unauthorized(res, 'User not authenticated or tenantId not found');
+        ApiResponseHandler.unauthorized(
+          res,
+          "User not authenticated or tenantId not found",
+        );
         return;
       }
 
       const { id, addrId } = req.params as { id: string; addrId: string };
 
       if (!Types.ObjectId.isValid(id)) {
-        ApiResponseHandler.badRequest(res, 'Invalid customer ID format');
+        ApiResponseHandler.badRequest(res, "Invalid customer ID format");
         return;
       }
 
       if (!Types.ObjectId.isValid(addrId)) {
-        ApiResponseHandler.badRequest(res, 'Invalid address ID format');
+        ApiResponseHandler.badRequest(res, "Invalid address ID format");
         return;
       }
 
@@ -388,17 +513,25 @@ export class CustomerController {
         req.user.tenantId,
         addrId,
         addressData,
-        req.user.userId
+        req.user.userId,
       );
 
       if (!address) {
-        ApiResponseHandler.notFound(res, 'Customer or address not found');
+        ApiResponseHandler.notFound(res, "Customer or address not found");
         return;
       }
 
-      ApiResponseHandler.success(res, 200, 'Address updated successfully', address);
+      ApiResponseHandler.success(
+        res,
+        200,
+        "Address updated successfully",
+        address,
+      );
     } catch (error: any) {
-      ApiResponseHandler.badRequest(res, error.message || 'Failed to update address');
+      ApiResponseHandler.badRequest(
+        res,
+        error.message || "Failed to update address",
+      );
     }
   }
 
@@ -409,32 +542,43 @@ export class CustomerController {
   static async deleteAddress(req: Request, res: Response): Promise<void> {
     try {
       if (!req.user?.tenantId) {
-        ApiResponseHandler.unauthorized(res, 'User not authenticated or tenantId not found');
+        ApiResponseHandler.unauthorized(
+          res,
+          "User not authenticated or tenantId not found",
+        );
         return;
       }
 
       const { id, addrId } = req.params as { id: string; addrId: string };
 
       if (!Types.ObjectId.isValid(id)) {
-        ApiResponseHandler.badRequest(res, 'Invalid customer ID format');
+        ApiResponseHandler.badRequest(res, "Invalid customer ID format");
         return;
       }
 
       if (!Types.ObjectId.isValid(addrId)) {
-        ApiResponseHandler.badRequest(res, 'Invalid address ID format');
+        ApiResponseHandler.badRequest(res, "Invalid address ID format");
         return;
       }
 
-      const success = await CustomerService.deleteAddress(id, req.user.tenantId, addrId, req.user.userId);
-      
+      const success = await CustomerService.deleteAddress(
+        id,
+        req.user.tenantId,
+        addrId,
+        req.user.userId,
+      );
+
       if (!success) {
-        ApiResponseHandler.notFound(res, 'Customer or address not found');
+        ApiResponseHandler.notFound(res, "Customer or address not found");
         return;
       }
 
-      ApiResponseHandler.success(res, 200, 'Address deleted successfully');
+      ApiResponseHandler.success(res, 200, "Address deleted successfully");
     } catch (error: any) {
-      ApiResponseHandler.internalError(res, error.message || 'Failed to delete address');
+      ApiResponseHandler.internalError(
+        res,
+        error.message || "Failed to delete address",
+      );
     }
   }
 }
