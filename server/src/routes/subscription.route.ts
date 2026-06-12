@@ -6,11 +6,7 @@ import { checkSubscription } from '../middleware/checkSubscription.middleware.js
 const router: Router = express.Router();
 
 /**
- * Public routes (no auth required)
- */
-
-/**
- * Protected routes (requires authentication)
+ * All routes are protected and restricted to RESTAURANT_OWNER and SUPER_ADMIN
  */
 
 router.post('/', verifyToken, isSuperAdmin, SubscriptionController.createSubscription);

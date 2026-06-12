@@ -10,44 +10,44 @@ export const usePermissions = () => {
 
     isAuthenticated: !!user,
 
-    isSuperAdmin: role === "superAdmin",
+    isSuperAdmin: role === "SUPER_ADMIN",
 
     isRestaurantOwner:
-      role === "restaurantOwner",
+      role === "RESTAURANT_OWNER",
 
     isOutletManager:
-      role === "outletManager",
+      role === "OUTLET_MANAGER",
 
     isKitchenStaff:
-      role === "kitchenStaff",
+      role === "STAFF",
 
     canManageRestaurants:
-      role === "superAdmin",
+      role === "SUPER_ADMIN",
 
     canManageOutlets:
-      role === "superAdmin" ||
-      role === "restaurantOwner",
+      role === "SUPER_ADMIN" ||
+      role === "RESTAURANT_OWNER",
 
     canManageInventory:
-      role === "restaurantOwner" ||
-      role === "outletManager",
+      role === "RESTAURANT_OWNER" ||
+      role === "OUTLET_MANAGER",
 
     canManageOrders:
-      role === "restaurantOwner" ||
-      role === "outletManager" ||
-      role === "kitchenStaff",
+      role === "RESTAURANT_OWNER" ||
+      role === "OUTLET_MANAGER" ||
+      role === "STAFF",
 
     canManageStaff:
-      role === "superAdmin" ||
-      role === "restaurantOwner",
+      role === "SUPER_ADMIN" ||
+      role === "RESTAURANT_OWNER",
 
     canViewAnalytics:
-      role === "superAdmin" ||
-      role === "restaurantOwner" ||
-      role === "outletManager",
+      role === "SUPER_ADMIN" ||
+      role === "RESTAURANT_OWNER" ||
+      role === "OUTLET_MANAGER",
 
     canViewFinance:
-      role === "superAdmin" ||
-      role === "restaurantOwner",
+      role === "SUPER_ADMIN" ||
+      role === "RESTAURANT_OWNER",
   };
 };

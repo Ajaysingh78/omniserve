@@ -25,19 +25,19 @@ export const useLogin = () => {
       );
 
       switch (user.role) {
-        case "superAdmin":
+        case "SUPER_ADMIN":
           navigate("/app/super-admin/dashboard");
           break;
 
-        case "restaurantOwner":
+        case "RESTAURANT_OWNER":
           navigate("/app/owner/dashboard");
           break;
 
-        case "outletManager":
+        case "OUTLET_MANAGER":
           navigate("/app/outlet/dashboard");
           break;
 
-        case "kitchenStaff":
+        case "STAFF":
           navigate("/app/kitchen/dashboard");
           break;
 
