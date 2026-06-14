@@ -4,7 +4,7 @@ import {
   HiOutlineRectangleStack, HiOutlineClipboardDocumentList, HiOutlineShoppingCart,
   HiOutlineUsers, HiOutlineCube, HiOutlineCreditCard, HiOutlineBell,
   HiOutlineChartBarSquare, HiOutlineDocumentText, HiOutlineCog6Tooth,
-  HiOutlineTag, HiOutlineSquares2X2,
+  HiOutlineTag, HiOutlineSquares2X2, HiOutlineEnvelope,
 } from 'react-icons/hi2';
 import { USER_ROLES } from '../utils/constants';
 
@@ -32,6 +32,7 @@ const allNav = [
     { to: '/analytics', label: 'Analytics', icon: <HiOutlineChartBarSquare />, roles: [USER_ROLES.SUPER_ADMIN, USER_ROLES.RESTAURANT_OWNER] },
     { to: '/notifications', label: 'Notifications', icon: <HiOutlineBell />, roles: 'all' },
     { to: '/audit-logs', label: 'Audit Logs', icon: <HiOutlineDocumentText />, roles: [USER_ROLES.SUPER_ADMIN] },
+    { to: '/join-requests', label: 'Join Requests', icon: <HiOutlineEnvelope />, roles: [USER_ROLES.SUPER_ADMIN, USER_ROLES.RESTAURANT_OWNER, USER_ROLES.OUTLET_MANAGER] },
     { to: '/users', label: 'Team', icon: <HiOutlineCog6Tooth />, roles: [USER_ROLES.SUPER_ADMIN, USER_ROLES.RESTAURANT_OWNER] },
   ]},
 ];

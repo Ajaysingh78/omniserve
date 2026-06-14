@@ -20,6 +20,22 @@ export const ROLE_BADGE_VARIANT = {
   STAFF: 'neutral',
 };
 
+export const JOIN_REQUEST_STATUS = {
+  PENDING: 'PENDING',
+  ACCEPTED: 'ACCEPTED',
+  REJECTED: 'REJECTED',
+  CANCELLED: 'CANCELLED',
+  EXPIRED: 'EXPIRED',
+};
+
+export const JOIN_REQUEST_STATUS_VARIANT = {
+  PENDING: 'warning',
+  ACCEPTED: 'success',
+  REJECTED: 'danger',
+  CANCELLED: 'neutral',
+  EXPIRED: 'neutral',
+};
+
 /* ── Order status ── */
 export const ORDER_STATUS = {
   PENDING: 'PENDING',
