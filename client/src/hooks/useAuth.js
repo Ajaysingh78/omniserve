@@ -4,7 +4,7 @@ import { useCallback } from 'react';
 
 export default function useAuth() {
   const dispatch = useDispatch();
-  const { user, isAuthenticated, loading, error } = useSelector((s) => s.auth);
+  const { user, isAuthenticated, loading, authChecked, error } = useSelector((s) => s.auth);
 
   const login = useCallback((creds) => dispatch(loginUser(creds)), [dispatch]);
   const register = useCallback((data) => dispatch(registerUser(data)), [dispatch]);
@@ -12,5 +12,5 @@ export default function useAuth() {
   const fetchMe = useCallback(() => dispatch(fetchCurrentUser()), [dispatch]);
   const clearErr = useCallback(() => dispatch(clearError()), [dispatch]);
 
-  return { user, isAuthenticated, loading, error, login, register, logout, fetchMe, clearErr };
+  return { user, isAuthenticated, loading, authChecked, error, login, register, logout, fetchMe, clearErr };
 }

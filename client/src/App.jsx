@@ -3,11 +3,13 @@ import { USER_ROLES } from './utils/constants';
 import { useSelector, useDispatch } from 'react-redux';
 import { useEffect } from 'react';
 import { fetchCurrentUser } from './store/authSlice';
+import Spinner from './components/ui/Spinner';
 
 /* Layouts */
 import AuthLayout from './layouts/AuthLayout';
 import DashboardLayout from './layouts/DashboardLayout';
 import ProtectedRoute from './layouts/ProtectedRoute';
+import AuthRoute from './layouts/authRoute';
 
 /* Auth pages */
 import LoginPage from './pages/auth/LoginPage';
@@ -45,7 +47,6 @@ const { SUPER_ADMIN, RESTAURANT_OWNER, OUTLET_MANAGER } = USER_ROLES;
 export default function App() {
 
   const dispatch = useDispatch();
-  const { isAuthenticated, user } = useSelector((state) => state.auth);
 
   useEffect(() => {
     dispatch(fetchCurrentUser());
@@ -58,8 +59,8 @@ export default function App() {
       <Routes>
         {/* ── Public auth routes ── */}
         <Route element={<AuthLayout />}>
-          <Route path="/login" element={user && isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
-          <Route path="/register" element={user && isAuthenticated ? <Navigate to="/dashboard" replace /> : <RegisterPage />} />
+          <Route path="/login" element={<AuthRoute><LoginPage /></AuthRoute>} />
+          <Route path="/register" element={<AuthRoute><RegisterPage /></AuthRoute>} />
           <Route path="/join-restaurant" element={<JoinRestaurantPage />} />
         </Route>
 

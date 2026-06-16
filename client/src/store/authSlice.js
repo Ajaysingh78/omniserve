@@ -27,14 +27,23 @@ export const logoutUser = createAsyncThunk('auth/logout', async (_, { rejectWith
   }
 });
 
-export const fetchCurrentUser = createAsyncThunk('auth/fetchMe', async (_, { rejectWithValue }) => {
-  try {
-    const res = await getMeApi();
-    return res.data.data;
-  } catch (err) {
-    return rejectWithValue(err.response?.data?.message || 'Session expired');
+export const fetchCurrentUser = createAsyncThunk(
+  'auth/fetchMe',
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await getMeApi();
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Session expired');
+    }
+  },
+  {
+    condition: (_, { getState }) => {
+      const { auth } = getState();
+      return auth.loading !== 'pending' && !auth.isAuthenticated;
+    },
   }
-});
+);
 
 const authSlice = createSlice({
   name: 'auth',
@@ -42,6 +51,7 @@ const authSlice = createSlice({
     user: null,
     isAuthenticated: false,
     loading: 'idle',
+    authChecked: false,
     error: null,
   },
   reducers: {
@@ -52,6 +62,7 @@ const authSlice = createSlice({
       state.user = null;
       state.isAuthenticated = false;
       state.loading = 'idle';
+      state.authChecked = true;
       state.error = null;
     },
   },
@@ -63,9 +74,11 @@ const authSlice = createSlice({
         state.loading = 'succeeded';
         state.user = action.payload.user;
         state.isAuthenticated = true;
+        state.authChecked = true;
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = 'failed';
+        state.authChecked = true;
         state.error = action.payload;
       })
       /* register */
@@ -80,6 +93,7 @@ const authSlice = createSlice({
         state.user = null;
         state.isAuthenticated = false;
         state.loading = 'idle';
+        state.authChecked = true;
       })
       /* fetch me */
       .addCase(fetchCurrentUser.pending, (state) => { state.loading = 'pending'; })
@@ -87,11 +101,13 @@ const authSlice = createSlice({
         state.loading = 'succeeded';
         state.user = action.payload;
         state.isAuthenticated = true;
+        state.authChecked = true;
       })
       .addCase(fetchCurrentUser.rejected, (state) => {
         state.loading = 'failed';
         state.user = null;
         state.isAuthenticated = false;
+        state.authChecked = true;
       });
   },
 });
