@@ -42,7 +42,7 @@ import NotificationsPage from './pages/notifications/NotificationsPage';
 import AuditLogsPage from './pages/audit/AuditLogsPage';
 import UsersPage from './pages/users/UsersPage';
 
-const { SUPER_ADMIN, RESTAURANT_OWNER, OUTLET_MANAGER } = USER_ROLES;
+const { SUPER_ADMIN, RESTAURANT_OWNER, OUTLET_MANAGER, STAFF } = USER_ROLES;
 
 export default function App() {
 
@@ -82,11 +82,19 @@ export default function App() {
             <Route element={<ProtectedRoute roles={[SUPER_ADMIN, RESTAURANT_OWNER]} />}>
               <Route path="/users" element={<UsersPage />} />
               <Route path="/outlets" element={<OutletsPage />} />
+            </Route>
+
+            {/* Super Admin only */}
+            <Route element={<ProtectedRoute roles={[SUPER_ADMIN]} />}>
               <Route path="/subscriptions" element={<SubscriptionsPage />} />
+            </Route>
+
+            {/* Financial / analytics visibility */}
+            <Route element={<ProtectedRoute roles={[SUPER_ADMIN, RESTAURANT_OWNER]} />}>
               <Route path="/analytics" element={<AnalyticsPage />} />
             </Route>
 
-            {/* Super Admin + Restaurant Owner + Outlet Manager */}
+            {/* Menu and stock management */}
             <Route element={<ProtectedRoute roles={[SUPER_ADMIN, RESTAURANT_OWNER, OUTLET_MANAGER]} />}>
               <Route path="/join-requests" element={<RestaurantJoinRequestsPage />} />
               <Route path="/categories" element={<CategoriesPage />} />
@@ -94,6 +102,10 @@ export default function App() {
               <Route path="/variants" element={<VariantsPage />} />
               <Route path="/addons" element={<AddonsPage />} />
               <Route path="/customers" element={<CustomersPage />} />
+            </Route>
+
+            {/* Inventory quantity updates are allowed for Staff */}
+            <Route element={<ProtectedRoute roles={[SUPER_ADMIN, RESTAURANT_OWNER, OUTLET_MANAGER, STAFF]} />}>
               <Route path="/inventory" element={<InventoryPage />} />
             </Route>
           </Route>

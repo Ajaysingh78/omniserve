@@ -1,17 +1,33 @@
 import { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchNotifications, markAsRead, markAllAsRead } from '../../store/notificationSlice';
+import { fetchCurrentUser } from '../../store/authSlice';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import Card from '../../components/ui/Card';
 import Spinner from '../../components/ui/Spinner';
+import { useToast } from '../../components/ui/Toast';
+import { acceptMyInvitationApi } from '../../api/models/user.api';
 import { NOTIFICATION_TYPE_VARIANT } from '../../utils/constants';
 import { HiBellAlert, HiCheck } from 'react-icons/hi2';
 
 export default function NotificationsPage() {
   const dispatch = useDispatch();
+  const { addToast } = useToast();
   const { notifications, loading, unreadCount } = useSelector((s) => s.notifications);
   useEffect(() => { dispatch(fetchNotifications()); }, [dispatch]);
+
+  const handleAcceptInvitation = async (notification) => {
+    try {
+      await acceptMyInvitationApi();
+      addToast('Invitation accepted', 'success');
+      if (!notification.isRead) dispatch(markAsRead(notification.id || notification._id));
+      dispatch(fetchCurrentUser());
+      dispatch(fetchNotifications());
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Failed to accept invitation', 'error');
+    }
+  };
 
   return (
     <div>
@@ -30,8 +46,11 @@ export default function NotificationsPage() {
       )}
 
       <div className="flex flex-col gap-2">
-        {notifications.map((n) => (
-          <Card key={n._id} className={`flex items-start gap-4 cursor-pointer hover:border-indigo-500 transition-all !p-4 ${n.isRead ? 'opacity-60' : ''}`} onClick={() => !n.isRead && dispatch(markAsRead(n._id))}>
+        {notifications.map((n) => {
+          const notificationId = n.id || n._id;
+          const isInvitation = n.entityType === 'UserInvitation';
+          return (
+          <Card key={notificationId} className={`flex items-start gap-4 hover:border-indigo-500 transition-all !p-4 ${n.isRead ? 'opacity-60' : ''}`} onClick={() => !n.isRead && !isInvitation && dispatch(markAsRead(notificationId))}>
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
                 <Badge variant={NOTIFICATION_TYPE_VARIANT[n.type] || 'neutral'}>{n.type?.replace(/_/g, ' ')}</Badge>
@@ -39,9 +58,15 @@ export default function NotificationsPage() {
               </div>
               <p className="text-sm text-slate-100">{n.message || n.title || 'Notification'}</p>
               <span className="text-xs text-slate-500">{new Date(n.createdAt).toLocaleString()}</span>
+              {isInvitation && (
+                <div className="mt-3 flex gap-2">
+                  <Button size="sm" onClick={() => handleAcceptInvitation(n)}>Accept Invitation</Button>
+                  {!n.isRead && <Button size="sm" variant="secondary" onClick={() => dispatch(markAsRead(notificationId))}>Mark Read</Button>}
+                </div>
+              )}
             </div>
           </Card>
-        ))}
+        );})}
       </div>
     </div>
   );

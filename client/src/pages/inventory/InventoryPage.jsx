@@ -5,47 +5,106 @@ import Modal from '../../components/ui/Modal';
 import Input from '../../components/ui/Input';
 import Badge from '../../components/ui/Badge';
 import { useToast } from '../../components/ui/Toast';
+import useAuth from '../../hooks/useAuth';
 import { HiPlus } from 'react-icons/hi2';
-import { listInventoryApi, createInventoryApi, updateInventoryApi, deleteInventoryApi } from '../../api/models/inventory.api';
+import { listInventoryApi, createInventoryApi, updateInventoryQuantityApi } from '../../api/models/inventory.api';
+import { USER_ROLES } from '../../utils/constants';
+import { getEntityId, getList } from '../../utils/apiData';
+
+const canCreateInventory = (role) => [
+  USER_ROLES.SUPER_ADMIN,
+  USER_ROLES.RESTAURANT_OWNER,
+  USER_ROLES.OUTLET_MANAGER,
+].includes(role);
 
 export default function InventoryPage() {
+  const { user } = useAuth();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState({ open: false, mode: 'create', item: null });
-  const [form, setForm] = useState({ name: '', quantity: '', unit: '', lowStockThreshold: '' });
+  const [modal, setModal] = useState({ open: false, mode: 'quantity', item: null });
+  const [form, setForm] = useState({ outletId: '', menuItemId: '', quantity: '', threshold: '' });
   const { addToast } = useToast();
 
-  const fetchData = async () => { setLoading(true); try { const r = await listInventoryApi(); setData(Array.isArray(r.data?.data) ? r.data.data : []); } catch { addToast('Failed', 'error'); } finally { setLoading(false); } };
+  const mayCreate = canCreateInventory(user?.role);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const response = await listInventoryApi();
+      setData(getList(response, 'inventory'));
+    } catch {
+      addToast('Failed', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => { fetchData(); }, []);
 
-  const openCreate = () => { setForm({ name: '', quantity: '', unit: '', lowStockThreshold: '' }); setModal({ open: true, mode: 'create', item: null }); };
-  const openEdit = (item) => { setForm({ name: item.name || item.itemName || '', quantity: item.quantity || '', unit: item.unit || '', lowStockThreshold: item.lowStockThreshold || '' }); setModal({ open: true, mode: 'edit', item }); };
-  const closeModal = () => setModal({ open: false, mode: 'create', item: null });
+  const openCreate = () => {
+    setForm({ outletId: user?.outletId || '', menuItemId: '', quantity: '', threshold: '' });
+    setModal({ open: true, mode: 'create', item: null });
+  };
 
-  const handleSubmit = async (e) => { e.preventDefault(); try { const p = { ...form, quantity: Number(form.quantity), lowStockThreshold: Number(form.lowStockThreshold) || 10 }; if (modal.mode === 'create') { await createInventoryApi(p); addToast('Created', 'success'); } else { await updateInventoryApi(modal.item._id, p); addToast('Updated', 'success'); } closeModal(); fetchData(); } catch (err) { addToast(err.response?.data?.message || 'Failed', 'error'); } };
-  const handleDelete = async (id) => { if (!confirm('Delete?')) return; try { await deleteInventoryApi(id); addToast('Deleted', 'success'); fetchData(); } catch { addToast('Failed', 'error'); } };
+  const openQuantity = (item) => {
+    setForm({ outletId: '', menuItemId: '', quantity: item.quantity ?? '', threshold: '' });
+    setModal({ open: true, mode: 'quantity', item });
+  };
+
+  const closeModal = () => setModal({ open: false, mode: 'quantity', item: null });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      if (modal.mode === 'create') {
+        await createInventoryApi({
+          outletId: form.outletId,
+          menuItemId: form.menuItemId,
+          quantity: Number(form.quantity),
+          threshold: Number(form.threshold) || 10,
+        });
+        addToast('Created', 'success');
+      } else {
+        await updateInventoryQuantityApi(getEntityId(modal.item), Number(form.quantity));
+        addToast('Quantity updated', 'success');
+      }
+      closeModal();
+      fetchData();
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Failed', 'error');
+    }
+  };
 
   const columns = [
-    { key: 'name', label: 'Item', render: (r) => r.name || r.itemName || '—' },
-    { key: 'quantity', label: 'Qty', render: (r) => <Badge variant={r.quantity <= (r.lowStockThreshold || 10) ? 'danger' : 'success'}>{r.quantity} {r.unit || ''}</Badge> },
-    { key: 'lowStockThreshold', label: 'Low Threshold', render: (r) => r.lowStockThreshold || 10 },
-    { key: 'updatedAt', label: 'Updated', render: (r) => new Date(r.updatedAt || r.createdAt).toLocaleDateString() },
-    { key: 'actions', label: 'Actions', render: (r) => (<div className="flex gap-2"><Button size="sm" variant="secondary" onClick={() => openEdit(r)}>Edit</Button><Button size="sm" variant="danger" onClick={() => handleDelete(r._id)}>Delete</Button></div>) },
+    { key: 'menuItemId', label: 'Item', render: (r) => r.menuItemId?.name || r.name || r.itemName || getEntityId(r.menuItemId) || '-' },
+    { key: 'outletId', label: 'Outlet', render: (r) => r.outletId?.name || getEntityId(r.outletId) || '-' },
+    { key: 'quantity', label: 'Qty', render: (r) => <Badge variant={r.isLowStock || r.quantity <= (r.threshold || r.lowStockThreshold || 10) ? 'danger' : 'success'}>{r.quantity}</Badge> },
+    { key: 'threshold', label: 'Threshold', render: (r) => r.threshold || r.lowStockThreshold || 10 },
+    { key: 'updatedAt', label: 'Updated', render: (r) => r.updatedAt || r.createdAt ? new Date(r.updatedAt || r.createdAt).toLocaleDateString() : '-' },
+    { key: 'actions', label: 'Actions', render: (r) => <Button size="sm" variant="secondary" onClick={() => openQuantity(r)}>Update Qty</Button> },
   ];
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-4"><h1 className="text-xl font-bold text-slate-100">Inventory</h1><Button onClick={openCreate}><HiPlus /> Add Item</Button></div>
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
+        <h1 className="text-xl font-bold text-slate-100">Inventory</h1>
+        {mayCreate && <Button onClick={openCreate}><HiPlus /> Add Item</Button>}
+      </div>
       <Table columns={columns} data={data} loading={loading} />
-      <Modal isOpen={modal.open} onClose={closeModal} title={modal.mode === 'create' ? 'New Inventory Item' : 'Edit Item'}>
+      <Modal isOpen={modal.open} onClose={closeModal} title={modal.mode === 'create' ? 'New Inventory Record' : 'Update Quantity'}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <Input id="inv-name" label="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-          <div className="grid grid-cols-2 gap-3">
-            <Input id="inv-qty" label="Quantity" type="number" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} required />
-            <Input id="inv-unit" label="Unit" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} placeholder="kg, pcs, L" />
+          {modal.mode === 'create' && (
+            <>
+              <Input id="inv-outlet" label="Outlet ID" value={form.outletId} onChange={(e) => setForm({ ...form, outletId: e.target.value })} required />
+              <Input id="inv-menu-item" label="Menu Item ID" value={form.menuItemId} onChange={(e) => setForm({ ...form, menuItemId: e.target.value })} required />
+            </>
+          )}
+          <Input id="inv-qty" label="Quantity" type="number" min="0" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} required />
+          {modal.mode === 'create' && <Input id="inv-threshold" label="Low Stock Threshold" type="number" min="0" value={form.threshold} onChange={(e) => setForm({ ...form, threshold: e.target.value })} />}
+          <div className="flex justify-end gap-2 pt-4 border-t border-[rgba(99,102,241,0.15)]">
+            <Button variant="secondary" onClick={closeModal}>Cancel</Button>
+            <Button type="submit">{modal.mode === 'create' ? 'Create' : 'Save'}</Button>
           </div>
-          <Input id="inv-thresh" label="Low Stock Threshold" type="number" value={form.lowStockThreshold} onChange={(e) => setForm({ ...form, lowStockThreshold: e.target.value })} />
-          <div className="flex justify-end gap-2 pt-4 border-t border-[rgba(99,102,241,0.15)]"><Button variant="secondary" onClick={closeModal}>Cancel</Button><Button type="submit">{modal.mode === 'create' ? 'Create' : 'Save'}</Button></div>
         </form>
       </Modal>
     </div>

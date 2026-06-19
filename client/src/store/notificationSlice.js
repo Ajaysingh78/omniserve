@@ -4,7 +4,8 @@ import { listNotificationsApi, markReadApi, markAllReadApi } from '../api/models
 export const fetchNotifications = createAsyncThunk('notifications/fetchAll', async (params, { rejectWithValue }) => {
   try {
     const res = await listNotificationsApi(params);
-    return res.data.data;
+    // console.log(res.data.data)
+    return res.data.data.notifications;
   } catch (err) {
     return rejectWithValue(err.response?.data?.message || 'Failed to fetch notifications');
   }
@@ -46,7 +47,7 @@ const notificationSlice = createSlice({
       })
       .addCase(fetchNotifications.rejected, (state) => { state.loading = 'failed'; })
       .addCase(markAsRead.fulfilled, (state, action) => {
-        const n = state.notifications.find((x) => x._id === action.payload);
+        const n = state.notifications.find((x) => (x.id || x._id) === action.payload);
         if (n && !n.isRead) { n.isRead = true; state.unreadCount = Math.max(0, state.unreadCount - 1); }
       })
       .addCase(markAllAsRead.fulfilled, (state) => {

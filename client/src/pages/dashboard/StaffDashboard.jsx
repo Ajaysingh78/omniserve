@@ -28,7 +28,7 @@ export default function StaffDashboard() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 animate-fade-in">
         {cols.map((col) => {
-          const colOrders = orders.filter((o) => o.status === col.status);
+          const colOrders = orders.filter((o) => (o.orderStatus || o.status) === col.status);
           return (
             <div key={col.status} className="bg-[rgba(26,29,46,0.65)] border border-[rgba(99,102,241,0.15)] rounded-2xl p-4 min-h-[300px]">
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-[rgba(99,102,241,0.15)]">
@@ -37,15 +37,15 @@ export default function StaffDashboard() {
               </div>
               {colOrders.length === 0 && <p className="text-slate-500 text-xs text-center py-5">No orders</p>}
               {colOrders.map((order) => (
-                <div key={order._id} className="bg-[#1a1d2e] border border-[rgba(99,102,241,0.15)] rounded-lg p-4 mb-2 hover:border-indigo-500 hover:-translate-y-0.5 transition-all cursor-pointer">
-                  <div className="text-xs text-slate-500 font-semibold">#{order._id?.slice(-6)}</div>
+                <div key={order.id || order._id} className="bg-[#1a1d2e] border border-[rgba(99,102,241,0.15)] rounded-lg p-4 mb-2 hover:border-indigo-500 hover:-translate-y-0.5 transition-all cursor-pointer">
+                  <div className="text-xs text-slate-500 font-semibold">#{(order.id || order._id || '').slice(-6)}</div>
                   <div className="text-sm font-semibold text-slate-100 mt-1">{order.customerName || 'Customer'}</div>
                   <div className="flex items-center justify-between mt-2 text-xs text-slate-500">
                     <span>₹{order.totalAmount || 0}</span>
                     <span>{order.items?.length || 0} items</span>
                   </div>
                   {next[col.status] && (
-                    <Button size="sm" variant="secondary" className="w-full mt-2" onClick={() => dispatch(updateOrderStatus({ id: order._id, status: next[col.status] }))}>
+                    <Button size="sm" variant="secondary" className="w-full mt-2" onClick={() => dispatch(updateOrderStatus({ id: order.id || order._id, status: next[col.status] }))}>
                       → {next[col.status]}
                     </Button>
                   )}

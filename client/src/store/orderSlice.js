@@ -1,10 +1,11 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { listOrdersApi, updateOrderStatusApi, cancelOrderApi } from '../api/models/order.api';
+import { getList } from '../utils/apiData';
 
 export const fetchOrders = createAsyncThunk('orders/fetchAll', async (params, { rejectWithValue }) => {
   try {
     const res = await listOrdersApi(params);
-    return res.data.data;
+    return getList(res, 'orders');
   } catch (err) {
     return rejectWithValue(err.response?.data?.message || 'Failed to fetch orders');
   }
@@ -12,7 +13,7 @@ export const fetchOrders = createAsyncThunk('orders/fetchAll', async (params, { 
 
 export const updateOrderStatus = createAsyncThunk('orders/updateStatus', async ({ id, status }, { rejectWithValue }) => {
   try {
-    const res = await updateOrderStatusApi(id, { status });
+    const res = await updateOrderStatusApi(id, { orderStatus: status });
     return res.data.data;
   } catch (err) {
     return rejectWithValue(err.response?.data?.message || 'Failed to update status');
@@ -52,14 +53,16 @@ const orderSlice = createSlice({
         state.error = action.payload;
       })
       .addCase(updateOrderStatus.fulfilled, (state, action) => {
-        if (action.payload?._id) {
-          const idx = state.orders.findIndex((o) => o._id === action.payload._id);
+        const payloadId = action.payload?.id || action.payload?._id;
+        if (payloadId) {
+          const idx = state.orders.findIndex((o) => (o.id || o._id) === payloadId);
           if (idx !== -1) state.orders[idx] = action.payload;
         }
       })
       .addCase(cancelOrder.fulfilled, (state, action) => {
-        if (action.payload?._id) {
-          const idx = state.orders.findIndex((o) => o._id === action.payload._id);
+        const payloadId = action.payload?.id || action.payload?._id;
+        if (payloadId) {
+          const idx = state.orders.findIndex((o) => (o.id || o._id) === payloadId);
           if (idx !== -1) state.orders[idx] = action.payload;
         }
       });

@@ -23,16 +23,16 @@ const allNav = [
   { section: 'Operations', items: [
     { to: '/orders', label: 'Orders', icon: <HiOutlineShoppingCart />, roles: 'all' },
     { to: '/customers', label: 'Customers', icon: <HiOutlineUsers />, roles: [USER_ROLES.SUPER_ADMIN, USER_ROLES.RESTAURANT_OWNER, USER_ROLES.OUTLET_MANAGER] },
-    { to: '/inventory', label: 'Inventory', icon: <HiOutlineCube />, roles: [USER_ROLES.SUPER_ADMIN, USER_ROLES.RESTAURANT_OWNER, USER_ROLES.OUTLET_MANAGER] },
+    { to: '/inventory', label: 'Inventory', icon: <HiOutlineCube />, roles: [USER_ROLES.SUPER_ADMIN, USER_ROLES.RESTAURANT_OWNER, USER_ROLES.OUTLET_MANAGER, USER_ROLES.STAFF] },
   ]},
   { section: 'Finance', items: [
-    { to: '/subscriptions', label: 'Subscriptions', icon: <HiOutlineCreditCard />, roles: [USER_ROLES.SUPER_ADMIN, USER_ROLES.RESTAURANT_OWNER] },
+    { to: '/subscriptions', label: 'Subscriptions', icon: <HiOutlineCreditCard />, roles: [USER_ROLES.SUPER_ADMIN] },
   ]},
   { section: 'Insights', items: [
     { to: '/analytics', label: 'Analytics', icon: <HiOutlineChartBarSquare />, roles: [USER_ROLES.SUPER_ADMIN, USER_ROLES.RESTAURANT_OWNER] },
     { to: '/notifications', label: 'Notifications', icon: <HiOutlineBell />, roles: 'all' },
     { to: '/audit-logs', label: 'Audit Logs', icon: <HiOutlineDocumentText />, roles: [USER_ROLES.SUPER_ADMIN] },
-    { to: '/join-requests', label: 'Join Requests', icon: <HiOutlineEnvelope />, roles: [USER_ROLES.SUPER_ADMIN, USER_ROLES.RESTAURANT_OWNER, USER_ROLES.OUTLET_MANAGER] },
+    { to: '/join-requests', label: 'Join Requests', icon: <HiOutlineEnvelope />, roles: [USER_ROLES.SUPER_ADMIN, USER_ROLES.RESTAURANT_OWNER] },
     { to: '/users', label: 'Team', icon: <HiOutlineCog6Tooth />, roles: [USER_ROLES.SUPER_ADMIN, USER_ROLES.RESTAURANT_OWNER] },
   ]},
 ];

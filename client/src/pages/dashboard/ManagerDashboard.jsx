@@ -7,22 +7,23 @@ import Table from '../../components/ui/Table';
 import { listOrdersApi } from '../../api/models/order.api';
 import { listInventoryApi } from '../../api/models/inventory.api';
 import { ORDER_STATUS_VARIANT } from '../../utils/constants';
+import { getList } from '../../utils/apiData';
 
 export default function ManagerDashboard() {
   const [orders, setOrders] = useState([]);
   const [inventory, setInventory] = useState([]);
 
   useEffect(() => {
-    listOrdersApi({ limit: 10 }).then((r) => setOrders(Array.isArray(r.data?.data) ? r.data.data : [])).catch(() => {});
-    listInventoryApi().then((r) => setInventory(Array.isArray(r.data?.data) ? r.data.data : [])).catch(() => {});
+    listOrdersApi({ limit: 10 }).then((r) => setOrders(getList(r, 'orders'))).catch(() => {});
+    listInventoryApi().then((r) => setInventory(getList(r, 'inventory'))).catch(() => {});
   }, []);
 
-  const pending = orders.filter((o) => o.status === 'PENDING').length;
-  const lowStock = inventory.filter((i) => i.quantity <= (i.lowStockThreshold || 10));
+  const pending = orders.filter((o) => (o.orderStatus || o.status) === 'PENDING').length;
+  const lowStock = inventory.filter((i) => i.isLowStock || i.quantity <= (i.threshold || i.lowStockThreshold || 10));
 
   const cols = [
-    { key: '_id', label: 'ID', render: (r) => <span className="font-mono text-xs">#{r._id?.slice(-8)}</span> },
-    { key: 'status', label: 'Status', render: (r) => <Badge variant={ORDER_STATUS_VARIANT[r.status] || 'neutral'}>{r.status}</Badge> },
+    { key: 'id', label: 'ID', render: (r) => <span className="font-mono text-xs">#{(r.id || r._id || '').slice(-8)}</span> },
+    { key: 'status', label: 'Status', render: (r) => <Badge variant={ORDER_STATUS_VARIANT[r.orderStatus || r.status] || 'neutral'}>{r.orderStatus || r.status}</Badge> },
     { key: 'totalAmount', label: 'Amount', render: (r) => `₹${r.totalAmount || 0}` },
   ];
 
@@ -44,7 +45,7 @@ export default function ManagerDashboard() {
           {lowStock.length === 0 ? <p className="text-slate-500 text-center py-5">All stock levels healthy 🎉</p> : (
             <div className="flex flex-col gap-2">
               {lowStock.slice(0, 5).map((i) => (
-                <div key={i._id} className="flex items-center justify-between p-2.5 bg-amber-500/10 rounded-lg">
+                <div key={i.id || i._id} className="flex items-center justify-between p-2.5 bg-amber-500/10 rounded-lg">
                   <span className="font-semibold text-sm">{i.name || i.itemName || 'Item'}</span>
                   <Badge variant="danger">{i.quantity} left</Badge>
                 </div>

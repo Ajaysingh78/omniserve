@@ -7,6 +7,7 @@ import { getSummaryStatsApi } from '../../api/models/analytics.api';
 import { getCurrentSubscriptionApi } from '../../api/models/subscription.api';
 import { listOutletsApi } from '../../api/models/outlet.api';
 import { SUBSCRIPTION_STATUS_VARIANT } from '../../utils/constants';
+import { getList } from '../../utils/apiData';
 
 export default function OwnerDashboard() {
   const [stats, setStats] = useState(null);
@@ -16,7 +17,7 @@ export default function OwnerDashboard() {
   useEffect(() => {
     getSummaryStatsApi().then((r) => setStats(r.data?.data)).catch(() => {});
     getCurrentSubscriptionApi().then((r) => setSub(r.data?.data)).catch(() => {});
-    listOutletsApi().then((r) => setOutlets(Array.isArray(r.data?.data) ? r.data.data : [])).catch(() => {});
+    listOutletsApi().then((r) => setOutlets(getList(r, 'outlets'))).catch(() => {});
   }, []);
 
   return (
@@ -24,7 +25,7 @@ export default function OwnerDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
         <StatCard title="Revenue" value={`₹${stats?.totalRevenue?.toLocaleString() || '0'}`} icon={<HiCurrencyDollar />} color="emerald" trend="+12%" trendUp />
         <StatCard title="Orders Today" value={stats?.ordersToday || 0} icon={<HiShoppingCart />} color="indigo" />
-        <StatCard title="Active Outlets" value={outlets.filter((o) => o.isActive).length} icon={<HiMapPin />} color="amber" />
+        <StatCard title="Active Outlets" value={outlets.filter((o) => (o.status ? o.status === 'ACTIVE' : o.isActive !== false)).length} icon={<HiMapPin />} color="amber" />
         <StatCard title="Plan" value={sub?.plan || 'None'} icon={<HiCreditCard />} color="blue" />
       </div>
 
@@ -34,12 +35,12 @@ export default function OwnerDashboard() {
           {outlets.length === 0 ? <p className="text-slate-500">No outlets created yet.</p> : (
             <div className="flex flex-col gap-3">
               {outlets.slice(0, 5).map((o) => (
-                <div key={o._id} className="flex items-center justify-between p-3 bg-[#232640] rounded-lg">
+                <div key={o.id || o._id} className="flex items-center justify-between p-3 bg-[#232640] rounded-lg">
                   <div>
                     <div className="font-semibold text-sm text-slate-100">{o.name}</div>
-                    <div className="text-xs text-slate-500">{o.address?.city || 'No address'}</div>
+                    <div className="text-xs text-slate-500">{o.city || o.address?.city || 'No address'}</div>
                   </div>
-                  <Badge variant={o.isActive ? 'success' : 'neutral'}>{o.isActive ? 'Active' : 'Inactive'}</Badge>
+                  <Badge variant={(o.status ? o.status === 'ACTIVE' : o.isActive !== false) ? 'success' : 'neutral'}>{(o.status ? o.status === 'ACTIVE' : o.isActive !== false) ? 'Active' : 'Inactive'}</Badge>
                 </div>
               ))}
             </div>

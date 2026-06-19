@@ -145,8 +145,8 @@ export default function OutletsPage() {
     { key: 'createdAt', label: 'Created', render: (r) => r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '-' },
     { key: 'actions', label: 'Actions', render: (r) => (
       <div className="flex gap-2">
-        <Button size="sm" variant="secondary" onClick={() => openEdit(r)}>Edit</Button>
-        <Button size="sm" variant="danger" onClick={() => handleDelete(r)}>Delete</Button>
+        <Button size="sm" variant="secondary" onClick={() => openEdit(r.id)}>Edit</Button>
+        <Button size="sm" variant="danger" onClick={() => handleDelete(r.id)}>Delete</Button>
       </div>
     ) },
   ];
