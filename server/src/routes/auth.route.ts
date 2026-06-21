@@ -1,11 +1,6 @@
 import express, { Router } from 'express';
 import { AuthController } from '../controllers/auth.controller.js';
-import {
-  verifyToken,
-  verifyTokenFromCookie,
-  isSuperAdmin,
-  isRestaurantOwner,
-} from '../middleware/auth.middleware.js';
+import { verifyToken } from '../middleware/auth.middleware.js';
 import { rateLimiter } from '../middleware/rateLimiter.middleware.js';
 
 const router: Router = express.Router();

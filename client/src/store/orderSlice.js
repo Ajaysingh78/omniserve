@@ -20,9 +20,9 @@ export const updateOrderStatus = createAsyncThunk('orders/updateStatus', async (
   }
 });
 
-export const cancelOrder = createAsyncThunk('orders/cancel', async (id, { rejectWithValue }) => {
+export const cancelOrder = createAsyncThunk('orders/cancel', async ({ id, reason }, { rejectWithValue }) => {
   try {
-    const res = await cancelOrderApi(id);
+    const res = await cancelOrderApi(id, { cancellationReason: reason });
     return res.data.data;
   } catch (err) {
     return rejectWithValue(err.response?.data?.message || 'Failed to cancel order');

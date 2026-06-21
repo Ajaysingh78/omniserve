@@ -1,6 +1,5 @@
 import nodemailer from "nodemailer";
-
-
+import type { Transporter } from 'nodemailer';
 
 interface SendMailOptions {
   to: string;
@@ -10,21 +9,30 @@ interface SendMailOptions {
 }
 
 export class EmailService {
-  static async sendMail(options: SendMailOptions): Promise<boolean> {
+  private static transporter: Transporter | null = null;
 
-    if(!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS)
-    throw new Error('Unable to fetch environment variable.')
-    
-    
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: 587,
-      secure: false,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
+  private static getTransporter(): Transporter {
+    if(!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      throw new Error('Unable to fetch environment variable.');
+    }
+
+    if (!this.transporter) {
+      this.transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: Number(process.env.SMTP_PORT || 587),
+        secure: Number(process.env.SMTP_PORT || 587) === 465,
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        },
+      });
+    }
+
+    return this.transporter;
+  }
+
+  static async sendMail(options: SendMailOptions): Promise<boolean> {
+    const transporter = this.getTransporter();
 
     await transporter.sendMail({
       from: process.env.SMTP_USER,

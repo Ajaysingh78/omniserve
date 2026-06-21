@@ -1,3 +1,12 @@
+import React from 'react';
+
 export default function Card({ children, className = '', onClick }) {
-  return <div className={`bg-[rgba(26,29,46,0.65)] backdrop-blur-2xl border border-[rgba(99,102,241,0.15)] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.35)] p-6 animate-fade-in ${className}`} onClick={onClick}>{children}</div>;
+  return (
+    <div 
+      className={`bg-white dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-xl shadow-sm p-6 transition-all duration-200 animate-fade-in text-on-surface dark:text-zinc-200 ${className}`} 
+      onClick={onClick}
+    >
+      {children}
+    </div>
+  );
 }

@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "rootDir": "./src",
+    "rootDir": ".",
     "outDir": "./dist",
 
     "module": "NodeNext",
@@ -32,6 +32,6 @@
 
     "resolveJsonModule": true
   },
-  "include": ["src"],
+  "include": ["src", "server.ts"],
   "exclude": ["node_modules", "dist"]
 }

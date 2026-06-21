@@ -1,9 +1,9 @@
 import { configDotenv } from 'dotenv';
 configDotenv();
 
-import app from './src/app';
-import connectToMongoDB from './src/config/db.config';
-import connectRedis from './src/config/redis.config';
+import app from './src/app.js';
+import connectToMongoDB from './src/config/db.config.js';
+import connectRedis from './src/config/redis.config.js';
 
 
 

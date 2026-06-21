@@ -1,119 +1,99 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { Suspense, lazy, useEffect } from 'react';
+import { useDispatch } from 'react-redux';
 import { USER_ROLES } from './utils/constants';
-import { useSelector, useDispatch } from 'react-redux';
-import { useEffect } from 'react';
 import { fetchCurrentUser } from './store/authSlice';
 import Spinner from './components/ui/Spinner';
-
-/* Layouts */
 import AuthLayout from './layouts/AuthLayout';
 import DashboardLayout from './layouts/DashboardLayout';
 import ProtectedRoute from './layouts/ProtectedRoute';
 import AuthRoute from './layouts/authRoute';
 
-/* Auth pages */
-import LoginPage from './pages/auth/LoginPage';
-import RegisterPage from './pages/auth/RegisterPage';
-import JoinRestaurantPage from './pages/auth/JoinRestaurantPage';
-
-/* Dashboard pages */
-import DashboardPage from './pages/dashboard/DashboardPage';
-
-/* Management pages */
-import RestaurantsPage from './pages/restaurants/RestaurantsPage';
-import RestaurantJoinRequestsPage from './pages/restaurants/RestaurantJoinRequestsPage';
-import OutletsPage from './pages/outlets/OutletsPage';
-import CategoriesPage from './pages/menu/CategoriesPage';
-import MenuItemsPage from './pages/menu/MenuItemsPage';
-import VariantsPage from './pages/menu/VariantsPage';
-import AddonsPage from './pages/menu/AddonsPage';
-
-/* Operations pages */
-import OrdersPage from './pages/orders/OrdersPage';
-import CustomersPage from './pages/customers/CustomersPage';
-import InventoryPage from './pages/inventory/InventoryPage';
-
-/* Finance pages */
-import SubscriptionsPage from './pages/subscriptions/SubscriptionsPage';
-
-/* Insights pages */
-import AnalyticsPage from './pages/analytics/AnalyticsPage';
-import NotificationsPage from './pages/notifications/NotificationsPage';
-import AuditLogsPage from './pages/audit/AuditLogsPage';
-import UsersPage from './pages/users/UsersPage';
+const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
+const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'));
+const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage'));
+const RestaurantsPage = lazy(() => import('./pages/restaurants/RestaurantsPage'));
+const OutletsPage = lazy(() => import('./pages/outlets/OutletsPage'));
+const CategoriesPage = lazy(() => import('./pages/menu/CategoriesPage'));
+const MenuItemsPage = lazy(() => import('./pages/menu/MenuItemsPage'));
+const VariantsPage = lazy(() => import('./pages/menu/VariantsPage'));
+const AddonsPage = lazy(() => import('./pages/menu/AddonsPage'));
+const OrdersPage = lazy(() => import('./pages/orders/OrdersPage'));
+const CustomersPage = lazy(() => import('./pages/customers/CustomersPage'));
+const InventoryPage = lazy(() => import('./pages/inventory/InventoryPage'));
+const SubscriptionsPage = lazy(() => import('./pages/subscriptions/SubscriptionsPage'));
+const PaymentsPage = lazy(() => import('./pages/payments/PaymentsPage'));
+const AnalyticsPage = lazy(() => import('./pages/analytics/AnalyticsPage'));
+const NotificationsPage = lazy(() => import('./pages/notifications/NotificationsPage'));
+const AuditLogsPage = lazy(() => import('./pages/audit/AuditLogsPage'));
+const WebhookLogs = lazy(() => import('./pages/audit/WebhookLogs'));
+const UsersPage = lazy(() => import('./pages/users/UsersPage'));
+const ProfilePage = lazy(() => import('./pages/profile/ProfilePage'));
 
 const { SUPER_ADMIN, RESTAURANT_OWNER, OUTLET_MANAGER, STAFF } = USER_ROLES;
 
-export default function App() {
+function RouteFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <Spinner size="md" />
+    </div>
+  );
+}
 
+export default function App() {
   const dispatch = useDispatch();
 
   useEffect(() => {
     dispatch(fetchCurrentUser());
   }, [dispatch]);
 
-  // const user = useSelector(state=>state.auth.user);
-  // console.log(user);
   return (
     <BrowserRouter>
-      <Routes>
-        {/* ── Public auth routes ── */}
-        <Route element={<AuthLayout />}>
-          <Route path="/login" element={<AuthRoute><LoginPage /></AuthRoute>} />
-          <Route path="/register" element={<AuthRoute><RegisterPage /></AuthRoute>} />
-          <Route path="/join-restaurant" element={<JoinRestaurantPage />} />
-        </Route>
+      <Suspense fallback={<RouteFallback />}>
+        <Routes>
+          <Route element={<AuthLayout />}>
+            <Route path="/login" element={<AuthRoute><LoginPage /></AuthRoute>} />
+            <Route path="/register" element={<AuthRoute><RegisterPage /></AuthRoute>} />
+          </Route>
 
-        {/* ── Protected dashboard routes ── */}
-        <Route element={<ProtectedRoute />}>
-          <Route element={<DashboardLayout />}>
-            {/* All roles */}
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/orders" element={<OrdersPage />} />
-            <Route path="/notifications" element={<NotificationsPage />} />
+          <Route element={<ProtectedRoute />}>
+            <Route element={<DashboardLayout />}>
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/orders" element={<OrdersPage />} />
+              <Route path="/notifications" element={<NotificationsPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
 
-            {/* Super Admin only */}
-            <Route element={<ProtectedRoute roles={[SUPER_ADMIN]} />}>
-              <Route path="/restaurants" element={<RestaurantsPage />} />
-              <Route path="/audit-logs" element={<AuditLogsPage />} />
-            </Route>
+              <Route element={<ProtectedRoute roles={[SUPER_ADMIN]} />}>
+                <Route path="/restaurants" element={<RestaurantsPage />} />
+                <Route path="/audit-logs" element={<AuditLogsPage />} />
+                <Route path="/webhook-logs" element={<WebhookLogs />} />
+                <Route path="/subscriptions" element={<SubscriptionsPage />} />
+              </Route>
 
-            {/* Super Admin + Restaurant Owner */}
-            <Route element={<ProtectedRoute roles={[SUPER_ADMIN, RESTAURANT_OWNER]} />}>
-              <Route path="/users" element={<UsersPage />} />
-              <Route path="/outlets" element={<OutletsPage />} />
-            </Route>
+              <Route element={<ProtectedRoute roles={[SUPER_ADMIN, RESTAURANT_OWNER]} />}>
+                <Route path="/users" element={<UsersPage />} />
+                <Route path="/outlets" element={<OutletsPage />} />
+                <Route path="/analytics" element={<AnalyticsPage />} />
+                <Route path="/payments" element={<PaymentsPage />} />
+              </Route>
 
-            {/* Super Admin only */}
-            <Route element={<ProtectedRoute roles={[SUPER_ADMIN]} />}>
-              <Route path="/subscriptions" element={<SubscriptionsPage />} />
-            </Route>
+              <Route element={<ProtectedRoute roles={[SUPER_ADMIN, RESTAURANT_OWNER, OUTLET_MANAGER]} />}>
+                <Route path="/categories" element={<CategoriesPage />} />
+                <Route path="/menu-items" element={<MenuItemsPage />} />
+                <Route path="/variants" element={<VariantsPage />} />
+                <Route path="/addons" element={<AddonsPage />} />
+                <Route path="/customers" element={<CustomersPage />} />
+              </Route>
 
-            {/* Financial / analytics visibility */}
-            <Route element={<ProtectedRoute roles={[SUPER_ADMIN, RESTAURANT_OWNER]} />}>
-              <Route path="/analytics" element={<AnalyticsPage />} />
-            </Route>
-
-            {/* Menu and stock management */}
-            <Route element={<ProtectedRoute roles={[SUPER_ADMIN, RESTAURANT_OWNER, OUTLET_MANAGER]} />}>
-              <Route path="/join-requests" element={<RestaurantJoinRequestsPage />} />
-              <Route path="/categories" element={<CategoriesPage />} />
-              <Route path="/menu-items" element={<MenuItemsPage />} />
-              <Route path="/variants" element={<VariantsPage />} />
-              <Route path="/addons" element={<AddonsPage />} />
-              <Route path="/customers" element={<CustomersPage />} />
-            </Route>
-
-            {/* Inventory quantity updates are allowed for Staff */}
-            <Route element={<ProtectedRoute roles={[SUPER_ADMIN, RESTAURANT_OWNER, OUTLET_MANAGER, STAFF]} />}>
-              <Route path="/inventory" element={<InventoryPage />} />
+              <Route element={<ProtectedRoute roles={[SUPER_ADMIN, RESTAURANT_OWNER, OUTLET_MANAGER, STAFF]} />}>
+                <Route path="/inventory" element={<InventoryPage />} />
+              </Route>
             </Route>
           </Route>
-        </Route>
 
-        {/* ── Fallback ── */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }

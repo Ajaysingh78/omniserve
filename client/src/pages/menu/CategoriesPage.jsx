@@ -5,6 +5,7 @@ import Modal from '../../components/ui/Modal';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import Badge from '../../components/ui/Badge';
+import PageHeader from '../../components/ui/PageHeader';
 import { useToast } from '../../components/ui/Toast';
 import { HiPlus } from 'react-icons/hi2';
 import { listOutletsApi } from '../../api/models/outlet.api';
@@ -18,10 +19,18 @@ const emptyForm = {
   isActive: true,
 };
 
+const menuTabs = [
+  { to: '/menu-items', label: 'Menu Items' },
+  { to: '/categories', label: 'Categories' },
+  { to: '/variants', label: 'Variants' },
+  { to: '/addons', label: 'Addons' },
+];
+
 export default function CategoriesPage() {
   const [data, setData] = useState([]);
   const [outlets, setOutlets] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedOutletFilter, setSelectedOutletFilter] = useState('all');
   const [modal, setModal] = useState({ open: false, mode: 'create', item: null });
   const [form, setForm] = useState(emptyForm);
   const { addToast } = useToast();
@@ -102,10 +111,19 @@ export default function CategoriesPage() {
     }
   };
 
+  const sortedData = [...data].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+
+  const filteredData = sortedData.filter((cat) => {
+    if (selectedOutletFilter !== 'all') {
+      return getRefId(cat.outletId) === selectedOutletFilter;
+    }
+    return true;
+  });
+
   const columns = [
-    { key: 'name', label: 'Name' },
+    { key: 'name', label: 'Name', render: (r) => <span className="font-bold text-on-surface dark:text-zinc-200">{r.name}</span> },
     { key: 'outletId', label: 'Outlet', render: (r) => outletName(r.outletId) },
-    { key: 'displayOrder', label: 'Order', render: (r) => r.displayOrder ?? '-' },
+    { key: 'displayOrder', label: 'Order', render: (r) => <span className="font-mono">{r.displayOrder ?? '-'}</span> },
     { key: 'isActive', label: 'Status', render: (r) => <Badge variant={r.isActive !== false ? 'success' : 'neutral'}>{r.isActive !== false ? 'Active' : 'Inactive'}</Badge> },
     { key: 'actions', label: 'Actions', render: (r) => (
       <div className="flex gap-2">
@@ -115,13 +133,43 @@ export default function CategoriesPage() {
     ) },
   ];
 
+  const actions = (
+    <Button onClick={openCreate} disabled={!outlets.length} className="flex items-center gap-1 font-bold shadow-sm">
+      <HiPlus /> Add Category
+    </Button>
+  );
+
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
-        <h1 className="text-xl font-bold text-slate-100">Categories</h1>
-        <Button onClick={openCreate} disabled={!outlets.length}><HiPlus /> Add Category</Button>
+    <div className="space-y-6">
+      <PageHeader 
+        section="Operations"
+        title="Categories"
+        description="Manage and organize menu categories for your outlets."
+        actions={actions}
+        tabs={menuTabs}
+      />
+
+      {/* Outlet Filtering Select */}
+      <div className="flex items-center gap-4 bg-surface-subtle dark:bg-zinc-900/40 p-3 rounded-2xl border border-border-base dark:border-zinc-900 shadow-xs max-w-xs">
+        <div className="w-full">
+          <Select 
+            id="cat-outlet-filter" 
+            label="Filter by Outlet" 
+            value={selectedOutletFilter} 
+            onChange={(e) => setSelectedOutletFilter(e.target.value)}
+          >
+            <option value="all">All Outlets</option>
+            {outlets.map((outlet) => (
+              <option key={getEntityId(outlet)} value={getEntityId(outlet)}>
+                {outlet.name}
+              </option>
+            ))}
+          </Select>
+        </div>
       </div>
-      <Table columns={columns} data={data} loading={loading} />
+
+      <Table columns={columns} data={filteredData} loading={loading} />
+
       <Modal isOpen={modal.open} onClose={closeModal} title={modal.mode === 'create' ? 'New Category' : 'Edit Category'}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <Select id="cat-outlet" label="Outlet" value={form.outletId} onChange={(e) => setForm({ ...form, outletId: e.target.value })} disabled={modal.mode === 'edit'} required>
@@ -131,12 +179,12 @@ export default function CategoriesPage() {
           <Input id="cat-name" label="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
           <Input id="cat-order" label="Display Order" type="number" min="0" value={form.displayOrder} onChange={(e) => setForm({ ...form, displayOrder: e.target.value })} required />
           {modal.mode === 'edit' && (
-            <label className="flex items-center gap-3 text-sm font-medium text-slate-300">
-              <input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} className="h-4 w-4 accent-indigo-500" />
+            <label className="flex items-center gap-3 text-sm font-semibold text-on-surface-variant dark:text-zinc-400">
+              <input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} className="h-4 w-4 accent-primary rounded cursor-pointer" />
               Active
             </label>
           )}
-          <div className="flex justify-end gap-2 pt-4 border-t border-[rgba(99,102,241,0.15)]">
+          <div className="flex justify-end gap-2 pt-4 border-t border-border-base dark:border-zinc-850">
             <Button variant="secondary" onClick={closeModal}>Cancel</Button>
             <Button type="submit">{modal.mode === 'create' ? 'Create' : 'Save'}</Button>
           </div>

@@ -1,15 +1,17 @@
 import express, { Router } from 'express';
 import { SubscriptionController } from '../controllers/subscription.controller.js';
-import { verifyToken, isSuperAdmin } from '../middleware/auth.middleware.js';
+import { verifyToken, isRestaurantOwner, isSuperAdmin } from '../middleware/auth.middleware.js';
 
 const router: Router = express.Router();
 
 /**
- * All routes are protected and restricted to SUPER_ADMIN
+ * All routes are protected.
+ * `/current` is visible to restaurant owners and super admins.
+ * Mutating and historical subscription endpoints remain super-admin only.
  */
 
 // GET current active subscription
-router.get('/current', verifyToken, isSuperAdmin, SubscriptionController.getCurrentSubscription);
+router.get('/current', verifyToken, isRestaurantOwner, SubscriptionController.getCurrentSubscription);
 
 // GET list of subscriptions for the tenant
 router.get('/', verifyToken, isSuperAdmin, SubscriptionController.getSubscriptionsByTenantId);

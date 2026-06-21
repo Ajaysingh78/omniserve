@@ -5,6 +5,7 @@ import Modal from '../../components/ui/Modal';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import Badge from '../../components/ui/Badge';
+import PageHeader from '../../components/ui/PageHeader';
 import { useToast } from '../../components/ui/Toast';
 import { HiPlus } from 'react-icons/hi2';
 import { listMenuItemsApi } from '../../api/models/menuItem.api';
@@ -17,6 +18,13 @@ const emptyForm = {
   price: '',
   isAvailable: true,
 };
+
+const menuTabs = [
+  { to: '/menu-items', label: 'Menu Items' },
+  { to: '/categories', label: 'Categories' },
+  { to: '/variants', label: 'Variants' },
+  { to: '/addons', label: 'Addons' },
+];
 
 export default function AddonsPage() {
   const [data, setData] = useState([]);
@@ -135,11 +143,18 @@ export default function AddonsPage() {
   };
 
   const columns = [
-    { key: 'name', label: 'Name' },
+    { key: 'name', label: 'Name', render: (r) => <span className="font-bold text-on-surface dark:text-zinc-200">{r.name}</span> },
     { key: 'menuItemId', label: 'Menu Item', render: (r) => menuItemName(r.menuItemId) },
-    { key: 'price', label: 'Price', render: (r) => `INR ${Number(r.price || 0).toFixed(2)}` },
+    { 
+      key: 'price', 
+      label: 'Price', 
+      render: (r) => (
+        <span className="font-mono font-semibold text-on-surface dark:text-zinc-300">
+          ₹{Number(r.price || 0).toFixed(2)}
+        </span>
+      ) 
+    },
     { key: 'isAvailable', label: 'Status', render: (r) => <Badge variant={r.isAvailable !== false ? 'success' : 'neutral'}>{r.isAvailable !== false ? 'Available' : 'Unavailable'}</Badge> },
-    { key: 'createdAt', label: 'Created', render: (r) => r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '-' },
     { key: 'actions', label: 'Actions', render: (r) => (
       <div className="flex gap-2">
         <Button size="sm" variant="secondary" onClick={() => openEdit(r)}>Edit</Button>
@@ -148,19 +163,44 @@ export default function AddonsPage() {
     ) },
   ];
 
+  const actions = (
+    <Button onClick={openCreate} disabled={!menuItems.length} className="flex items-center gap-1 font-bold shadow-sm">
+      <HiPlus /> Add Addon
+    </Button>
+  );
+
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
-        <h1 className="text-xl font-bold text-slate-100">Addons</h1>
-        <Button onClick={openCreate} disabled={!menuItems.length}><HiPlus /> Add Addon</Button>
+    <div className="space-y-6">
+      <PageHeader 
+        section="Operations"
+        title="Addons"
+        description="Manage optional item add-ons and toppings."
+        actions={actions}
+        tabs={menuTabs}
+      />
+
+      {/* Menu Item Selector Filter */}
+      <div className="flex items-center gap-4 bg-surface-subtle dark:bg-zinc-900/40 p-3 rounded-2xl border border-border-base dark:border-zinc-900 shadow-xs max-w-xs">
+        <div className="w-full">
+          <Select 
+            id="addon-filter-item" 
+            label="Filter by Menu Item" 
+            value={selectedMenuItemId} 
+            onChange={(e) => handleSelectedMenuItem(e.target.value)} 
+            disabled={!menuItems.length}
+          >
+            <option value="" disabled>Select menu item</option>
+            {menuItems.map((item) => (
+              <option key={getEntityId(item)} value={getEntityId(item)}>
+                {item.name}
+              </option>
+            ))}
+          </Select>
+        </div>
       </div>
-      <div className="mb-5 max-w-md">
-        <Select id="addon-filter-item" label="Menu Item" value={selectedMenuItemId} onChange={(e) => handleSelectedMenuItem(e.target.value)} disabled={!menuItems.length}>
-          <option value="">Select menu item</option>
-          {menuItems.map((item) => <option key={getEntityId(item)} value={getEntityId(item)}>{item.name}</option>)}
-        </Select>
-      </div>
+
       <Table columns={columns} data={data} loading={loading} />
+
       <Modal isOpen={modal.open} onClose={closeModal} title={modal.mode === 'create' ? 'New Addon' : 'Edit Addon'}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <Select id="add-menu-item" label="Menu Item" value={form.menuItemId} onChange={(e) => setForm({ ...form, menuItemId: e.target.value })} required>
@@ -169,11 +209,11 @@ export default function AddonsPage() {
           </Select>
           <Input id="add-name" label="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
           <Input id="add-price" label="Price (INR)" type="number" min="0" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required />
-          <label className="flex items-center gap-3 text-sm font-medium text-slate-300">
-            <input type="checkbox" checked={form.isAvailable} onChange={(e) => setForm({ ...form, isAvailable: e.target.checked })} className="h-4 w-4 accent-indigo-500" />
+          <label className="flex items-center gap-3 text-sm font-semibold text-on-surface-variant dark:text-zinc-400">
+            <input type="checkbox" checked={form.isAvailable} onChange={(e) => setForm({ ...form, isAvailable: e.target.checked })} className="h-4 w-4 accent-primary rounded cursor-pointer" />
             Available
           </label>
-          <div className="flex justify-end gap-2 pt-4 border-t border-[rgba(99,102,241,0.15)]">
+          <div className="flex justify-end gap-2 pt-4 border-t border-border-base dark:border-zinc-850">
             <Button variant="secondary" onClick={closeModal}>Cancel</Button>
             <Button type="submit">{modal.mode === 'create' ? 'Create' : 'Save'}</Button>
           </div>

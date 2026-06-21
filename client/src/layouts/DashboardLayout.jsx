@@ -12,6 +12,7 @@ const pageTitles = {
   '/addons': 'Addons', '/orders': 'Orders', '/customers': 'Customers',
   '/inventory': 'Inventory', '/subscriptions': 'Subscriptions', '/analytics': 'Analytics',
   '/notifications': 'Notifications', '/audit-logs': 'Audit Logs', '/users': 'Users',
+  '/payments': 'Payments', '/webhook-logs': 'Webhook Logs',
 };
 
 export default function DashboardLayout() {

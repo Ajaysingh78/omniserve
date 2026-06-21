@@ -1,8 +1,8 @@
 import bcrypt from 'bcrypt';
-import jwt, { SignOptions } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import { IUser } from '../models/user.model.js';
 import User from '../models/user.model.js';
-import RefreshToken, { IRefreshToken } from '../models/refreshtoken.model.js';
+import RefreshToken from '../models/refreshtoken.model.js';
 import { UserStatus, SubscriptionPlan, UserRole } from '../enums/enums.js';
 import { Types } from 'mongoose';
 import Tenant from '../models/tenant.model.js';

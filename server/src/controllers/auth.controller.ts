@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import { AuthService } from '../services/auth.service.js';
 import { TokenBlacklistService } from '../services/tokenblacklist.service.js';
-import { AuditAction, UserRole } from '../enums/enums.js';
 
 
 export class AuthController {

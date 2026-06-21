@@ -40,13 +40,15 @@ export default function OutletsPage() {
       setData(getList(outletResponse, 'outlets'));
       setRestaurants(getList(restaurantResponse, 'restaurants'));
     } catch {
-      addToast('Failed to load outlets', 'error');
+      addToast('Failed to load outlets list', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { 
+    fetchData(); 
+  }, []);
 
   const restaurantName = (restaurantId) => {
     const id = getRefId(restaurantId);
@@ -91,15 +93,15 @@ export default function OutletsPage() {
       const payload = buildPayload();
       if (modal.mode === 'create') {
         await createOutletApi(payload);
-        addToast('Outlet created', 'success');
+        addToast('Outlet created successfully', 'success');
       } else {
         await updateOutletApi(getEntityId(modal.item), payload);
-        addToast('Outlet updated', 'success');
+        addToast('Outlet updated successfully', 'success');
       }
       closeModal();
       fetchData();
     } catch (err) {
-      addToast(err.response?.data?.message || 'Failed', 'error');
+      addToast(err.response?.data?.message || 'Operation failed', 'error');
     }
   };
 
@@ -107,26 +109,26 @@ export default function OutletsPage() {
     try {
       const isActive = row.status ? row.status === 'ACTIVE' : row.isActive !== false;
       await toggleOutletStatusApi(getEntityId(row), isActive ? 'INACTIVE' : 'ACTIVE');
-      addToast('Status toggled', 'success');
+      addToast('Outlet status updated', 'success');
       fetchData();
     } catch (err) {
-      addToast(err.response?.data?.message || 'Failed', 'error');
+      addToast(err.response?.data?.message || 'Failed to update status', 'error');
     }
   };
 
   const handleDelete = async (row) => {
-    if (!confirm('Delete this outlet?')) return;
+    if (!confirm('Are you sure you want to delete this outlet?')) return;
     try {
       await deleteOutletApi(getEntityId(row));
-      addToast('Deleted', 'success');
+      addToast('Outlet deleted successfully', 'success');
       fetchData();
     } catch {
-      addToast('Failed', 'error');
+      addToast('Failed to delete outlet', 'error');
     }
   };
 
   const columns = [
-    { key: 'name', label: 'Name' },
+    { key: 'name', label: 'Name', render: (r) => <span className="font-bold text-on-surface dark:text-zinc-200">{r.name}</span> },
     { key: 'restaurantId', label: 'Restaurant', render: (r) => restaurantName(r.restaurantId) },
     { key: 'city', label: 'City', render: (r) => r.city || '-' },
     { key: 'phone', label: 'Phone', render: (r) => r.phone || '-' },
@@ -136,48 +138,131 @@ export default function OutletsPage() {
       render: (r) => {
         const isActive = r.status ? r.status === 'ACTIVE' : r.isActive !== false;
         return (
-          <Badge variant={isActive ? 'success' : 'neutral'} className="cursor-pointer" onClick={() => handleToggle(r)}>
+          <Badge 
+            variant={isActive ? 'success' : 'neutral'} 
+            className="cursor-pointer hover:opacity-85 transition-opacity" 
+            onClick={() => handleToggle(r)}
+          >
             {isActive ? 'Active' : 'Inactive'}
           </Badge>
         );
       },
     },
     { key: 'createdAt', label: 'Created', render: (r) => r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '-' },
-    { key: 'actions', label: 'Actions', render: (r) => (
-      <div className="flex gap-2">
-        <Button size="sm" variant="secondary" onClick={() => openEdit(r.id)}>Edit</Button>
-        <Button size="sm" variant="danger" onClick={() => handleDelete(r.id)}>Delete</Button>
-      </div>
-    ) },
+    { 
+      key: 'actions', 
+      label: 'Actions', 
+      render: (r) => (
+        <div className="flex gap-2">
+          <Button size="sm" variant="secondary" onClick={() => openEdit(r)}>Edit</Button>
+          <Button size="sm" variant="danger" onClick={() => handleDelete(r)}>Delete</Button>
+        </div>
+      ) 
+    },
   ];
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
-        <h1 className="text-xl font-bold text-slate-100">Outlets</h1>
-        <Button onClick={openCreate} disabled={!restaurants.length}><HiPlus /> Add Outlet</Button>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between gap-4 mb-2 flex-wrap">
+        <div>
+          <h2 className="text-headline-lg font-headline-lg text-on-surface dark:text-zinc-100 text-[24px] font-bold tracking-tight">
+            Outlets
+          </h2>
+          <p className="text-body-md text-on-surface-variant dark:text-zinc-400 text-[14px]">
+            Manage physical kitchen outlet sites.
+          </p>
+        </div>
+        <Button onClick={openCreate} disabled={!restaurants.length} className="flex items-center gap-1 font-bold">
+          <HiPlus /> Add Outlet
+        </Button>
       </div>
+
       <Table columns={columns} data={data} loading={loading} />
+
       <Modal isOpen={modal.open} onClose={closeModal} title={modal.mode === 'create' ? 'New Outlet' : 'Edit Outlet'}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <Select id="out-restaurant" label="Restaurant" value={form.restaurantId} onChange={(e) => setForm({ ...form, restaurantId: e.target.value })} required>
+          <Select 
+            id="out-restaurant" 
+            label="Restaurant" 
+            value={form.restaurantId} 
+            onChange={(e) => setForm({ ...form, restaurantId: e.target.value })} 
+            required
+          >
             <option value="" disabled>Select restaurant</option>
-            {restaurants.map((restaurant) => <option key={getEntityId(restaurant)} value={getEntityId(restaurant)}>{restaurant.name}</option>)}
+            {restaurants.map((restaurant) => (
+              <option key={getEntityId(restaurant)} value={getEntityId(restaurant)}>
+                {restaurant.name}
+              </option>
+            ))}
           </Select>
-          <Input id="out-name" label="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-          <Input id="out-address" label="Address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} required />
+
+          <Input 
+            id="out-name" 
+            label="Outlet Name" 
+            value={form.name} 
+            onChange={(e) => setForm({ ...form, name: e.target.value })} 
+            required 
+            placeholder="e.g. Downtown Kitchen"
+          />
+          <Input 
+            id="out-address" 
+            label="Address" 
+            value={form.address} 
+            onChange={(e) => setForm({ ...form, address: e.target.value })} 
+            required 
+            placeholder="e.g. 123 Main St"
+          />
+
           <div className="grid gap-4 sm:grid-cols-2">
-            <Input id="out-city" label="City" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} required />
-            <Input id="out-state" label="State" value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} required />
+            <Input 
+              id="out-city" 
+              label="City" 
+              value={form.city} 
+              onChange={(e) => setForm({ ...form, city: e.target.value })} 
+              required 
+              placeholder="e.g. Mumbai"
+            />
+            <Input 
+              id="out-state" 
+              label="State" 
+              value={form.state} 
+              onChange={(e) => setForm({ ...form, state: e.target.value })} 
+              required 
+              placeholder="e.g. MH"
+            />
           </div>
-          <Input id="out-pincode" label="Pincode" value={form.pincode} onChange={(e) => setForm({ ...form, pincode: e.target.value })} maxLength="6" required />
+
+          <Input 
+            id="out-pincode" 
+            label="Pincode" 
+            value={form.pincode} 
+            onChange={(e) => setForm({ ...form, pincode: e.target.value })} 
+            maxLength="6" 
+            required 
+            placeholder="e.g. 400001"
+          />
+
           <div className="grid gap-4 sm:grid-cols-2">
-            <Input id="out-phone" label="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-            <Input id="out-email" label="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+            <Input 
+              id="out-phone" 
+              label="Phone Number" 
+              value={form.phone} 
+              onChange={(e) => setForm({ ...form, phone: e.target.value })} 
+              placeholder="e.g. +919999999999"
+            />
+            <Input 
+              id="out-email" 
+              label="Email Address" 
+              type="email" 
+              value={form.email} 
+              onChange={(e) => setForm({ ...form, email: e.target.value })} 
+              placeholder="outlet@restaurant.com"
+            />
           </div>
-          <div className="flex justify-end gap-2 pt-4 border-t border-[rgba(99,102,241,0.15)]">
+
+          <div className="flex justify-end gap-2 pt-4 border-t border-border-base dark:border-zinc-850">
             <Button variant="secondary" onClick={closeModal}>Cancel</Button>
-            <Button type="submit">{modal.mode === 'create' ? 'Create' : 'Save'}</Button>
+            <Button type="submit">{modal.mode === 'create' ? 'Create' : 'Save Changes'}</Button>
           </div>
         </form>
       </Modal>

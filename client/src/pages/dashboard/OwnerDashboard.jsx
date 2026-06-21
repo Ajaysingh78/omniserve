@@ -13,48 +13,123 @@ export default function OwnerDashboard() {
   const [stats, setStats] = useState(null);
   const [sub, setSub] = useState(null);
   const [outlets, setOutlets] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getSummaryStatsApi().then((r) => setStats(r.data?.data)).catch(() => {});
-    getCurrentSubscriptionApi().then((r) => setSub(r.data?.data)).catch(() => {});
-    listOutletsApi().then((r) => setOutlets(getList(r, 'outlets'))).catch(() => {});
+    setLoading(true);
+    Promise.allSettled([
+      getSummaryStatsApi(),
+      getCurrentSubscriptionApi(),
+      listOutletsApi()
+    ]).then(([statsRes, subRes, outletsRes]) => {
+      if (statsRes.status === 'fulfilled') setStats(statsRes.value.data?.data);
+      if (subRes.status === 'fulfilled') setSub(subRes.value.data?.data);
+      if (outletsRes.status === 'fulfilled') setOutlets(getList(outletsRes.value, 'outlets'));
+      setLoading(false);
+    }).catch(() => {
+      setLoading(false);
+    });
   }, []);
 
+  const activeOutletsCount = outlets.filter((o) => (o.status ? o.status === 'ACTIVE' : o.isActive !== false)).length;
+
   return (
-    <div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-        <StatCard title="Revenue" value={`₹${stats?.totalRevenue?.toLocaleString() || '0'}`} icon={<HiCurrencyDollar />} color="emerald" trend="+12%" trendUp />
-        <StatCard title="Orders Today" value={stats?.ordersToday || 0} icon={<HiShoppingCart />} color="indigo" />
-        <StatCard title="Active Outlets" value={outlets.filter((o) => (o.status ? o.status === 'ACTIVE' : o.isActive !== false)).length} icon={<HiMapPin />} color="amber" />
-        <StatCard title="Plan" value={sub?.plan || 'None'} icon={<HiCreditCard />} color="blue" />
+    <div className="space-y-6">
+      <div className="flex flex-col gap-1.5 mb-2">
+        <h2 className="text-headline-lg font-headline-lg text-on-surface dark:text-zinc-100 text-[24px] font-bold tracking-tight">
+          Restaurant Analytics
+        </h2>
+        <p className="text-body-md text-on-surface-variant dark:text-zinc-400 text-[14px]">
+          Monitor sales performance and outlet configurations.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card>
-          <h3 className="mb-4 font-bold text-slate-100">Your Outlets</h3>
-          {outlets.length === 0 ? <p className="text-slate-500">No outlets created yet.</p> : (
-            <div className="flex flex-col gap-3">
-              {outlets.slice(0, 5).map((o) => (
-                <div key={o.id || o._id} className="flex items-center justify-between p-3 bg-[#232640] rounded-lg">
-                  <div>
-                    <div className="font-semibold text-sm text-slate-100">{o.name}</div>
-                    <div className="text-xs text-slate-500">{o.city || o.address?.city || 'No address'}</div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard 
+          title="Total Revenue" 
+          value={`₹${stats?.totalRevenue?.toLocaleString() || '0'}`} 
+          icon={<HiCurrencyDollar className="text-[20px]" />} 
+          color="emerald" 
+        />
+        <StatCard 
+          title="Total Orders" 
+          value={(stats?.totalOrders || 0).toString()} 
+          icon={<HiShoppingCart className="text-[20px]" />} 
+          color="indigo" 
+        />
+        <StatCard 
+          title="Active Outlets" 
+          value={activeOutletsCount.toString()} 
+          icon={<HiMapPin className="text-[20px]" />} 
+          color="amber" 
+        />
+        <StatCard 
+          title="Current Plan" 
+          value={sub?.plan || 'None'} 
+          icon={<HiCreditCard className="text-[20px]" />} 
+          color="blue" 
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="flex flex-col gap-4">
+          <h3 className="text-headline-sm font-headline-sm text-on-surface dark:text-zinc-100 text-[16px] font-bold">
+            Your Outlets
+          </h3>
+          {loading ? (
+            <div className="flex justify-center py-6">
+              <span className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin-custom" />
+            </div>
+          ) : outlets.length === 0 ? (
+            <p className="text-on-surface-variant dark:text-zinc-550 text-sm py-4">No outlets created yet.</p>
+          ) : (
+            <div className="flex flex-col gap-3.5 mt-2">
+              {outlets.slice(0, 5).map((o) => {
+                const isActive = o.status ? o.status === 'ACTIVE' : o.isActive !== false;
+                return (
+                  <div 
+                    key={o.id || o._id} 
+                    className="flex items-center justify-between p-3.5 bg-surface-subtle dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-lg hover:shadow-sm transition-all"
+                  >
+                    <div>
+                      <div className="font-semibold text-sm text-on-surface dark:text-zinc-200">{o.name}</div>
+                      <div className="text-xs text-on-surface-variant dark:text-zinc-400 mt-0.5">{o.city || o.address?.city || 'No address'}</div>
+                    </div>
+                    <Badge variant={isActive ? 'success' : 'neutral'}>
+                      {isActive ? 'Active' : 'Inactive'}
+                    </Badge>
                   </div>
-                  <Badge variant={(o.status ? o.status === 'ACTIVE' : o.isActive !== false) ? 'success' : 'neutral'}>{(o.status ? o.status === 'ACTIVE' : o.isActive !== false) ? 'Active' : 'Inactive'}</Badge>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </Card>
-        <Card>
-          <h3 className="mb-4 font-bold text-slate-100">Subscription</h3>
-          {sub ? (
-            <div className="flex flex-col gap-3">
-              {[['Plan', <Badge variant="info">{sub.plan}</Badge>], ['Status', <Badge variant={SUBSCRIPTION_STATUS_VARIANT[sub.status] || 'neutral'}>{sub.status}</Badge>], ['Expires', <span className="font-semibold text-sm text-slate-100">{sub.endDate ? new Date(sub.endDate).toLocaleDateString() : '—'}</span>]].map(([label, val]) => (
-                <div key={label} className="flex items-center justify-between"><span className="text-sm text-slate-400">{label}</span>{val}</div>
+
+        <Card className="flex flex-col gap-4">
+          <h3 className="text-headline-sm font-headline-sm text-on-surface dark:text-zinc-100 text-[16px] font-bold">
+            Subscription Details
+          </h3>
+          {loading ? (
+            <div className="flex justify-center py-6">
+              <span className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin-custom" />
+            </div>
+          ) : sub ? (
+            <div className="flex flex-col gap-4 mt-2">
+              {[
+                ['Plan Type', <Badge variant="info">{sub.plan}</Badge>],
+                ['Current Status', <Badge variant={SUBSCRIPTION_STATUS_VARIANT[sub.status] || 'neutral'}>{sub.status}</Badge>],
+                ['Start Date', <span className="font-bold text-sm text-on-surface dark:text-zinc-200">{sub.startDate ? new Date(sub.startDate).toLocaleDateString() : '—'}</span>],
+                ['Expiration Date', <span className="font-bold text-sm text-on-surface dark:text-zinc-200">{sub.endDate ? new Date(sub.endDate).toLocaleDateString() : '—'}</span>]
+              ].map(([label, val]) => (
+                <div key={label} className="flex items-center justify-between border-b border-border-base dark:border-zinc-800 pb-2.5 last:border-b-0 last:pb-0">
+                  <span className="text-sm text-on-surface-variant dark:text-zinc-400 font-medium">{label}</span>
+                  {val}
+                </div>
               ))}
             </div>
-          ) : <p className="text-slate-500">No active subscription.</p>}
+          ) : (
+            <p className="text-on-surface-variant dark:text-zinc-550 text-sm py-4">No active subscription plan.</p>
+          )}
         </Card>
       </div>
     </div>
