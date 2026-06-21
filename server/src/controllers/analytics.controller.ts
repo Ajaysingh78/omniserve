@@ -145,8 +145,22 @@ export class AnalyticsController {
         return;
       }
 
+      const outletId = req.query.outletId as string | undefined;
+      if (outletId) {
+        const isOwner = await AnalyticsController.validateOutletOwnership(outletId, tenantId);
+        if (!isOwner) {
+          ApiResponseHandler.badRequest(res, 'Outlet not found or access denied');
+          return;
+        }
+        if (!(await AccessScope.canAccessOutlet(req.user, outletId))) {
+          ApiResponseHandler.forbidden(res, 'You cannot access analytics for this outlet');
+          return;
+        }
+      }
+
       const allowedOutletIds = await AccessScope.outletIdsForUser(req.user);
-      const summary = await AnalyticsService.getSummaryStats(tenantId, allowedOutletIds);
+      const scopedOutletIds = outletId ? [outletId] : allowedOutletIds;
+      const summary = await AnalyticsService.getSummaryStats(tenantId, scopedOutletIds);
 
       ApiResponseHandler.success(res, 200, 'Tenant stats summary retrieved successfully', summary);
     } catch (error: any) {

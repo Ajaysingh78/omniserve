@@ -18,6 +18,7 @@ import webhookRouter from "./webhook.route.js";
 import auditLogRouter from "./auditlog.route.js";
 import userRoutes from "./user.route.js";
 
+
 const router = Router();
 
 router.use("/auth", authRoutes);
@@ -37,5 +38,6 @@ router.use("/analytics", analyticsRouter);
 router.use("/webhooks", webhookRouter);
 router.use("/audit-logs", auditLogRouter);
 router.use("/users", userRoutes);
+
 
 export default router;

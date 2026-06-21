@@ -1,13 +1,69 @@
-import mongoose, { Types } from 'mongoose';
+import { Types } from 'mongoose';
 import AnalyticsDaily, { IAnalyticsDaily } from '../models/analyticsdaily.model.js';
 import Restaurant from '../models/restaurant.model.js';
 import Subscription from '../models/subscription.model.js';
 import User from '../models/user.model.js';
 import Outlet from '../models/outlet.model.js';
 import MenuItem from '../models/menuitems.model.js';
-import { UserStatus, SubscriptionStatus } from '../enums/enums.js';
+import Order from '../models/order.model.js';
+import { OrderStatus, SubscriptionStatus, UserStatus } from '../enums/enums.js';
+
+export interface IDailyAnalyticsSnapshot {
+  reportDate: Date;
+  totalOrders: number;
+  totalRevenue: number;
+  averageOrderValue: number;
+  cancelledOrders: number;
+  newCustomers: number;
+  repeatCustomers: number;
+  outletCount: number;
+}
 
 export class AnalyticsService {
+  private static normalizeOutletIds(outletId?: string, outletIds?: string[]): Types.ObjectId[] | null {
+    if (outletId) return [new Types.ObjectId(outletId)];
+    if (outletIds !== undefined) {
+      return outletIds.map((id) => new Types.ObjectId(id));
+    }
+    return null;
+  }
+
+  private static buildOrderMatch(
+    tenantId: string,
+    filters: { outletId?: string; outletIds?: string[]; from?: string; to?: string },
+    includeCancelled = true
+  ) {
+    const outletObjectIds = this.normalizeOutletIds(filters.outletId, filters.outletIds);
+    const match: Record<string, any> = {
+      tenantId: new Types.ObjectId(tenantId),
+      isDeleted: false,
+    };
+
+    if (outletObjectIds) {
+      match.outletId = { $in: outletObjectIds };
+    }
+
+    if (!includeCancelled) {
+      match.orderStatus = { $ne: OrderStatus.CANCELLED };
+    }
+
+    if (filters.from || filters.to) {
+      match.createdAt = {};
+      if (filters.from) {
+        const fromDate = new Date(filters.from);
+        fromDate.setUTCHours(0, 0, 0, 0);
+        match.createdAt.$gte = fromDate;
+      }
+      if (filters.to) {
+        const toDate = new Date(filters.to);
+        toDate.setUTCHours(23, 59, 59, 999);
+        match.createdAt.$lte = toDate;
+      }
+    }
+
+    return match;
+  }
+
   /**
    * Upsert metrics for a daily analytics record using compound index: tenantId + outletId + reportDate
    */
@@ -27,54 +83,51 @@ export class AnalyticsService {
     const reportDate = new Date(reportDateStr);
     reportDate.setUTCHours(0, 0, 0, 0);
 
-    const session = await mongoose.startSession();
-    session.startTransaction();
+    const query = {
+      tenantId: new Types.ObjectId(tenantId),
+      outletId: new Types.ObjectId(outletId),
+      reportDate,
+      isDeleted: false,
+    };
+    const increments: Record<string, number> = {};
 
-    try {
-      let record = await AnalyticsDaily.findOne({
-        tenantId: new Types.ObjectId(tenantId),
-        outletId: new Types.ObjectId(outletId),
-        reportDate,
-        isDeleted: false,
-      }).session(session);
+    if (metrics.totalOrders !== undefined) increments.totalOrders = metrics.totalOrders;
+    if (metrics.totalRevenue !== undefined) increments.totalRevenue = metrics.totalRevenue;
+    if (metrics.cancelledOrders !== undefined) increments.cancelledOrders = metrics.cancelledOrders;
+    if (metrics.newCustomers !== undefined) increments.newCustomers = metrics.newCustomers;
+    if (metrics.repeatCustomers !== undefined) increments.repeatCustomers = metrics.repeatCustomers;
 
-      if (!record) {
-        record = new AnalyticsDaily({
-          tenantId: new Types.ObjectId(tenantId),
-          outletId: new Types.ObjectId(outletId),
+    const record = await AnalyticsDaily.findOneAndUpdate(
+      query,
+      {
+        ...(Object.keys(increments).length > 0 ? { $inc: increments } : {}),
+        $setOnInsert: {
+          tenantId: query.tenantId,
+          outletId: query.outletId,
           reportDate,
-          totalOrders: metrics.totalOrders || 0,
-          totalRevenue: metrics.totalRevenue || 0,
-          cancelledOrders: metrics.cancelledOrders || 0,
-          newCustomers: metrics.newCustomers || 0,
-          repeatCustomers: metrics.repeatCustomers || 0,
+          totalOrders: 0,
+          totalRevenue: 0,
+          cancelledOrders: 0,
+          newCustomers: 0,
+          repeatCustomers: 0,
           createdBy: userId ? new Types.ObjectId(userId) : null,
-          updatedBy: userId ? new Types.ObjectId(userId) : null,
           isDeleted: false,
-        });
-      } else {
-        if (metrics.totalOrders !== undefined) record.totalOrders += metrics.totalOrders;
-        if (metrics.totalRevenue !== undefined) record.totalRevenue += metrics.totalRevenue;
-        if (metrics.cancelledOrders !== undefined) record.cancelledOrders += metrics.cancelledOrders;
-        if (metrics.newCustomers !== undefined) record.newCustomers += metrics.newCustomers;
-        if (metrics.repeatCustomers !== undefined) record.repeatCustomers += metrics.repeatCustomers;
-        record.updatedBy = userId ? new Types.ObjectId(userId) : null;
-      }
+        },
+        $set: {
+          updatedBy: userId ? new Types.ObjectId(userId) : null,
+        },
+      },
+      { new: true, upsert: true }
+    );
 
-      // Recompute average order value
-      const orders = record.totalOrders;
-      const revenue = record.totalRevenue;
-      record.averageOrderValue = orders > 0 ? Number((revenue / orders).toFixed(2)) : 0;
-
-      const savedRecord = await record.save({ session });
-      await session.commitTransaction();
-      return savedRecord;
-    } catch (error) {
-      await session.abortTransaction();
-      throw error;
-    } finally {
-      session.endSession();
+    if (!record) {
+      throw new Error('Failed to upsert analytics record.');
     }
+
+    const orders = record.totalOrders;
+    const revenue = record.totalRevenue;
+    record.averageOrderValue = orders > 0 ? Number((revenue / orders).toFixed(2)) : 0;
+    return record.save();
   }
 
   /**
@@ -84,33 +137,114 @@ export class AnalyticsService {
   static async getDailyStats(
     tenantId: string,
     filters: { outletId?: string; outletIds?: string[]; from?: string; to?: string }
-  ): Promise<IAnalyticsDaily[]> {
-    const query: any = {
-      tenantId: new Types.ObjectId(tenantId),
-      isDeleted: false,
-    };
+  ): Promise<IDailyAnalyticsSnapshot[]> {
+    const allOrdersMatch = this.buildOrderMatch(tenantId, filters, true);
+    const activeOrdersMatch = this.buildOrderMatch(tenantId, filters, false);
 
-    if (filters.outletId) {
-      query.outletId = new Types.ObjectId(filters.outletId);
-    } else if (filters.outletIds) {
-      query.outletId = { $in: filters.outletIds.map(id => new Types.ObjectId(id)) };
-    }
+    const [dailyRows, dailyDistinctCustomers, firstOrderDays] = await Promise.all([
+      Order.aggregate([
+        { $match: allOrdersMatch },
+        {
+          $group: {
+            _id: {
+              day: {
+                $dateToString: {
+                  format: '%Y-%m-%d',
+                  date: '$createdAt',
+                },
+              },
+            },
+            totalOrders: {
+              $sum: {
+                $cond: [{ $ne: ['$orderStatus', OrderStatus.CANCELLED] }, 1, 0],
+              },
+            },
+            totalRevenue: {
+              $sum: {
+                $cond: [{ $ne: ['$orderStatus', OrderStatus.CANCELLED] }, '$totalAmount', 0],
+              },
+            },
+            cancelledOrders: {
+              $sum: {
+                $cond: [{ $eq: ['$orderStatus', OrderStatus.CANCELLED] }, 1, 0],
+              },
+            },
+            outlets: { $addToSet: '$outletId' },
+          },
+        },
+        { $sort: { '_id.day': 1 } },
+      ]),
+      Order.aggregate([
+        { $match: activeOrdersMatch },
+        {
+          $group: {
+            _id: {
+              day: {
+                $dateToString: {
+                  format: '%Y-%m-%d',
+                  date: '$createdAt',
+                },
+              },
+              customerId: '$customerId',
+            },
+          },
+        },
+        {
+          $group: {
+            _id: '$_id.day',
+            distinctCustomers: { $sum: 1 },
+          },
+        },
+      ]),
+      Order.aggregate([
+        { $match: activeOrdersMatch },
+        {
+          $group: {
+            _id: '$customerId',
+            firstOrderDate: { $min: '$createdAt' },
+          },
+        },
+        {
+          $group: {
+            _id: {
+              day: {
+                $dateToString: {
+                  format: '%Y-%m-%d',
+                  date: '$firstOrderDate',
+                },
+              },
+            },
+            newCustomers: { $sum: 1 },
+          },
+        },
+      ]),
+    ]);
 
-    if (filters.from || filters.to) {
-      query.reportDate = {};
-      if (filters.from) {
-        const fromDate = new Date(filters.from);
-        fromDate.setUTCHours(0, 0, 0, 0);
-        query.reportDate.$gte = fromDate;
-      }
-      if (filters.to) {
-        const toDate = new Date(filters.to);
-        toDate.setUTCHours(23, 59, 59, 999);
-        query.reportDate.$lte = toDate;
-      }
-    }
+    const distinctCustomersByDay = new Map<string, number>(
+      dailyDistinctCustomers.map((row) => [row._id, row.distinctCustomers])
+    );
+    const newCustomersByDay = new Map<string, number>(
+      firstOrderDays.map((row) => [row._id.day, row.newCustomers])
+    );
 
-    return await AnalyticsDaily.find(query).sort({ reportDate: 1 });
+    return dailyRows.map((row) => {
+      const day = row._id.day;
+      const totalOrders = row.totalOrders || 0;
+      const totalRevenue = row.totalRevenue || 0;
+      const newCustomers = newCustomersByDay.get(day) || 0;
+      const distinctCustomers = distinctCustomersByDay.get(day) || 0;
+
+      return {
+        reportDate: new Date(`${day}T00:00:00.000Z`),
+        totalOrders,
+        totalRevenue,
+        averageOrderValue: totalOrders > 0 ? Number((totalRevenue / totalOrders).toFixed(2)) : 0,
+        cancelledOrders: row.cancelledOrders || 0,
+        newCustomers,
+        repeatCustomers: Math.max(0, distinctCustomers - newCustomers),
+        outletCount: row.outlets?.length || 0,
+      };
+    });
   }
 
   /**
@@ -119,6 +253,7 @@ export class AnalyticsService {
   static async getSummaryStats(tenantId: string, outletIds?: string[] | null): Promise<{
     totalRevenue: number;
     totalOrders: number;
+    cancelledOrders: number;
     averageOrderValue: number;
     outletCount: number;
     totalRestaurants: number;
@@ -129,24 +264,34 @@ export class AnalyticsService {
     avgOrderValue: number;
   }> {
     const tenantObjectId = new Types.ObjectId(tenantId);
-    const match: any = {
-      tenantId: tenantObjectId,
-      isDeleted: false,
-    };
-
-    if (outletIds) {
-      match.outletId = { $in: outletIds.map(id => new Types.ObjectId(id)) };
+    const orderFilters: { outletIds?: string[] } = {};
+    if (outletIds !== undefined && outletIds !== null) {
+      orderFilters.outletIds = outletIds;
     }
+    const orderMatch = this.buildOrderMatch(tenantId, orderFilters, true);
 
-    const result = await AnalyticsDaily.aggregate([
+    const result = await Order.aggregate([
       {
-        $match: match,
+        $match: orderMatch,
       },
       {
         $group: {
           _id: null,
-          totalRevenue: { $sum: '$totalRevenue' },
-          totalOrders: { $sum: '$totalOrders' },
+          totalRevenue: {
+            $sum: {
+              $cond: [{ $ne: ['$orderStatus', OrderStatus.CANCELLED] }, '$totalAmount', 0],
+            },
+          },
+          totalOrders: {
+            $sum: {
+              $cond: [{ $ne: ['$orderStatus', OrderStatus.CANCELLED] }, 1, 0],
+            },
+          },
+          cancelledOrders: {
+            $sum: {
+              $cond: [{ $eq: ['$orderStatus', OrderStatus.CANCELLED] }, 1, 0],
+            },
+          },
           outlets: { $addToSet: '$outletId' },
         },
       },
@@ -158,7 +303,7 @@ export class AnalyticsService {
     let activeOutlets = 0;
     let totalMenuItems = 0;
 
-    if (!outletIds) {
+    if (outletIds === null || outletIds === undefined) {
       const [
         restaurantsCount,
         subscriptionsCount,
@@ -195,8 +340,12 @@ export class AnalyticsService {
           tenantId: tenantObjectId, 
           isDeleted: false, 
           $or: [
+            { restaurantId: { $in: uniqueRestIds } },
+            { pendingRestaurantId: { $in: uniqueRestIds } },
             { outletId: { $in: outletObjectIds } },
-            { outletIds: { $in: outletObjectIds } }
+            { outletIds: { $in: outletObjectIds } },
+            { pendingOutletId: { $in: outletObjectIds } },
+            { pendingOutletIds: { $in: outletObjectIds } },
           ]
         }),
         Outlet.countDocuments({ _id: { $in: outletObjectIds }, isDeleted: false, status: UserStatus.ACTIVE }),
@@ -213,6 +362,7 @@ export class AnalyticsService {
       return {
         totalRevenue: 0,
         totalOrders: 0,
+        cancelledOrders: 0,
         averageOrderValue: 0,
         outletCount: 0,
         totalRestaurants,
@@ -224,12 +374,13 @@ export class AnalyticsService {
       };
     }
 
-    const { totalRevenue, totalOrders, outlets } = result[0];
+    const { totalRevenue, totalOrders, cancelledOrders, outlets } = result[0];
     const averageOrderValue = totalOrders > 0 ? Number((totalRevenue / totalOrders).toFixed(2)) : 0;
 
     return {
       totalRevenue,
       totalOrders,
+      cancelledOrders,
       averageOrderValue,
       outletCount: outlets.length,
       totalRestaurants,
