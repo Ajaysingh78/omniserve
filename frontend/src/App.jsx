@@ -14,14 +14,12 @@ import AuthRoute from './layouts/authRoute';
 /* Auth pages */
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
-import JoinRestaurantPage from './pages/auth/JoinRestaurantPage';
 
 /* Dashboard pages */
 import DashboardPage from './pages/dashboard/DashboardPage';
 
 /* Management pages */
 import RestaurantsPage from './pages/restaurants/RestaurantsPage';
-import RestaurantJoinRequestsPage from './pages/restaurants/RestaurantJoinRequestsPage';
 import OutletsPage from './pages/outlets/OutletsPage';
 import CategoriesPage from './pages/menu/CategoriesPage';
 import MenuItemsPage from './pages/menu/MenuItemsPage';
@@ -64,7 +62,6 @@ export default function App() {
         <Route element={<AuthLayout />}>
           <Route path="/login" element={<AuthRoute><LoginPage /></AuthRoute>} />
           <Route path="/register" element={<AuthRoute><RegisterPage /></AuthRoute>} />
-          <Route path="/join-restaurant" element={<JoinRestaurantPage />} />
         </Route>
 
         {/* ── Protected dashboard routes ── */}
@@ -102,7 +99,6 @@ export default function App() {
 
             {/* Menu and stock management */}
             <Route element={<ProtectedRoute roles={[SUPER_ADMIN, RESTAURANT_OWNER, OUTLET_MANAGER]} />}>
-              <Route path="/join-requests" element={<RestaurantJoinRequestsPage />} />
               <Route path="/categories" element={<CategoriesPage />} />
               <Route path="/menu-items" element={<MenuItemsPage />} />
               <Route path="/variants" element={<VariantsPage />} />

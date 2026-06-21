@@ -261,7 +261,7 @@ export default function UsersPage() {
             {pageTitle}
           </h2>
           <p className="text-body-md text-on-surface-variant dark:text-zinc-400 text-[14px]">
-            {isSuperAdmin ? 'Manage platform user accounts and permissions.' : 'Manage restaurant team members and active roles.'}
+            {isSuperAdmin ? 'Create platform users and send invitation access from one place.' : 'Invite restaurant team members, track pending invites, and manage active roles.'}
           </p>
         </div>
         <Button onClick={openCreate} disabled={!allowedRoles.length} className="flex items-center gap-1 font-bold">
@@ -453,6 +453,12 @@ export default function UsersPage() {
 
       <Modal isOpen={modal.open} onClose={closeModal} title={modal.mode === 'create' ? `Invite New ${isSuperAdmin ? 'User' : 'Team Member'}` : 'Edit User details'}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          {modal.mode === 'create' && (
+            <div className="rounded-xl border border-primary/15 bg-primary/5 px-4 py-3 text-[12px] font-medium text-on-surface-variant dark:border-primary-fixed-dim/20 dark:bg-primary-fixed-dim/10 dark:text-zinc-300">
+              The invite creates the account immediately, emails the temporary password, and keeps the member marked as pending until they accept the invitation from Notifications.
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-4">
             <Input 
               id="u-first" 
