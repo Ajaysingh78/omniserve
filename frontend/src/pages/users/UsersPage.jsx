@@ -386,7 +386,7 @@ export default function UsersPage() {
                   <div>
                     {/* Top Header of Card */}
                     <div className="flex items-start gap-3.5 mb-4">
-                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${avatarBg} flex items-center justify-center font-bold text-white shadow-sm shrink-0`}>
+                      <div className={`w-12 h-12 rounded-xl bg-linear-to-br ${avatarBg} flex items-center justify-center font-bold text-white shadow-sm shrink-0`}>
                         {initials}
                       </div>
                       <div className="flex-1 min-w-0">
