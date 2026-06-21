@@ -17,7 +17,6 @@ import analyticsRouter from "./analytics.route.js";
 import webhookRouter from "./webhook.route.js";
 import auditLogRouter from "./auditlog.route.js";
 import userRoutes from "./user.route.js";
-import restaurantJoinRequestRoutes from "./restaurantJoinRequest.route.js";
 
 const router = Router();
 
@@ -38,6 +37,5 @@ router.use("/analytics", analyticsRouter);
 router.use("/webhooks", webhookRouter);
 router.use("/audit-logs", auditLogRouter);
 router.use("/users", userRoutes);
-router.use("/restaurant-join-requests", restaurantJoinRequestRoutes);
 
 export default router;
