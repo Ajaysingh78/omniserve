@@ -1,39 +1,45 @@
+import nodemailer from "nodemailer";
+
+
+
 interface SendMailOptions {
   to: string;
   subject: string;
   text: string;
-  html?: string;
+  html: string;
 }
 
 export class EmailService {
   static async sendMail(options: SendMailOptions): Promise<boolean> {
-    if (process.env.MAIL_WEBHOOK_URL) {
-      const response = await fetch(process.env.MAIL_WEBHOOK_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(process.env.MAIL_WEBHOOK_TOKEN
-            ? { Authorization: `Bearer ${process.env.MAIL_WEBHOOK_TOKEN}` }
-            : {}),
-        },
-        body: JSON.stringify({
-          from: process.env.MAIL_FROM || 'noreply@urbanpiper.local',
-          ...options,
-        }),
-      });
 
-      if (!response.ok) {
-        throw new Error(`Mail webhook failed with status ${response.status}`);
-      }
+    if(!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS)
+    throw new Error('Unable to fetch environment variable.')
+    
+    
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
 
-      return true;
-    }
+    await transporter.sendMail({
+      from: process.env.SMTP_USER,
+      to: options.to,
+      subject: options.subject,
+      text: options.text,
+      html: options.html,
+    });
 
-    console.info('[mail skipped] Configure MAIL_WEBHOOK_URL to send email.', {
+    console.info('Mail send to email.', {
       to: options.to,
       subject: options.subject,
       text: options.text,
     });
-    return false;
+
+    return true;
   }
 }
