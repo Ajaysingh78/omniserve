@@ -10,7 +10,13 @@ const api = axios.create({
 
 /* ---------- request interceptor ---------- */
 api.interceptors.request.use(
-  (config) => config,
+  (config) => {
+    const token = localStorage.getItem('sessionToken');
+    if (token) {
+      config.headers['x-session-token'] = token;
+    }
+    return config;
+  },
   (error) => Promise.reject(error)
 );
 

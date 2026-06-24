@@ -7,11 +7,16 @@ import connectRedis from './src/config/redis.config.js';
 
 
 
+import { OutboxPollerService } from './src/services/outbox-poller.service.js';
+
 const PORT = process.env.PORT || 5000;
 
 const bootstrap = async () => {
    try {
       await Promise.all([connectToMongoDB(), connectRedis()]);
+
+      // Start outbox poller
+      OutboxPollerService.start();
 
       app.listen(PORT, () => {
          console.log(`app listening on port ${PORT}`);

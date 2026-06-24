@@ -29,6 +29,15 @@ const AuditLogsPage = lazy(() => import('./pages/audit/AuditLogsPage'));
 const WebhookLogs = lazy(() => import('./pages/audit/WebhookLogs'));
 const UsersPage = lazy(() => import('./pages/users/UsersPage'));
 const ProfilePage = lazy(() => import('./pages/profile/ProfilePage'));
+const IntegrationsDashboard = lazy(() => import('./pages/integrations/IntegrationsDashboard'));
+const MappingReview = lazy(() => import('./pages/integrations/MappingReview'));
+
+// Website Commerce MVP Pages
+const MenuPage = lazy(() => import('./pages/website/MenuPage'));
+const CartPage = lazy(() => import('./pages/website/CartPage'));
+const CheckoutPage = lazy(() => import('./pages/website/CheckoutPage'));
+const OrderSuccessPage = lazy(() => import('./pages/website/OrderSuccessPage'));
+const OrderTrackingPage = lazy(() => import('./pages/website/OrderTrackingPage'));
 
 const { SUPER_ADMIN, RESTAURANT_OWNER, OUTLET_MANAGER, STAFF } = USER_ROLES;
 
@@ -83,6 +92,8 @@ export default function App() {
                 <Route path="/variants" element={<VariantsPage />} />
                 <Route path="/addons" element={<AddonsPage />} />
                 <Route path="/customers" element={<CustomersPage />} />
+                <Route path="/integrations" element={<IntegrationsDashboard />} />
+                <Route path="/integrations/mappings" element={<MappingReview />} />
               </Route>
 
               <Route element={<ProtectedRoute roles={[SUPER_ADMIN, RESTAURANT_OWNER, OUTLET_MANAGER, STAFF]} />}>
@@ -90,6 +101,14 @@ export default function App() {
               </Route>
             </Route>
           </Route>
+
+          {/* Public Website Ordering MVP Routes */}
+          <Route path="/public/w/:outletSlug" element={<MenuPage />} />
+          <Route path="/public/w/:outletSlug/menu" element={<MenuPage />} />
+          <Route path="/public/w/:outletSlug/cart" element={<CartPage />} />
+          <Route path="/public/w/:outletSlug/checkout" element={<CheckoutPage />} />
+          <Route path="/public/w/:outletSlug/order-success" element={<OrderSuccessPage />} />
+          <Route path="/public/w/:outletSlug/track/:orderId" element={<OrderTrackingPage />} />
 
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>

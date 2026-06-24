@@ -2,6 +2,9 @@ import express from 'express';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import router from './routes/api.v1.js';
+import './integrations/adapters/adapter-registry.js';
+import { initWorkerRegistry } from './workers/register-workers.js';
+initWorkerRegistry();
 import { errorHandler } from './middleware/errorHandler.middleware.js';
 import { rateLimiter } from './middleware/rateLimiter.middleware.js';
 

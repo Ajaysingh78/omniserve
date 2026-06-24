@@ -1,6 +1,7 @@
 import mongoose, { Types } from 'mongoose';
 import Order, { IOrder } from '../models/order.model.js';
 import OrderItem, { IOrderItem } from '../models/orderitems.model.js';
+import OrderTimeline from '../models/ordertimeline.model.js';
 import Customer from '../models/customer.model.js';
 import Outlet from '../models/outlet.model.js';
 import MenuItem from '../models/menuitems.model.js';
@@ -10,6 +11,7 @@ import Inventory from '../models/inventory.model.js';
 import Payment from '../models/payment.model.js';
 import { OrderStatus, PaymentStatus, NotificationType } from '../enums/enums.js';
 import { NotificationService } from './notification.service.js';
+import { EventBusService } from './event-bus.service.js';
 
 export class OrderService {
   /**
@@ -120,7 +122,7 @@ export class OrderService {
     session.startTransaction();
 
     try {
-      const order = new Order({
+      const orderData: any = {
         tenantId: new Types.ObjectId(tenantId),
         outletId: new Types.ObjectId(outletId),
         customerId: new Types.ObjectId(customerId),
@@ -135,7 +137,18 @@ export class OrderService {
         paymentStatus: PaymentStatus.PENDING,
         createdBy: userId ? new Types.ObjectId(userId) : null,
         updatedBy: userId ? new Types.ObjectId(userId) : null,
-      });
+      };
+
+      if (data.diningContext) {
+        orderData.diningContext = {
+          tableId: data.diningContext.tableId ? new Types.ObjectId(data.diningContext.tableId) : null,
+          tableNumber: data.diningContext.tableNumber || null,
+          seatNumber: data.diningContext.seatNumber || null,
+          sessionId: data.diningContext.sessionId ? new Types.ObjectId(data.diningContext.sessionId) : null,
+        };
+      }
+
+      const order = new Order(orderData);
 
       const savedOrder = await order.save({ session });
 
@@ -173,7 +186,29 @@ export class OrderService {
       //   userId
       // );
 
+      await OrderTimeline.create([{
+        tenantId: savedOrder.tenantId,
+        orderId: savedOrder._id,
+        status: savedOrder.orderStatus,
+        sourceSystem: savedOrder.source || "SYSTEM",
+        timestamp: new Date(),
+        notes: "Order placed"
+      }], { session });
+
       await session.commitTransaction();
+
+      // Publish event
+      await EventBusService.publishOrderCreated(
+        tenantId,
+        savedOrder.outletId,
+        savedOrder._id,
+        savedOrder,
+        {
+          correlationId: savedOrder._id.toString(),
+          createdBy: userId,
+          sourceSystem: savedOrder.source || "SYSTEM",
+        }
+      ).catch(err => console.error('Failed to publish ORDER_CREATED event:', err));
 
       // Dispatch ORDER_PLACED notification to all active tenant users
       NotificationService.notifyTenantUsers(
@@ -383,10 +418,32 @@ export class OrderService {
         { new: true, session }
       );
 
+      await OrderTimeline.create([{
+        tenantId: order.tenantId,
+        orderId: order._id,
+        status: newStatus,
+        sourceSystem: order.source || "SYSTEM",
+        timestamp: new Date(),
+        notes: `Order status advanced to ${newStatus}`
+      }], { session });
+
       await session.commitTransaction();
 
-      // Dispatch status update notification to all active tenant users
       if (updatedOrder) {
+        // Publish event
+        await EventBusService.publishOrderStatusChanged(
+          tenantId,
+          updatedOrder.outletId,
+          updatedOrder._id,
+          updatedOrder,
+          {
+            correlationId: updatedOrder._id.toString(),
+            createdBy: userId,
+            sourceSystem: updatedOrder.source || "SYSTEM",
+          }
+        ).catch(err => console.error('Failed to publish ORDER_STATUS_CHANGED event:', err));
+
+        // Dispatch status update notification to all active tenant users
         let title = '';
         let message = '';
         let nType: any = null;
@@ -500,20 +557,32 @@ export class OrderService {
         { new: true, session }
       );
 
-      // TODO: Future Analytics Integration Point - Order Cancellation
-      // Inside transaction session:
-      // await AnalyticsService.upsertDailyMetrics(
-      //   tenantId,
-      //   order.outletId.toString(),
-      //   new Date().toISOString().split('T')[0],
-      //   { cancelledOrders: 1, totalRevenue: -Number(order.totalAmount) },
-      //   userId
-      // );
+      await OrderTimeline.create([{
+        tenantId: order.tenantId,
+        orderId: order._id,
+        status: OrderStatus.CANCELLED,
+        sourceSystem: order.source || "SYSTEM",
+        timestamp: new Date(),
+        notes: `Order cancelled. Reason: ${cancellationReason}`
+      }], { session });
 
       await session.commitTransaction();
 
       // Dispatch ORDER_CANCELLED notification to all active tenant users
       if (updatedOrder) {
+        // Publish event
+        await EventBusService.publishOrderStatusChanged(
+          tenantId,
+          updatedOrder.outletId,
+          updatedOrder._id,
+          updatedOrder,
+          {
+            correlationId: updatedOrder._id.toString(),
+            createdBy: userId,
+            sourceSystem: updatedOrder.source || "SYSTEM",
+          }
+        ).catch(err => console.error('Failed to publish ORDER_STATUS_CHANGED event (cancel):', err));
+
         NotificationService.notifyTenantUsers(
           tenantId,
           'Order Cancelled',

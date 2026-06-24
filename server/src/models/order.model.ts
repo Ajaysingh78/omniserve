@@ -1,6 +1,13 @@
 import mongoose, { Document, Model, Schema, Types } from 'mongoose';
 import { OrderSource, OrderStatus, PaymentStatus } from '../enums/enums.js';
 
+export interface IDiningContext {
+  tableId?: Types.ObjectId | null;
+  tableNumber?: string | null;
+  seatNumber?: string | null;
+  sessionId?: Types.ObjectId | null;
+}
+
 export interface IOrder extends Document {
   tenantId: Types.ObjectId;
   outletId: Types.ObjectId;
@@ -22,6 +29,7 @@ export interface IOrder extends Document {
   cancelledAt: Date | null;
   cancellationReason?: string;
   notes?: string;
+  diningContext?: IDiningContext | null;
   createdBy: Types.ObjectId | null;
   updatedBy: Types.ObjectId | null;
   isDeleted: boolean;
@@ -125,6 +133,12 @@ const orderSchema = new Schema<IOrder>(
       type: Schema.Types.ObjectId,
       ref: 'User',
       default: null,
+    },
+    diningContext: {
+      tableId: { type: Schema.Types.ObjectId, ref: 'Table', default: null },
+      tableNumber: { type: String, default: null },
+      seatNumber: { type: String, default: null },
+      sessionId: { type: Schema.Types.ObjectId, ref: 'QRSession', default: null }
     },
     isDeleted: {
       type: Boolean,

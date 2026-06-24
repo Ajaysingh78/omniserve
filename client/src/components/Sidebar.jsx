@@ -24,6 +24,7 @@ const allNav = [
       { to: '/menu-items', label: 'Menu Items', icon: <HiOutlineRectangleStack />, roles: [USER_ROLES.SUPER_ADMIN, USER_ROLES.RESTAURANT_OWNER, USER_ROLES.OUTLET_MANAGER] },
       { to: '/variants', label: 'Variants', icon: <HiOutlineTag />, roles: [USER_ROLES.SUPER_ADMIN, USER_ROLES.RESTAURANT_OWNER, USER_ROLES.OUTLET_MANAGER] },
       { to: '/addons', label: 'Addons', icon: <HiOutlineTag />, roles: [USER_ROLES.SUPER_ADMIN, USER_ROLES.RESTAURANT_OWNER, USER_ROLES.OUTLET_MANAGER] },
+      { to: '/integrations', label: 'Integrations', icon: <HiOutlineClipboardDocumentList />, roles: [USER_ROLES.SUPER_ADMIN, USER_ROLES.RESTAURANT_OWNER, USER_ROLES.OUTLET_MANAGER] },
     ]
   },
   { 
