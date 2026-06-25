@@ -168,7 +168,10 @@ export class OrderController {
       const { orders, total } = await OrderService.getOrders(req.user.tenantId, filters);
       const scopedOrders = allowedOutletIds === null || outletId
         ? orders
-        : orders.filter(order => allowedOutletIds.includes(order.outletId.toString()));
+        : orders.filter(order => {
+            const oid = (order.outletId as any)?._id?.toString() || order.outletId.toString();
+            return allowedOutletIds.includes(oid);
+          });
 
       // Bulk fetch OrderItems for all retrieved orders
       const orderIds = scopedOrders.map(o => o._id);
