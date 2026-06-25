@@ -95,6 +95,10 @@ export class OrderGatewayService {
     return adapter;
   }
 
+  static getRegisteredProviders(): string[] {
+    return Array.from(this.adapters.keys());
+  }
+
   static async ingestExternalOrder(input: IngestExternalOrderInput): Promise<GatewayResult> {
     this.assertObjectId(input.tenantId, "tenantId");
     if (input.outletId) this.assertObjectId(input.outletId, "outletId");
@@ -197,6 +201,17 @@ export class OrderGatewayService {
     );
 
     try {
+      const rawPay = externalOrder.rawPayload as any;
+      if (rawPay && rawPay._chaosMode) {
+        if (rawPay._chaosMode === "VALIDATION_ERROR") {
+          throw new Error("ValidationError: Chaos mode active - invalid payload fields");
+        } else if (rawPay._chaosMode === "MAPPING_ERROR") {
+          throw new Error("MAPPING_ERROR: Chaos mode active - menu item mapping missing");
+        } else if (rawPay._chaosMode === "DLQ_ERROR") {
+          throw new Error("DLQ_ERROR: Chaos mode active - critical connection failure");
+        }
+      }
+
       const adapter = this.getAdapter(externalOrder.provider);
       const canonicalOrder = await adapter.normalizeOrder({
         payload: externalOrder.rawPayload,

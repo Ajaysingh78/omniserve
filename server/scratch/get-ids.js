@@ -1,9 +1,20 @@
 import mongoose from 'mongoose';
+import dotenv from 'dotenv';
+import dns from 'dns';
+
+dotenv.config();
+
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch (e) {
+  console.warn('Unable to set custom DNS servers:', e);
+}
 
 const MONGO_URIS = [
+  process.env.MONGO_URI,
   "mongodb://127.0.0.1:27017/FoodMesh-Test",
   "mongodb://127.0.0.1:27017/FoodMesh"
-];
+].filter(Boolean);
 
 async function main() {
   let connected = false;
@@ -20,19 +31,13 @@ async function main() {
   }
 
   if (!connected) {
-    console.log("Could not connect to local MongoDB. Let's try Atlas...");
-    const ATLAS_URI = "mongodb+srv://futurestack07:nitishkumar07@teckstack.lqqhjs0.mongodb.net/FoodMesh-Test";
-    try {
-      await mongoose.connect(ATLAS_URI);
-      console.log("Connected to Atlas MongoDB successfully!");
-    } catch (e) {
-      console.error("Failed to connect to Atlas MongoDB:", e.message);
-      process.exit(1);
-    }
+    console.log("Could not connect to MongoDB.");
+    process.exit(1);
   }
 
   // Define simple schemas
   const Tenant = mongoose.model('Tenant', new mongoose.Schema({ name: String }), 'tenants');
+  const User = mongoose.model('User', new mongoose.Schema({ email: String, tenantId: mongoose.Schema.Types.ObjectId, role: String }), 'users');
   const Outlet = mongoose.model('Outlet', new mongoose.Schema({ name: String, code: String, isDeleted: Boolean }), 'outlets');
   const MenuItem = mongoose.model('MenuItem', new mongoose.Schema({ name: String, price: Number, isDeleted: Boolean }), 'menuitems');
   const Variant = mongoose.model('Variant', new mongoose.Schema({ name: String, price: Number, isDeleted: Boolean, menuItemId: mongoose.Schema.Types.ObjectId }), 'variants');
@@ -67,6 +72,12 @@ async function main() {
   console.log("\n=== TENANTS ===");
   if (tenants.length === 0) console.log("No tenants found.");
   tenants.forEach(t => console.log(`Name: "${t.name}" | tenantId: "${t._id}"`));
+
+  // Query Users
+  const users = await User.find({});
+  console.log("\n=== USERS ===");
+  if (users.length === 0) console.log("No users found.");
+  users.forEach(u => console.log(`Email: "${u.email}" | tenantId: "${u.tenantId}" | Role: "${u.role}"`));
 
   // Query Outlets
   const outlets = await Outlet.find({ isDeleted: { $ne: true } });

@@ -180,7 +180,6 @@ outletSchema.index({ tenantId: 1 });
 outletSchema.index({ restaurantId: 1 });
 outletSchema.index({ tenantId: 1, status: 1 });
 outletSchema.index({ city: 1, state: 1 });
-outletSchema.index({ slug: 1 }, { unique: true, sparse: true });
 outletSchema.index({ isDeleted: 1 });
 
 outletSchema.pre('save', async function (this: IOutlet) {

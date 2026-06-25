@@ -37,6 +37,13 @@ export class OutboxPollerService {
   }
 
   /**
+   * Check if the outbox poller is active
+   */
+  static isActive(): boolean {
+    return this.pollInterval !== null;
+  }
+
+  /**
    * Find and process pending/retryable events
    */
   static async poll(): Promise<void> {

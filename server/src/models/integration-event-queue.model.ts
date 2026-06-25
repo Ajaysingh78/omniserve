@@ -23,6 +23,9 @@ export interface IIntegrationEventQueue extends Document {
   maxRetryCount: number;
   nextRetryAt: Date | null;
   failureReason: string | null;
+  isSandbox?: boolean;
+  sandboxVersion?: string;
+  sessionId?: Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -132,6 +135,19 @@ const integrationEventQueueSchema = new Schema<IIntegrationEventQueue>(
       type: String,
       default: null,
       trim: true,
+    },
+    isSandbox: {
+      type: Boolean,
+      default: false,
+    },
+    sandboxVersion: {
+      type: String,
+      default: "v1",
+    },
+    sessionId: {
+      type: Schema.Types.ObjectId,
+      ref: "SimulationSession",
+      default: null,
     },
   },
   {

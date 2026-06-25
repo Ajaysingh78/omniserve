@@ -437,7 +437,7 @@ export class OrderService {
           updatedOrder._id,
           updatedOrder,
           {
-            correlationId: updatedOrder._id.toString(),
+            correlationId: `${updatedOrder._id.toString()}-${newStatus}`,
             createdBy: userId,
             sourceSystem: updatedOrder.source || "SYSTEM",
           }
@@ -460,6 +460,10 @@ export class OrderService {
           title = 'Order Ready';
           message = `Order ${updatedOrder.orderNumber} is ready for pickup/delivery.`;
           nType = NotificationType.ORDER_READY;
+        } else if (newStatus === OrderStatus.PICKED_UP) {
+          title = 'Order Dispatched';
+          message = `Order ${updatedOrder.orderNumber} has been picked up / dispatched.`;
+          nType = NotificationType.GENERAL;
         } else if (newStatus === OrderStatus.DELIVERED) {
           title = 'Order Delivered';
           message = `Order ${updatedOrder.orderNumber} has been successfully delivered.`;
@@ -577,7 +581,7 @@ export class OrderService {
           updatedOrder._id,
           updatedOrder,
           {
-            correlationId: updatedOrder._id.toString(),
+            correlationId: `${updatedOrder._id.toString()}-${OrderStatus.CANCELLED}`,
             createdBy: userId,
             sourceSystem: updatedOrder.source || "SYSTEM",
           }

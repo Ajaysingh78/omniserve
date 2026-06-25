@@ -9,7 +9,8 @@ import {
   getIntegrationStatsApi,
   getIntegrationEventsApi,
   getSyncJobsApi,
-  replayEventApi
+  replayEventApi,
+  getDevConfigApi
 } from '../../api/models/integration.api';
 import { getPayload } from '../../utils/apiData';
 import Button from '../../components/ui/Button';
@@ -20,6 +21,7 @@ export default function IntegrationsDashboard() {
   const [stats, setStats] = useState(null);
   const [events, setEvents] = useState([]);
   const [syncJobs, setSyncJobs] = useState([]);
+  const [devConfig, setDevConfig] = useState(null);
   
   const [loadingHealth, setLoadingHealth] = useState(true);
   const [loadingOrders, setLoadingOrders] = useState(true);
@@ -31,6 +33,7 @@ export default function IntegrationsDashboard() {
   const [replayingEventId, setReplayingEventId] = useState(null);
   const [simulating, setSimulating] = useState(false);
   const [simulatorChannel, setSimulatorChannel] = useState('swiggy');
+  const [selectedMappingId, setSelectedMappingId] = useState('legacy');
   const [feedbackMsg, setFeedbackMsg] = useState(null);
   const [activeTab, setActiveTab] = useState('overview'); // overview, events, jobs
   const [selectedItemDetail, setSelectedItemDetail] = useState(null); // Modal popup trace
@@ -54,6 +57,37 @@ export default function IntegrationsDashboard() {
   const [simItemId, setSimItemId] = useState('1001');
   const [simItemPrice, setSimItemPrice] = useState('180');
   const [simItemQty, setSimItemQty] = useState('2');
+
+  const fetchDevConfig = async () => {
+    try {
+      const res = await getDevConfigApi();
+      setDevConfig(getPayload(res));
+    } catch (err) {
+      console.error('Failed to fetch dev config:', err);
+    }
+  };
+
+  const handleChannelChange = (channel) => {
+    setSimulatorChannel(channel);
+    setSelectedMappingId('legacy');
+    setSimItemId(channel === 'swiggy' ? '1001' : '2002');
+    setSimItemPrice(channel === 'swiggy' ? '180' : '250');
+  };
+
+  const handleMappingChange = (e) => {
+    const val = e.target.value;
+    setSelectedMappingId(val);
+    if (val === 'legacy') {
+      setSimItemId(simulatorChannel === 'swiggy' ? '1001' : '2002');
+      setSimItemPrice(simulatorChannel === 'swiggy' ? '180' : '250');
+    } else {
+      const matched = devConfig?.mappings?.menuItems?.find(m => m._id === val);
+      if (matched) {
+        setSimItemId(matched.externalItemId);
+        setSimItemPrice(String(matched.menuItemId?.price || 150));
+      }
+    }
+  };
 
   const fetchHealth = async () => {
     try {
@@ -133,6 +167,7 @@ export default function IntegrationsDashboard() {
     fetchHealth();
     fetchOrders();
     fetchStats();
+    fetchDevConfig();
   }, []);
 
   useEffect(() => {
@@ -562,7 +597,7 @@ export default function IntegrationsDashboard() {
                     <div className="grid grid-cols-2 gap-2">
                       <button
                         type="button"
-                        onClick={() => { setSimulatorChannel('swiggy'); setSimItemId('1001'); }}
+                        onClick={() => handleChannelChange('swiggy')}
                         className={`py-1.5 text-xs font-bold rounded-lg border ${
                           simulatorChannel === 'swiggy' 
                             ? 'border-orange-500 bg-orange-50 text-orange-655 dark:bg-orange-950/20' 
@@ -573,7 +608,7 @@ export default function IntegrationsDashboard() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => { setSimulatorChannel('zomato'); setSimItemId('2002'); }}
+                        onClick={() => handleChannelChange('zomato')}
                         className={`py-1.5 text-xs font-bold rounded-lg border ${
                           simulatorChannel === 'zomato' 
                             ? 'border-red-500 bg-red-50 text-red-655 dark:bg-red-950/20' 
@@ -583,6 +618,24 @@ export default function IntegrationsDashboard() {
                         Zomato
                       </button>
                     </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-on-surface-variant dark:text-zinc-450 uppercase mb-1">Select Catalog Item</label>
+                    <select
+                      value={selectedMappingId}
+                      onChange={handleMappingChange}
+                      className="w-full bg-surface-subtle dark:bg-zinc-950 border border-border-base dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-on-surface dark:text-zinc-200 focus:outline-none focus:border-primary font-semibold"
+                    >
+                      <option value="legacy">Legacy (Documentation Fallback ID)</option>
+                      {devConfig?.mappings?.menuItems
+                        ?.filter(m => m.provider === (simulatorChannel === 'swiggy' ? 'MOCK_SWIGGY' : 'MOCK_ZOMATO'))
+                        ?.map(m => (
+                          <option key={m._id} value={m._id}>
+                            {m.menuItemId?.name || m.externalItemId} ({m.externalItemId}) — ₹{m.menuItemId?.price}
+                          </option>
+                        ))}
+                    </select>
                   </div>
 
                   <div>

@@ -7,6 +7,9 @@ export interface IOrderTimeline extends Document {
   timestamp: Date;
   sourceSystem: string;
   notes?: string;
+  isSandbox?: boolean;
+  sandboxVersion?: string;
+  sessionId?: Types.ObjectId | null;
   isDeleted: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -41,6 +44,19 @@ const orderTimelineSchema = new Schema<IOrderTimeline>(
     notes: {
       type: String,
       trim: true,
+    },
+    isSandbox: {
+      type: Boolean,
+      default: false,
+    },
+    sandboxVersion: {
+      type: String,
+      default: "v1",
+    },
+    sessionId: {
+      type: Schema.Types.ObjectId,
+      ref: "SimulationSession",
+      default: null,
     },
     isDeleted: {
       type: Boolean,

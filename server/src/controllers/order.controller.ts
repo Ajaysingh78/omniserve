@@ -246,7 +246,8 @@ export class OrderController {
         ApiResponseHandler.notFound(res, 'Order not found');
         return;
       }
-      if (!(await AccessScope.canAccessOutlet(req.user, details.order.outletId.toString()))) {
+      const outletIdStr = (details.order.outletId as any)?._id?.toString() || (details.order.outletId as any)?.toString();
+      if (!(await AccessScope.canAccessOutlet(req.user, outletIdStr))) {
         ApiResponseHandler.forbidden(res, 'You cannot access this order');
         return;
       }
@@ -333,7 +334,8 @@ export class OrderController {
         ApiResponseHandler.notFound(res, 'Order not found');
         return;
       }
-      if (!(await AccessScope.canAccessOutlet(req.user, details.order.outletId.toString()))) {
+      const outletIdStr = (details.order.outletId as any)?._id?.toString() || (details.order.outletId as any)?.toString();
+      if (!(await AccessScope.canAccessOutlet(req.user, outletIdStr))) {
         ApiResponseHandler.forbidden(res, 'You cannot update this order');
         return;
       }
@@ -400,7 +402,8 @@ export class OrderController {
         ApiResponseHandler.notFound(res, 'Order not found');
         return;
       }
-      if (!(await AccessScope.canAccessOutlet(req.user, details.order.outletId.toString()))) {
+      const outletIdStr = (details.order.outletId as any)?._id?.toString() || (details.order.outletId as any)?.toString();
+      if (!(await AccessScope.canAccessOutlet(req.user, outletIdStr))) {
         ApiResponseHandler.forbidden(res, 'You cannot cancel this order');
         return;
       }
@@ -449,7 +452,8 @@ export class OrderController {
         ApiResponseHandler.notFound(res, 'Order not found');
         return;
       }
-      if (!(await AccessScope.canAccessOutlet(req.user, details.order.outletId.toString()))) {
+      const outletIdStr = (details.order.outletId as any)?._id?.toString() || (details.order.outletId as any)?.toString();
+      if (!(await AccessScope.canAccessOutlet(req.user, outletIdStr))) {
         ApiResponseHandler.forbidden(res, 'You cannot access this order');
         return;
       }
@@ -523,7 +527,8 @@ export class OrderController {
         ApiResponseHandler.notFound(res, 'Order not found');
         return;
       }
-      if (!(await AccessScope.canAccessOutlet(req.user, details.order.outletId.toString()))) {
+      const outletIdStr = (details.order.outletId as any)?._id?.toString() || (details.order.outletId as any)?.toString();
+      if (!(await AccessScope.canAccessOutlet(req.user, outletIdStr))) {
         ApiResponseHandler.forbidden(res, 'You cannot update this order');
         return;
       }
@@ -587,7 +592,8 @@ export class OrderController {
         ApiResponseHandler.notFound(res, 'Order not found');
         return;
       }
-      if (!(await AccessScope.canAccessOutlet(req.user, details.order.outletId.toString()))) {
+      const outletIdStr = (details.order.outletId as any)?._id?.toString() || (details.order.outletId as any)?.toString();
+      if (!(await AccessScope.canAccessOutlet(req.user, outletIdStr))) {
         ApiResponseHandler.forbidden(res, 'You cannot delete this order');
         return;
       }

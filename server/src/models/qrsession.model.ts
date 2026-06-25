@@ -85,7 +85,6 @@ const qrSessionSchema = new Schema<IQRSession>(
 qrSessionSchema.index({ tenantId: 1 });
 qrSessionSchema.index({ outletId: 1 });
 qrSessionSchema.index({ tableId: 1, status: 1 });
-qrSessionSchema.index({ sessionToken: 1 }, { unique: true });
 qrSessionSchema.index({ isDeleted: 1 });
 
 // Generate unique sessionToken pre-save if not provided

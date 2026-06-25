@@ -30,6 +30,7 @@ export class MockZomatoConnector extends MockProviderConnector {
       correlationId: event.correlationId,
       retryCount: event.retryCount,
       maxRetryCount: event.maxRetryCount,
+      idempotencyKey: `${event._id.toString()}-${syncType}-${connectionId.toString()}-${event.retryCount}`,
     });
 
     await syncJob.save();

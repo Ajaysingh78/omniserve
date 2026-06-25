@@ -31,6 +31,7 @@ const UsersPage = lazy(() => import('./pages/users/UsersPage'));
 const ProfilePage = lazy(() => import('./pages/profile/ProfilePage'));
 const IntegrationsDashboard = lazy(() => import('./pages/integrations/IntegrationsDashboard'));
 const MappingReview = lazy(() => import('./pages/integrations/MappingReview'));
+const DeveloperCockpit = lazy(() => import('./pages/integrations/DeveloperCockpit'));
 
 // Website Commerce MVP Pages
 const MenuPage = lazy(() => import('./pages/website/MenuPage'));
@@ -94,6 +95,7 @@ export default function App() {
                 <Route path="/customers" element={<CustomersPage />} />
                 <Route path="/integrations" element={<IntegrationsDashboard />} />
                 <Route path="/integrations/mappings" element={<MappingReview />} />
+                <Route path="/integrations/dev" element={<DeveloperCockpit />} />
               </Route>
 
               <Route element={<ProtectedRoute roles={[SUPER_ADMIN, RESTAURANT_OWNER, OUTLET_MANAGER, STAFF]} />}>

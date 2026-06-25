@@ -24,6 +24,9 @@ export interface ISyncJob extends Document {
   nextRetryAt: Date | null;
   dlqReason: string | null;
   processedAt: Date | null;
+  isSandbox?: boolean;
+  sandboxVersion?: string;
+  sessionId?: Types.ObjectId | null;
   createdBy: Types.ObjectId | null;
   updatedBy: Types.ObjectId | null;
   isDeleted: boolean;
@@ -62,12 +65,14 @@ const syncJobSchema = new Schema<ISyncJob>(
     },
     status: {
       type: String,
+      required: [true, "Sync job status is required"],
       enum: Object.values(SyncJobStatus),
       default: SyncJobStatus.PENDING,
     },
     idempotencyKey: {
       type: String,
       trim: true,
+      default: null,
     },
     payload: {
       type: Schema.Types.Mixed,
@@ -79,18 +84,21 @@ const syncJobSchema = new Schema<ISyncJob>(
     },
     errorMessage: {
       type: String,
-      trim: true,
       default: null,
+      trim: true,
+    },
+    failureReason: {
+      type: String,
+      default: null,
+      trim: true,
     },
     retryCount: {
       type: Number,
       default: 0,
-      min: 0,
     },
     maxRetryCount: {
       type: Number,
       default: 3,
-      min: 0,
     },
     nextRetryAt: {
       type: Date,
@@ -98,13 +106,8 @@ const syncJobSchema = new Schema<ISyncJob>(
     },
     dlqReason: {
       type: String,
-      trim: true,
       default: null,
-    },
-    failureReason: {
-      type: String,
       trim: true,
-      default: null,
     },
     eventId: {
       type: Schema.Types.ObjectId,
@@ -118,6 +121,19 @@ const syncJobSchema = new Schema<ISyncJob>(
     },
     processedAt: {
       type: Date,
+      default: null,
+    },
+    isSandbox: {
+      type: Boolean,
+      default: false,
+    },
+    sandboxVersion: {
+      type: String,
+      default: "v1",
+    },
+    sessionId: {
+      type: Schema.Types.ObjectId,
+      ref: "SimulationSession",
       default: null,
     },
     createdBy: {

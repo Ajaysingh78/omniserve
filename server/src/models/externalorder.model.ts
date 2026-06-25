@@ -22,6 +22,9 @@ export interface IExternalOrder extends Document {
   dlqReason: string | null;
   receivedAt: Date;
   processedAt: Date | null;
+  isSandbox?: boolean;
+  sandboxVersion?: string;
+  sessionId?: Types.ObjectId | null;
   createdBy: Types.ObjectId | null;
   updatedBy: Types.ObjectId | null;
   isDeleted: boolean;
@@ -70,6 +73,7 @@ const externalOrderSchema = new Schema<IExternalOrder>(
     },
     status: {
       type: String,
+      required: [true, "Status is required"],
       enum: Object.values(IntegrationProcessingStatus),
       default: IntegrationProcessingStatus.RECEIVED,
     },
@@ -83,18 +87,15 @@ const externalOrderSchema = new Schema<IExternalOrder>(
     },
     failureReason: {
       type: String,
-      trim: true,
       default: null,
     },
     retryCount: {
       type: Number,
       default: 0,
-      min: 0,
     },
     maxRetryCount: {
       type: Number,
       default: 3,
-      min: 0,
     },
     nextRetryAt: {
       type: Date,
@@ -102,7 +103,6 @@ const externalOrderSchema = new Schema<IExternalOrder>(
     },
     dlqReason: {
       type: String,
-      trim: true,
       default: null,
     },
     receivedAt: {
@@ -111,6 +111,19 @@ const externalOrderSchema = new Schema<IExternalOrder>(
     },
     processedAt: {
       type: Date,
+      default: null,
+    },
+    isSandbox: {
+      type: Boolean,
+      default: false,
+    },
+    sandboxVersion: {
+      type: String,
+      default: "v1",
+    },
+    sessionId: {
+      type: Schema.Types.ObjectId,
+      ref: "SimulationSession",
       default: null,
     },
     createdBy: {

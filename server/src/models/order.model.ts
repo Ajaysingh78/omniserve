@@ -30,6 +30,9 @@ export interface IOrder extends Document {
   cancellationReason?: string;
   notes?: string;
   diningContext?: IDiningContext | null;
+  isSandbox?: boolean;
+  sandboxVersion?: string;
+  sessionId?: Types.ObjectId | null;
   createdBy: Types.ObjectId | null;
   updatedBy: Types.ObjectId | null;
   isDeleted: boolean;
@@ -143,6 +146,19 @@ const orderSchema = new Schema<IOrder>(
     isDeleted: {
       type: Boolean,
       default: false,
+    },
+    isSandbox: {
+      type: Boolean,
+      default: false,
+    },
+    sandboxVersion: {
+      type: String,
+      default: "v1",
+    },
+    sessionId: {
+      type: Schema.Types.ObjectId,
+      ref: "SimulationSession",
+      default: null,
     },
   },
   {

@@ -1,7 +1,7 @@
 import React from 'react';
 import Spinner from './Spinner';
 
-export default function Table({ columns = [], data = [], loading, emptyMessage = 'No data found' }) {
+export default function Table({ columns = [], data = [], loading, emptyMessage = 'No data found', getRowClassName }) {
   if (loading) {
     return (
       <div className="flex justify-center py-12">
@@ -39,7 +39,7 @@ export default function Table({ columns = [], data = [], loading, emptyMessage =
             data.map((row, i) => (
               <tr 
                 key={row.id || row._id || i} 
-                className="transition-colors hover:bg-surface-container-low dark:hover:bg-zinc-900/40 text-on-surface dark:text-zinc-200"
+                className={`transition-colors hover:bg-surface-container-low dark:hover:bg-zinc-900/40 text-on-surface dark:text-zinc-200 ${getRowClassName ? getRowClassName(row) : ''}`}
               >
                 {columns.map((col) => (
                   <td key={col.key} className="px-5 py-3.5 align-middle text-[13px] font-sans">

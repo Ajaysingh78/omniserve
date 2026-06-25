@@ -75,7 +75,6 @@ const tableSchema = new Schema<ITable>(
 
 tableSchema.index({ tenantId: 1 });
 tableSchema.index({ outletId: 1 });
-tableSchema.index({ qrToken: 1 }, { unique: true });
 tableSchema.index({ tenantId: 1, outletId: 1, tableNumber: 1 });
 tableSchema.index({ isDeleted: 1 });
 

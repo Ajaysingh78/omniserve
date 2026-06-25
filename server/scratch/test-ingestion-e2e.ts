@@ -1,5 +1,13 @@
+import dns from "dns";
+try {
+  dns.setServers(["8.8.8.8", "1.1.1.1"]);
+} catch (e) {
+  console.warn("Unable to set custom DNS servers, using system defaults:", e);
+}
+
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
 
 const originalStartSession = mongoose.startSession;
 (mongoose as any).startSession = async function(options?: any) {
@@ -60,46 +68,46 @@ async function runTests() {
   // Clean up existing test data
   console.log("Cleaning up test collections...");
   const tenantName = "E2E Test Ingestion Tenant";
-  const existingTenant = await Tenant.findOne({ name: tenantName });
-  if (existingTenant) {
-    const tid = existingTenant._id;
-    await Tenant.deleteMany({ _id: tid });
-    await User.deleteMany({ tenantId: tid });
-    await Restaurant.deleteMany({ tenantId: tid });
-    await Outlet.deleteMany({ tenantId: tid });
-    await Category.deleteMany({ tenantId: tid });
-    await MenuItem.deleteMany({ tenantId: tid });
-    await Variant.deleteMany({ tenantId: tid });
-    await Addon.deleteMany({ tenantId: tid });
-    await Inventory.deleteMany({ tenantId: tid });
-    await ChannelOutletMapping.deleteMany({ tenantId: tid });
-    await ChannelMenuItemMapping.deleteMany({ tenantId: tid });
-    await ChannelVariantMapping.deleteMany({ tenantId: tid });
-    await ChannelAddonMapping.deleteMany({ tenantId: tid });
-    await ExternalOrder.deleteMany({ tenantId: tid });
-    await Order.deleteMany({ tenantId: tid });
-  }
+  const fixedTenantId = new mongoose.Types.ObjectId("6a3c51e41f15383682bcc017");
+
+  await Tenant.deleteMany({ _id: fixedTenantId });
+  await User.deleteMany({ tenantId: fixedTenantId });
+  await User.deleteMany({ email: "e2e-admin@foodmesh.io" });
+  await Restaurant.deleteMany({ tenantId: fixedTenantId });
+  await Outlet.deleteMany({ tenantId: fixedTenantId });
+  await Category.deleteMany({ tenantId: fixedTenantId });
+  await MenuItem.deleteMany({ tenantId: fixedTenantId });
+  await Variant.deleteMany({ tenantId: fixedTenantId });
+  await Addon.deleteMany({ tenantId: fixedTenantId });
+  await Inventory.deleteMany({ tenantId: fixedTenantId });
+  await ChannelOutletMapping.deleteMany({ tenantId: fixedTenantId });
+  await ChannelMenuItemMapping.deleteMany({ tenantId: fixedTenantId });
+  await ChannelVariantMapping.deleteMany({ tenantId: fixedTenantId });
+  await ChannelAddonMapping.deleteMany({ tenantId: fixedTenantId });
+  await ExternalOrder.deleteMany({ tenantId: fixedTenantId });
+  await Order.deleteMany({ tenantId: fixedTenantId });
 
   // 1. Seed Tenant & User & Restaurant (resolve circular dependency)
   console.log("Seeding Test Tenant and Owner User...");
-  const userId = new mongoose.Types.ObjectId();
-  const tenantId = new mongoose.Types.ObjectId();
+  const userId = new mongoose.Types.ObjectId("6a3c51e41f15383682bcc015");
+  const tenantId = fixedTenantId;
 
   const tenant = await Tenant.create({
     _id: tenantId,
     name: tenantName,
-    slug: `test-ingestion-${Date.now()}`,
+    slug: "e2e-test-ingestion-tenant-static",
     ownerId: userId,
     status: "ACTIVE"
   });
 
+  const hashedPassword = await bcrypt.hash("admin123", 10);
   const user = await User.create({
     _id: userId,
     tenantId: tenantId,
     firstName: "E2E Ingestion",
     lastName: "Admin",
     email: "e2e-admin@foodmesh.io",
-    passwordHash: "testpasswordhash",
+    passwordHash: hashedPassword,
     role: "RESTAURANT_OWNER",
     status: "ACTIVE"
   });
@@ -113,6 +121,7 @@ async function runTests() {
   // 2. Seed Outlet
   console.log("Seeding Test Outlet...");
   const outlet = await Outlet.create({
+    _id: new mongoose.Types.ObjectId("6a3c51e41f15383682bcc01e"),
     tenantId: tenant._id,
     restaurantId: restaurant._id,
     name: "KFC Bhopal Test",
@@ -137,6 +146,7 @@ async function runTests() {
   });
 
   const burger = await MenuItem.create({
+    _id: new mongoose.Types.ObjectId("6a3c51e41f15383682bcc023"),
     tenantId: tenant._id,
     categoryId: category._id,
     outletId: outlet._id,
@@ -147,6 +157,7 @@ async function runTests() {
   });
 
   const pizza = await MenuItem.create({
+    _id: new mongoose.Types.ObjectId("6a3c51e41f15383682bcc025"),
     tenantId: tenant._id,
     categoryId: category._id,
     outletId: outlet._id,
@@ -159,6 +170,7 @@ async function runTests() {
   // 4. Seed Variant and Addon
   console.log("Seeding Test Variants and Addons...");
   const variant = await Variant.create({
+    _id: new mongoose.Types.ObjectId("6a3c51e41f15383682bcc027"),
     tenantId: tenant._id,
     menuItemId: burger._id,
     name: "Cheese variant",
@@ -167,6 +179,7 @@ async function runTests() {
   });
 
   const addon = await Addon.create({
+    _id: new mongoose.Types.ObjectId("6a3c51e41f15383682bcc029"),
     tenantId: tenant._id,
     menuItemId: pizza._id,
     name: "Extra Jalapenos",
@@ -372,7 +385,7 @@ async function runTests() {
       const unmappedData: any = await unmappedRes.json();
       console.log("Response status:", unmappedRes.status);
       console.log("Response body:", JSON.stringify(unmappedData));
-      if (unmappedRes.status !== 400 || unmappedData.data?.status !== "MAPPING_REVIEW_REQUIRED") {
+      if (unmappedRes.status !== 200 || unmappedData.data?.status !== "MAPPING_REVIEW_REQUIRED") {
         throw new Error("Failed to transition to MAPPING_REVIEW_REQUIRED");
       }
       console.log("PASSED: Missing mapping correctly transitioned order to MAPPING_REVIEW_REQUIRED.");

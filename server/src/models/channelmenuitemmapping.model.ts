@@ -12,6 +12,8 @@ export interface IChannelMenuItemMapping extends Document {
   priceOverride: number | null;
   isActive: boolean;
   metadata: Record<string, unknown> | null;
+  isSandbox?: boolean;
+  sandboxVersion?: string;
   createdBy: Types.ObjectId | null;
   updatedBy: Types.ObjectId | null;
   isDeleted: boolean;
@@ -69,6 +71,14 @@ const channelMenuItemMappingSchema = new Schema<IChannelMenuItemMapping>(
     metadata: {
       type: Schema.Types.Mixed,
       default: null,
+    },
+    isSandbox: {
+      type: Boolean,
+      default: false,
+    },
+    sandboxVersion: {
+      type: String,
+      default: "v1",
     },
     createdBy: {
       type: Schema.Types.ObjectId,

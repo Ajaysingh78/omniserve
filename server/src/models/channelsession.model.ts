@@ -72,7 +72,6 @@ const channelSessionSchema = new Schema<IChannelSession>(
 // Indexes
 channelSessionSchema.index({ tenantId: 1 });
 channelSessionSchema.index({ outletId: 1 });
-channelSessionSchema.index({ sessionToken: 1 }, { unique: true });
 channelSessionSchema.index({ isDeleted: 1 });
 
 // Generate unique sessionToken pre-save if not provided
