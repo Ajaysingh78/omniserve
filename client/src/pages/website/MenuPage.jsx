@@ -307,7 +307,7 @@ export default function MenuPage() {
                           value={v._id}
                           checked={selectedVariantId === v._id}
                           onChange={() => setSelectedVariantId(v._id)}
-                          className="w-4 h-4 text-indigo-600 border-zinc-700 bg-zinc-800 focus:ring-indigo-500"
+                          className="radio radio-xs radio-primary w-4 h-4 text-indigo-600 border-zinc-700 bg-zinc-800 focus:ring-indigo-500"
                         />
                         <span className="text-sm font-medium">{v.name}</span>
                       </div>
@@ -337,7 +337,7 @@ export default function MenuPage() {
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => handleToggleAddon(a._id)}
-                            className="w-4 h-4 text-indigo-600 border-zinc-700 bg-zinc-800 rounded focus:ring-indigo-500"
+                            className="checkbox checkbox-xs checkbox-primary w-4 h-4 text-indigo-600 border-zinc-700 bg-zinc-800 rounded focus:ring-indigo-500"
                           />
                           <span className="text-sm font-medium">{a.name}</span>
                         </div>
@@ -395,7 +395,7 @@ export default function MenuPage() {
                 value={itemNotes}
                 onChange={(e) => setItemNotes(e.target.value)}
                 placeholder="No onions, extra spicy, etc."
-                className="w-full bg-zinc-900 border border-zinc-800 text-zinc-200 placeholder-zinc-500 rounded-xl p-3.5 text-sm focus:outline-none focus:border-indigo-500 h-20 resize-none"
+                className="textarea textarea-bordered w-full bg-zinc-900 border border-zinc-800 text-zinc-200 placeholder-zinc-500 rounded-xl p-3.5 text-sm focus:outline-none focus:border-indigo-500 h-20 resize-none"
               />
             </div>
 

@@ -309,7 +309,7 @@ export default function CheckoutPage() {
                   value="COD"
                   checked={paymentMode === "COD"}
                   onChange={() => setPaymentMode("COD")}
-                  className="w-4 h-4 text-indigo-600 border-zinc-700 bg-zinc-800 focus:ring-indigo-500"
+                  className="radio radio-xs radio-primary w-4 h-4 text-indigo-600 border-zinc-700 bg-zinc-800 focus:ring-indigo-500"
                 />
                 <div>
                   <p className="text-sm font-bold text-white">Cash on Delivery (COD)</p>
@@ -330,7 +330,7 @@ export default function CheckoutPage() {
                   value="ONLINE"
                   checked={paymentMode === "ONLINE"}
                   onChange={() => setPaymentMode("ONLINE")}
-                  className="w-4 h-4 text-indigo-600 border-zinc-700 bg-zinc-800 focus:ring-indigo-500"
+                  className="radio radio-xs radio-primary w-4 h-4 text-indigo-600 border-zinc-700 bg-zinc-800 focus:ring-indigo-500"
                 />
                 <div>
                   <p className="text-sm font-bold text-white">Mock Net Banking / Cards</p>

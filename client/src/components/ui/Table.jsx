@@ -12,13 +12,13 @@ export default function Table({ columns = [], data = [], loading, emptyMessage =
 
   return (
     <div className="w-full overflow-x-auto rounded-xl border border-border-base dark:border-zinc-800 bg-white dark:bg-zinc-950 transition-colors duration-200">
-      <table className="w-full text-sm border-collapse">
+      <table className="table w-full text-sm border-collapse">
         <thead>
           <tr>
             {columns.map((col) => (
               <th 
                 key={col.key} 
-                className="text-left px-5 py-3.5 font-semibold text-on-surface-variant dark:text-zinc-400 bg-surface-subtle dark:bg-zinc-900/60 border-b border-border-base dark:border-zinc-850 whitespace-nowrap text-[11px] uppercase tracking-wider font-label-md"
+                className="text-left px-5 py-3.5 font-semibold text-on-surface-variant dark:text-zinc-400 bg-surface-subtle dark:bg-zinc-900/60 border-b border-border-base dark:border-zinc-850 whitespace-nowrap text-[11px] uppercase tracking-wider font-label-md static"
               >
                 {col.label}
               </th>

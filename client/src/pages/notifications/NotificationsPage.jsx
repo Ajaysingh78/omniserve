@@ -24,12 +24,13 @@ export default function NotificationsPage() {
     dispatch(fetchNotifications()); 
   }, [dispatch]);
 
-  const handleAcceptInvitation = async (notification) => {
+  const handleAcceptInvitation = async (e, notification) => {
+    e.stopPropagation();
     try {
       await acceptMyInvitationApi();
       addToast('Invitation accepted successfully', 'success');
       if (!notification.isRead) {
-        dispatch(markAsRead(notification.id || notification._id));
+        await dispatch(markAsRead(notification.id || notification._id)).unwrap();
       }
       dispatch(fetchCurrentUser(true));
       dispatch(fetchNotifications());
@@ -40,9 +41,6 @@ export default function NotificationsPage() {
 
   const handleNotificationClick = (n) => {
     const notificationId = n.id || n._id;
-    const isInvitation = n.entityType === 'UserInvitation';
-    if (isInvitation) return;
-
     if (!n.isRead) {
       dispatch(markAsRead(notificationId));
     }
@@ -119,11 +117,19 @@ export default function NotificationsPage() {
                   <div className="mt-3 flex gap-2 items-center flex-wrap">
                     {!user?.invitationAccepted ? (
                       <>
-                        <Button size="sm" onClick={() => handleAcceptInvitation(n)} className="font-bold">
+                        <Button size="sm" onClick={(e) => handleAcceptInvitation(e, n)} className="font-bold">
                           Accept Invitation
                         </Button>
                         {!n.isRead && (
-                          <Button size="sm" variant="secondary" onClick={() => dispatch(markAsRead(notificationId))} className="font-bold">
+                          <Button 
+                            size="sm" 
+                            variant="secondary" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              dispatch(markAsRead(notificationId));
+                            }} 
+                            className="font-bold"
+                          >
                             Mark Read
                           </Button>
                         )}
