@@ -42,6 +42,7 @@ import {
 export default function DeveloperCockpit() {
   const { addToast } = useToast();
   const consoleEndRef = useRef(null);
+  const consoleContainerRef = useRef(null);
   
   const [outlets, setOutlets] = useState([]);
   const [selectedOutletId, setSelectedOutletId] = useState('');
@@ -224,10 +225,10 @@ export default function DeveloperCockpit() {
     return () => clearInterval(interval);
   }, [activeSessionId, selectedTraceOrderId, fetchSimulatorSessions, addToast]);
 
-  // Auto-scroll console to bottom on new logs
+  // Auto-scroll console container to bottom on new logs (no page scroll locking)
   useEffect(() => {
-    if (consoleEndRef.current) {
-      consoleEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (consoleContainerRef.current) {
+      consoleContainerRef.current.scrollTop = consoleContainerRef.current.scrollHeight;
     }
   }, [simulationEvents]);
 
@@ -342,7 +343,9 @@ export default function DeveloperCockpit() {
     try {
       setActionLoading(true);
       await stopSimulatorSessionApi(activeSessionId);
-      addToast('Simulation stop requested', 'info');
+      addToast('Simulation session stopped successfully', 'success');
+      setActiveSessionId(null);
+      await fetchSimulatorSessions();
     } catch (err) {
       console.error('Failed to stop simulation:', err);
       addToast(err.response?.data?.message || 'Failed to stop simulation', 'error');
@@ -760,7 +763,7 @@ export default function DeveloperCockpit() {
               </h3>
               
               {/* Scrolling terminal view */}
-              <div className="bg-zinc-900 border border-zinc-850 rounded-lg p-3 font-mono text-[10px] h-[340px] overflow-y-auto space-y-2 text-zinc-300">
+              <div ref={consoleContainerRef} className="bg-zinc-900 border border-zinc-850 rounded-lg p-3 font-mono text-[10px] h-[340px] overflow-y-auto space-y-2 text-zinc-300">
                 {simulationEvents.length === 0 ? (
                   <div className="text-zinc-600 italic py-12 text-center">Awaiting simulation events...</div>
                 ) : (
