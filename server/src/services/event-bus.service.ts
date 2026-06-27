@@ -1,5 +1,6 @@
 import { Types } from "mongoose";
 import IntegrationEventQueue, { IIntegrationEventQueue } from "../models/integration-event-queue.model.js";
+import { RealtimeEvent } from "../types/socket-events.js";
 
 export interface PublishOptions {
   correlationId?: string | undefined;
@@ -82,7 +83,7 @@ export class EventBusService {
     return this.createEvent(
       tenantId,
       outletId,
-      "ORDER_CREATED",
+      RealtimeEvent.ORDER_CREATED,
       "ORDER",
       orderId,
       payload,
@@ -100,7 +101,7 @@ export class EventBusService {
     return this.createEvent(
       tenantId,
       outletId,
-      "ORDER_STATUS_CHANGED",
+      RealtimeEvent.ORDER_STATUS_CHANGED,
       "ORDER",
       orderId,
       payload,
@@ -118,7 +119,7 @@ export class EventBusService {
     return this.createEvent(
       tenantId,
       outletId,
-      "INVENTORY_CHANGED",
+      RealtimeEvent.INVENTORY_CHANGED,
       "INVENTORY",
       inventoryId,
       payload,
@@ -137,7 +138,7 @@ export class EventBusService {
     return this.createEvent(
       tenantId,
       outletId,
-      "MENU_CHANGED",
+      RealtimeEvent.MENU_CHANGED,
       aggregateType,
       aggregateId,
       payload,
@@ -155,7 +156,7 @@ export class EventBusService {
     return this.createEvent(
       tenantId,
       outletId,
-      "CART_CREATED",
+      RealtimeEvent.CART_CREATED,
       "CART",
       cartId,
       payload,
@@ -173,7 +174,7 @@ export class EventBusService {
     return this.createEvent(
       tenantId,
       outletId,
-      "CART_UPDATED",
+      RealtimeEvent.CART_UPDATED,
       "CART",
       cartId,
       payload,
@@ -191,9 +192,571 @@ export class EventBusService {
     return this.createEvent(
       tenantId,
       outletId,
-      "CHECKOUT_STARTED",
+      RealtimeEvent.CHECKOUT_STARTED,
       "CART",
       cartId,
+      payload,
+      options
+    );
+  }
+
+  static async publishTableOccupied(
+    tenantId: string | Types.ObjectId,
+    outletId: string | Types.ObjectId | null,
+    tableId: string | Types.ObjectId,
+    payload: unknown,
+    options?: PublishOptions
+  ): Promise<IIntegrationEventQueue | null> {
+    return this.createEvent(
+      tenantId,
+      outletId,
+      RealtimeEvent.TABLE_OCCUPIED,
+      "TABLE",
+      tableId,
+      payload,
+      options
+    );
+  }
+
+  static async publishTableAvailable(
+    tenantId: string | Types.ObjectId,
+    outletId: string | Types.ObjectId | null,
+    tableId: string | Types.ObjectId,
+    payload: unknown,
+    options?: PublishOptions
+  ): Promise<IIntegrationEventQueue | null> {
+    return this.createEvent(
+      tenantId,
+      outletId,
+      RealtimeEvent.TABLE_AVAILABLE,
+      "TABLE",
+      tableId,
+      payload,
+      options
+    );
+  }
+
+  static async publishTableReserved(
+    tenantId: string | Types.ObjectId,
+    outletId: string | Types.ObjectId | null,
+    tableId: string | Types.ObjectId,
+    payload: unknown,
+    options?: PublishOptions
+  ): Promise<IIntegrationEventQueue | null> {
+    return this.createEvent(
+      tenantId,
+      outletId,
+      RealtimeEvent.TABLE_RESERVED,
+      "TABLE",
+      tableId,
+      payload,
+      options
+    );
+  }
+
+  static async publishTableTransferred(
+    tenantId: string | Types.ObjectId,
+    outletId: string | Types.ObjectId | null,
+    tableId: string | Types.ObjectId,
+    payload: unknown,
+    options?: PublishOptions
+  ): Promise<IIntegrationEventQueue | null> {
+    return this.createEvent(
+      tenantId,
+      outletId,
+      RealtimeEvent.TABLE_TRANSFERRED,
+      "TABLE",
+      tableId,
+      payload,
+      options
+    );
+  }
+
+  static async publishTableMerged(
+    tenantId: string | Types.ObjectId,
+    outletId: string | Types.ObjectId | null,
+    tableId: string | Types.ObjectId,
+    payload: unknown,
+    options?: PublishOptions
+  ): Promise<IIntegrationEventQueue | null> {
+    return this.createEvent(
+      tenantId,
+      outletId,
+      RealtimeEvent.TABLE_MERGED,
+      "TABLE",
+      tableId,
+      payload,
+      options
+    );
+  }
+
+  static async publishTableCleaningStarted(
+    tenantId: string | Types.ObjectId,
+    outletId: string | Types.ObjectId | null,
+    tableId: string | Types.ObjectId,
+    payload: unknown,
+    options?: PublishOptions
+  ): Promise<IIntegrationEventQueue | null> {
+    return this.createEvent(
+      tenantId,
+      outletId,
+      RealtimeEvent.TABLE_CLEANING_STARTED,
+      "TABLE",
+      tableId,
+      payload,
+      options
+    );
+  }
+
+  static async publishTableCleaningCompleted(
+    tenantId: string | Types.ObjectId,
+    outletId: string | Types.ObjectId | null,
+    tableId: string | Types.ObjectId,
+    payload: unknown,
+    options?: PublishOptions
+  ): Promise<IIntegrationEventQueue | null> {
+    return this.createEvent(
+      tenantId,
+      outletId,
+      RealtimeEvent.TABLE_CLEANING_COMPLETED,
+      "TABLE",
+      tableId,
+      payload,
+      options
+    );
+  }
+
+  static async publishTableStatusChanged(
+    tenantId: string | Types.ObjectId,
+    outletId: string | Types.ObjectId | null,
+    tableId: string | Types.ObjectId,
+    payload: unknown,
+    options?: PublishOptions
+  ): Promise<IIntegrationEventQueue | null> {
+    return this.createEvent(
+      tenantId,
+      outletId,
+      RealtimeEvent.TABLE_STATUS_CHANGED,
+      "TABLE",
+      tableId,
+      payload,
+      options
+    );
+  }
+
+  static async publishWaiterTaskCreated(
+    tenantId: string | Types.ObjectId,
+    outletId: string | Types.ObjectId | null,
+    taskId: string | Types.ObjectId,
+    payload: unknown,
+    options?: PublishOptions
+  ): Promise<IIntegrationEventQueue | null> {
+    return this.createEvent(
+      tenantId,
+      outletId,
+      RealtimeEvent.WAITER_TASK_CREATED,
+      "WAITER_TASK",
+      taskId,
+      payload,
+      options
+    );
+  }
+
+  static async publishWaiterTaskAcknowledged(
+    tenantId: string | Types.ObjectId,
+    outletId: string | Types.ObjectId | null,
+    taskId: string | Types.ObjectId,
+    payload: unknown,
+    options?: PublishOptions
+  ): Promise<IIntegrationEventQueue | null> {
+    return this.createEvent(
+      tenantId,
+      outletId,
+      RealtimeEvent.WAITER_TASK_ACKNOWLEDGED,
+      "WAITER_TASK",
+      taskId,
+      payload,
+      options
+    );
+  }
+
+  static async publishWaiterTaskCompleted(
+    tenantId: string | Types.ObjectId,
+    outletId: string | Types.ObjectId | null,
+    taskId: string | Types.ObjectId,
+    payload: unknown,
+    options?: PublishOptions
+  ): Promise<IIntegrationEventQueue | null> {
+    return this.createEvent(
+      tenantId,
+      outletId,
+      RealtimeEvent.WAITER_TASK_COMPLETED,
+      "WAITER_TASK",
+      taskId,
+      payload,
+      options
+    );
+  }
+
+  static async publishWaiterTaskAssigned(
+    tenantId: string | Types.ObjectId,
+    outletId: string | Types.ObjectId | null,
+    taskId: string | Types.ObjectId,
+    payload: unknown,
+    options?: PublishOptions
+  ): Promise<IIntegrationEventQueue | null> {
+    return this.createEvent(
+      tenantId,
+      outletId,
+      RealtimeEvent.WAITER_TASK_ASSIGNED,
+      "WAITER_TASK",
+      taskId,
+      payload,
+      options
+    );
+  }
+
+  static async publishWaiterTaskInProgress(
+    tenantId: string | Types.ObjectId,
+    outletId: string | Types.ObjectId | null,
+    taskId: string | Types.ObjectId,
+    payload: unknown,
+    options?: PublishOptions
+  ): Promise<IIntegrationEventQueue | null> {
+    return this.createEvent(
+      tenantId,
+      outletId,
+      RealtimeEvent.WAITER_TASK_IN_PROGRESS,
+      "WAITER_TASK",
+      taskId,
+      payload,
+      options
+    );
+  }
+
+  static async publishWaiterTaskCancelled(
+    tenantId: string | Types.ObjectId,
+    outletId: string | Types.ObjectId | null,
+    taskId: string | Types.ObjectId,
+    payload: unknown,
+    options?: PublishOptions
+  ): Promise<IIntegrationEventQueue | null> {
+    return this.createEvent(
+      tenantId,
+      outletId,
+      RealtimeEvent.WAITER_TASK_CANCELLED,
+      "WAITER_TASK",
+      taskId,
+      payload,
+      options
+    );
+  }
+
+  static async publishWaiterTaskEscalated(
+    tenantId: string | Types.ObjectId,
+    outletId: string | Types.ObjectId | null,
+    taskId: string | Types.ObjectId,
+    payload: unknown,
+    options?: PublishOptions
+  ): Promise<IIntegrationEventQueue | null> {
+    return this.createEvent(
+      tenantId,
+      outletId,
+      RealtimeEvent.WAITER_TASK_ESCALATED,
+      "WAITER_TASK",
+      taskId,
+      payload,
+      options
+    );
+  }
+
+  static async publishItemFireRequested(
+    tenantId: string | Types.ObjectId,
+    outletId: string | Types.ObjectId | null,
+    orderId: string | Types.ObjectId,
+    payload: unknown,
+    options?: PublishOptions
+  ): Promise<IIntegrationEventQueue | null> {
+    return this.createEvent(
+      tenantId,
+      outletId,
+      RealtimeEvent.ITEM_FIRE_REQUESTED,
+      "ORDER",
+      orderId,
+      payload,
+      options
+    );
+  }
+
+  static async publishQRAssistanceRequested(
+    tenantId: string | Types.ObjectId,
+    outletId: string | Types.ObjectId | null,
+    tableId: string | Types.ObjectId,
+    payload: unknown,
+    options?: PublishOptions
+  ): Promise<IIntegrationEventQueue | null> {
+    return this.createEvent(
+      tenantId,
+      outletId,
+      RealtimeEvent.QR_ASSISTANCE_REQUESTED,
+      "TABLE",
+      tableId,
+      payload,
+      options
+    );
+  }
+
+  static async publishTableUnmerged(
+    tenantId: string | Types.ObjectId,
+    outletId: string | Types.ObjectId | null,
+    tableId: string | Types.ObjectId,
+    payload: unknown,
+    options?: PublishOptions
+  ): Promise<IIntegrationEventQueue | null> {
+    return this.createEvent(
+      tenantId,
+      outletId,
+      RealtimeEvent.TABLE_UNMERGED,
+      "TABLE",
+      tableId,
+      payload,
+      options
+    );
+  }
+
+  static async publishSeatMoved(
+    tenantId: string | Types.ObjectId,
+    outletId: string | Types.ObjectId | null,
+    tableId: string | Types.ObjectId,
+    payload: unknown,
+    options?: PublishOptions
+  ): Promise<IIntegrationEventQueue | null> {
+    return this.createEvent(
+      tenantId,
+      outletId,
+      RealtimeEvent.SEAT_MOVED,
+      "TABLE",
+      tableId,
+      payload,
+      options
+    );
+  }
+
+  static async publishSeatSwapped(
+    tenantId: string | Types.ObjectId,
+    outletId: string | Types.ObjectId | null,
+    tableId: string | Types.ObjectId,
+    payload: unknown,
+    options?: PublishOptions
+  ): Promise<IIntegrationEventQueue | null> {
+    return this.createEvent(
+      tenantId,
+      outletId,
+      RealtimeEvent.SEAT_SWAPPED,
+      "TABLE",
+      tableId,
+      payload,
+      options
+    );
+  }
+
+  static async publishWaiterChanged(
+    tenantId: string | Types.ObjectId,
+    outletId: string | Types.ObjectId | null,
+    tableId: string | Types.ObjectId,
+    payload: unknown,
+    options?: PublishOptions
+  ): Promise<IIntegrationEventQueue | null> {
+    return this.createEvent(
+      tenantId,
+      outletId,
+      RealtimeEvent.WAITER_CHANGED,
+      "TABLE",
+      tableId,
+      payload,
+      options
+    );
+  }
+
+  static async publishSessionClosed(
+    tenantId: string | Types.ObjectId,
+    outletId: string | Types.ObjectId | null,
+    tableId: string | Types.ObjectId,
+    payload: unknown,
+    options?: PublishOptions
+  ): Promise<IIntegrationEventQueue | null> {
+    return this.createEvent(
+      tenantId,
+      outletId,
+      RealtimeEvent.SESSION_CLOSED,
+      "TABLE",
+      tableId,
+      payload,
+      options
+    );
+  }
+
+  static async publishSeatAdded(
+    tenantId: string | Types.ObjectId,
+    outletId: string | Types.ObjectId | null,
+    tableId: string | Types.ObjectId,
+    payload: unknown,
+    options?: PublishOptions
+  ): Promise<IIntegrationEventQueue | null> {
+    return this.createEvent(
+      tenantId,
+      outletId,
+      RealtimeEvent.SEAT_ADDED,
+      "TABLE",
+      tableId,
+      payload,
+      options
+    );
+  }
+
+  static async publishSeatRemoved(
+    tenantId: string | Types.ObjectId,
+    outletId: string | Types.ObjectId | null,
+    tableId: string | Types.ObjectId,
+    payload: unknown,
+    options?: PublishOptions
+  ): Promise<IIntegrationEventQueue | null> {
+    return this.createEvent(
+      tenantId,
+      outletId,
+      RealtimeEvent.SEAT_REMOVED,
+      "TABLE",
+      tableId,
+      payload,
+      options
+    );
+  }
+
+  static async publishGuestCountChanged(
+    tenantId: string | Types.ObjectId,
+    outletId: string | Types.ObjectId | null,
+    tableId: string | Types.ObjectId,
+    payload: unknown,
+    options?: PublishOptions
+  ): Promise<IIntegrationEventQueue | null> {
+    return this.createEvent(
+      tenantId,
+      outletId,
+      RealtimeEvent.GUEST_COUNT_CHANGED,
+      "TABLE",
+      tableId,
+      payload,
+      options
+    );
+  }
+
+  // ─── KDS / Course Management Publishers ─────────────────────────────────────
+
+  static async publishItemFired(
+    tenantId: string | Types.ObjectId,
+    outletId: string | Types.ObjectId | null,
+    orderItemId: string | Types.ObjectId,
+    payload: unknown,
+    options?: PublishOptions
+  ): Promise<IIntegrationEventQueue | null> {
+    return this.createEvent(
+      tenantId,
+      outletId,
+      RealtimeEvent.ITEM_FIRED,
+      "ORDER_ITEM",
+      orderItemId,
+      payload,
+      options
+    );
+  }
+
+  static async publishItemHeld(
+    tenantId: string | Types.ObjectId,
+    outletId: string | Types.ObjectId | null,
+    orderItemId: string | Types.ObjectId,
+    payload: unknown,
+    options?: PublishOptions
+  ): Promise<IIntegrationEventQueue | null> {
+    return this.createEvent(
+      tenantId,
+      outletId,
+      RealtimeEvent.ITEM_HELD,
+      "ORDER_ITEM",
+      orderItemId,
+      payload,
+      options
+    );
+  }
+
+  static async publishCourseFired(
+    tenantId: string | Types.ObjectId,
+    outletId: string | Types.ObjectId | null,
+    orderId: string | Types.ObjectId,
+    payload: unknown,
+    options?: PublishOptions
+  ): Promise<IIntegrationEventQueue | null> {
+    return this.createEvent(
+      tenantId,
+      outletId,
+      RealtimeEvent.COURSE_FIRED,
+      "ORDER",
+      orderId,
+      payload,
+      options
+    );
+  }
+
+  // ─── Billing Publishers ──────────────────────────────────────────────────────
+
+  static async publishBillRequested(
+    tenantId: string | Types.ObjectId,
+    outletId: string | Types.ObjectId | null,
+    billSessionId: string | Types.ObjectId,
+    payload: unknown,
+    options?: PublishOptions
+  ): Promise<IIntegrationEventQueue | null> {
+    return this.createEvent(
+      tenantId,
+      outletId,
+      RealtimeEvent.BILL_REQUESTED,
+      "BILL_SESSION",
+      billSessionId,
+      payload,
+      options
+    );
+  }
+
+  static async publishBillSplitCreated(
+    tenantId: string | Types.ObjectId,
+    outletId: string | Types.ObjectId | null,
+    billSessionId: string | Types.ObjectId,
+    payload: unknown,
+    options?: PublishOptions
+  ): Promise<IIntegrationEventQueue | null> {
+    return this.createEvent(
+      tenantId,
+      outletId,
+      RealtimeEvent.BILL_SPLIT_CREATED,
+      "BILL_SESSION",
+      billSessionId,
+      payload,
+      options
+    );
+  }
+
+  static async publishBillSettled(
+    tenantId: string | Types.ObjectId,
+    outletId: string | Types.ObjectId | null,
+    billSessionId: string | Types.ObjectId,
+    payload: unknown,
+    options?: PublishOptions
+  ): Promise<IIntegrationEventQueue | null> {
+    return this.createEvent(
+      tenantId,
+      outletId,
+      RealtimeEvent.BILL_SETTLED,
+      "BILL_SESSION",
+      billSessionId,
       payload,
       options
     );
