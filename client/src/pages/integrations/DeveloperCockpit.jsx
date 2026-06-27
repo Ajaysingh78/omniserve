@@ -16,8 +16,10 @@ import {
   getSimulatorSessionsApi,
   getSimulatorMetricsApi,
   getSimulatorEventsApi,
-  stopSimulatorSessionApi
+  stopSimulatorSessionApi,
+  simulateDineInApi
 } from '../../api/models/integration.api';
+import { getTablesApi } from '../../api/models/operations.api';
 import { getPayload } from '../../utils/apiData';
 import {
   HiOutlineBuildingStorefront,
@@ -73,6 +75,9 @@ export default function DeveloperCockpit() {
   const [simulationEvents, setSimulationEvents] = useState([]);
   const [simulatorSessions, setSimulatorSessions] = useState([]);
   const [selectedTraceOrderId, setSelectedTraceOrderId] = useState('');
+  const [tables, setTables] = useState([]);
+  const [selectedDineInTableId, setSelectedDineInTableId] = useState('');
+  const [simulatingDineIn, setSimulatingDineIn] = useState(false);
 
   // Fetch simulator sessions
   const fetchSimulatorSessions = useCallback(async () => {
@@ -106,6 +111,16 @@ export default function DeveloperCockpit() {
       addToast(err.response?.data?.message || 'Failed to fetch sandbox configuration', 'error');
     }
   }, [outlets.length, addToast]);
+  
+  const fetchTables = useCallback(async (outletId) => {
+    if (!outletId) return;
+    try {
+      const res = await getTablesApi({ outletId });
+      setTables(res.data?.data?.tables || []);
+    } catch (err) {
+      console.error('Failed to fetch tables:', err);
+    }
+  }, []);
 
   // Fetch live lists
   const fetchLiveLists = useCallback(async (outletId) => {
@@ -152,6 +167,7 @@ export default function DeveloperCockpit() {
           setConfig(data);
           await Promise.all([
             fetchLiveLists(activeId),
+            fetchTables(activeId),
             fetchSimulatorSessions()
           ]);
         }
@@ -163,15 +179,16 @@ export default function DeveloperCockpit() {
       }
     };
     init();
-  }, [fetchLiveLists, fetchSimulatorSessions, addToast]);
+  }, [fetchLiveLists, fetchTables, fetchSimulatorSessions, addToast]);
 
   // Reload when outlet changes
   useEffect(() => {
     if (selectedOutletId) {
       fetchConfig(selectedOutletId);
       fetchLiveLists(selectedOutletId);
+      fetchTables(selectedOutletId);
     }
-  }, [selectedOutletId, fetchConfig, fetchLiveLists]);
+  }, [selectedOutletId, fetchConfig, fetchLiveLists, fetchTables]);
 
   // Auto-refresh live feeds every 5 seconds
   useEffect(() => {
@@ -179,12 +196,13 @@ export default function DeveloperCockpit() {
     const interval = setInterval(() => {
       fetchConfig(selectedOutletId);
       fetchLiveLists(selectedOutletId);
+      fetchTables(selectedOutletId);
       if (!activeSessionId) {
         fetchSimulatorSessions();
       }
     }, 5000);
     return () => clearInterval(interval);
-  }, [selectedOutletId, activeSessionId, fetchConfig, fetchLiveLists, fetchSimulatorSessions]);
+  }, [selectedOutletId, activeSessionId, fetchConfig, fetchLiveLists, fetchTables, fetchSimulatorSessions]);
 
   // Polling for active simulation details
   useEffect(() => {
@@ -271,6 +289,32 @@ export default function DeveloperCockpit() {
 
   const handleResetSandbox = () => 
     triggerAction('reset', resetDevSandboxApi, 'Dev Sandbox reset complete. Production data preserved.');
+
+  const handleSimulateDineInOrder = async (e) => {
+    e.preventDefault();
+    if (!selectedDineInTableId) {
+      addToast('Please select a target table for Dine-In simulation', 'warning');
+      return;
+    }
+
+    try {
+      setSimulatingDineIn(true);
+      const res = await simulateDineInApi({
+        outletId: selectedOutletId,
+        tableId: selectedDineInTableId
+      });
+      const order = res.data?.data;
+      addToast(`Dine-In order ${order.orderNumber} successfully simulated on Table ${order.tableNumber}!`, 'success');
+      setSelectedDineInTableId('');
+      fetchLiveLists(selectedOutletId);
+      fetchTables(selectedOutletId);
+    } catch (err) {
+      console.error(err);
+      addToast(err.response?.data?.message || 'Failed to place mock Dine-In order', 'error');
+    } finally {
+      setSimulatingDineIn(false);
+    }
+  };
 
   const handleRunSmokeTest = () => 
     triggerAction('smoke', runSmokeTestApi, 'Smoke test execution triggered');
@@ -859,6 +903,48 @@ export default function DeveloperCockpit() {
                 Purge Dev Sandbox Data
               </button>
             </div>
+          </div>
+
+          {/* Dine-In Order Simulator Card */}
+          <div className="bg-white dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-xl p-5 shadow-xs">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-455 dark:text-zinc-550 flex items-center gap-2 mb-4">
+              <HiOutlineSquares2X2 className="text-sm text-primary" />
+              Simulate Dine-In Table Order
+            </h3>
+            
+            <form onSubmit={handleSimulateDineInOrder} className="space-y-3.5 text-xs font-semibold">
+              <div>
+                <label className="text-[10px] font-bold text-zinc-405 dark:text-zinc-650 block mb-1 uppercase">Target Table</label>
+                <select
+                  value={selectedDineInTableId}
+                  onChange={(e) => setSelectedDineInTableId(e.target.value)}
+                  className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-950 border border-border-base dark:border-zinc-800 rounded-lg font-semibold text-on-surface dark:text-zinc-200 focus:outline-hidden"
+                >
+                  <option value="">Select Table...</option>
+                  {tables.map((t) => (
+                    <option key={t._id} value={t._id}>
+                      Table {t.tableNumber} (Seats: {t.seatCount}) - [{t.operationalStatus}]
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <button
+                type="submit"
+                disabled={simulatingDineIn || !selectedDineInTableId}
+                className="w-full px-4 py-3 bg-primary hover:bg-primary/90 text-white text-xs font-bold rounded-lg disabled:opacity-50 transition cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                {simulatingDineIn ? (
+                  <span className="animate-spin text-sm">🔄</span>
+                ) : (
+                  <HiOutlinePlay className="text-sm" />
+                )}
+                Place Mock Dine-In Order
+              </button>
+            </form>
+            <p className="text-[10px] text-zinc-400 mt-2 italic leading-relaxed">
+              * Note: If the selected table is not occupied, this will automatically start a QR dining session, seat guest at Seat 1, place a mock order of 2 menu items, and route them to KDS.
+            </p>
           </div>
 
           {/* Traffic Simulator Form Card */}

@@ -32,5 +32,6 @@ router.get("/dev/simulator/:sessionId/metrics", verifyToken, IntegrationControll
 router.get("/dev/simulator/:sessionId/events", verifyToken, IntegrationController.getSimulatorEvents);
 router.post("/dev/simulator/:sessionId/stop", verifyToken, IntegrationController.stopSimulatorSession);
 router.post("/dev/run-smoke-test", verifyToken, IntegrationController.runSmokeTest);
+router.post("/dev/simulate-dinein", verifyToken, IntegrationController.simulateDineInOrder);
 
 export default router;

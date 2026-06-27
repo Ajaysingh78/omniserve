@@ -23,6 +23,8 @@ import ProviderSyncState from "../models/providersyncstate.model.js";
 import SyncJob from "../models/syncjob.model.js";
 import { OutboxPollerService } from "../services/outbox-poller.service.js";
 import { SimulatorService } from "../services/simulator.service.js";
+import { RealtimeService } from "../services/realtime.service.js";
+import { EventBusService } from "../services/event-bus.service.js";
 import { SimulationMetricsService } from "../services/simulation-metrics.service.js";
 import SimulationLog from "../models/simulationlog.model.js";
 import SimulationSession from "../models/simulationsession.model.js";
@@ -1401,6 +1403,14 @@ export class IntegrationController {
       const sandboxOrders = await Order.find({ tenantId: tenantObjectId, outletId: outletObjectId, isSandbox: true }).select("_id");
       const sandboxOrderIds = sandboxOrders.map(order => order._id);
 
+      const DiningArea = mongoose.model("DiningArea");
+      const Table = mongoose.model("Table");
+      const Shift = mongoose.model("Shift");
+      const Reservation = mongoose.model("Reservation");
+      const WaiterTask = mongoose.model("WaiterTask");
+      const QRSession = mongoose.model("QRSession");
+      const BillSession = mongoose.model("BillSession");
+
       const [
         ordersDel,
         extOrdersDel,
@@ -1415,7 +1425,14 @@ export class IntegrationController {
         itemsDel,
         variantsDel,
         addonsDel,
-        categoriesDel
+        categoriesDel,
+        diningAreasDel,
+        tablesDel,
+        shiftsDel,
+        reservationsDel,
+        waiterTasksDel,
+        qrSessionsDel,
+        billSessionsDel
       ] = await Promise.all([
         Order.deleteMany({ tenantId: tenantObjectId, outletId: outletObjectId, isSandbox: true }),
         ExternalOrder.deleteMany({ tenantId: tenantObjectId, outletId: outletObjectId, isSandbox: true }),
@@ -1430,7 +1447,16 @@ export class IntegrationController {
         MenuItem.deleteMany({ tenantId: tenantObjectId, outletId: outletObjectId, isSandbox: true }),
         Variant.deleteMany({ tenantId: tenantObjectId, menuItemId: { $in: sandboxMenuItemIds }, isSandbox: true }),
         Addon.deleteMany({ tenantId: tenantObjectId, menuItemId: { $in: sandboxMenuItemIds }, isSandbox: true }),
-        Category.deleteMany({ tenantId: tenantObjectId, outletId: outletObjectId, isSandbox: true })
+        Category.deleteMany({ tenantId: tenantObjectId, outletId: outletObjectId, isSandbox: true }),
+
+        // Clear dining context models for clean sandbox slate
+        DiningArea.deleteMany({ tenantId: tenantObjectId, outletId: outletObjectId }),
+        Table.deleteMany({ tenantId: tenantObjectId, outletId: outletObjectId }),
+        Shift.deleteMany({ tenantId: tenantObjectId, outletId: outletObjectId }),
+        Reservation.deleteMany({ tenantId: tenantObjectId, outletId: outletObjectId }),
+        WaiterTask.deleteMany({ tenantId: tenantObjectId, outletId: outletObjectId }),
+        QRSession.deleteMany({ tenantId: tenantObjectId, outletId: outletObjectId }),
+        BillSession.deleteMany({ tenantId: tenantObjectId, outletId: outletObjectId })
       ]);
 
       ApiResponseHandler.success(res, 200, "Sandbox development environment reset complete", {
@@ -1448,7 +1474,14 @@ export class IntegrationController {
           externalOrders: extOrdersDel.deletedCount,
           timelineRecords: timelineDel.deletedCount,
           eventQueue: queueDel.deletedCount,
-          syncJobs: syncJobsDel.deletedCount
+          syncJobs: syncJobsDel.deletedCount,
+          diningAreas: diningAreasDel.deletedCount,
+          tables: tablesDel.deletedCount,
+          shifts: shiftsDel.deletedCount,
+          reservations: reservationsDel.deletedCount,
+          waiterTasks: waiterTasksDel.deletedCount,
+          qrSessions: qrSessionsDel.deletedCount,
+          billSessions: billSessionsDel.deletedCount
         }
       });
     } catch (error: any) {
@@ -1600,5 +1633,162 @@ export class IntegrationController {
    */
   static async runSmokeTest(req: Request, res: Response): Promise<void> {
     ApiResponseHandler.badRequest(res, "E2E Smoke Test Runner (Milestone 5) is not implemented yet");
+  }
+
+  /**
+   * POST /api/v1/integrations/dev/simulate-dinein
+   */
+  static async simulateDineInOrder(req: Request, res: Response): Promise<void> {
+    try {
+      const tenantIdStr = String(req.user?.tenantId || req.body.tenantId || req.headers["x-tenant-id"] || "");
+      const { outletId, tableId } = req.body;
+
+      if (!tenantIdStr || !Types.ObjectId.isValid(tenantIdStr)) {
+        ApiResponseHandler.badRequest(res, "A valid tenantId is required");
+        return;
+      }
+      if (!outletId || !Types.ObjectId.isValid(outletId)) {
+        ApiResponseHandler.badRequest(res, "A valid outletId is required");
+        return;
+      }
+      if (!tableId || !Types.ObjectId.isValid(tableId)) {
+        ApiResponseHandler.badRequest(res, "A valid tableId is required");
+        return;
+      }
+
+      const tenantId = new Types.ObjectId(tenantIdStr);
+      const outletObjectId = new Types.ObjectId(outletId);
+      const tableObjectId = new Types.ObjectId(tableId);
+
+      const Table = mongoose.model("Table");
+      const QRSession = mongoose.model("QRSession");
+      const Order = mongoose.model("Order");
+      const OrderItem = mongoose.model("OrderItem");
+      const OrderTimeline = mongoose.model("OrderTimeline");
+      const MenuItem = mongoose.model("MenuItem");
+
+      const table = await Table.findOne({ _id: tableObjectId, outletId: outletObjectId, tenantId, isDeleted: false });
+      if (!table) {
+        ApiResponseHandler.notFound(res, "Table not found");
+        return;
+      }
+
+      // 1. Programmatically seat table if empty
+      let activeSessionId = table.activeSessionId;
+      if (!activeSessionId) {
+        const session = await QRSession.create({
+          tenantId,
+          outletId: outletObjectId,
+          tableId: tableObjectId,
+          status: "ACTIVE",
+          joinedAt: new Date(),
+          seats: [{ seatNumber: "Seat 1", joinedAt: new Date() }]
+        });
+        activeSessionId = session._id as Types.ObjectId;
+        table.activeSessionId = activeSessionId;
+        table.operationalStatus = "OCCUPIED";
+        await table.save();
+      }
+
+      // 2. Select first 2 menu items
+      const menuItems = await MenuItem.find({ tenantId, outletId: outletObjectId, isDeleted: false }).limit(2).lean();
+      if (menuItems.length === 0) {
+        ApiResponseHandler.badRequest(res, "No menu items found. Please load the demo catalog first.");
+        return;
+      }
+
+      // Calculate total amounts
+      let subtotal = 0;
+      menuItems.forEach(item => subtotal += (item.price || 50));
+      const tax = Number((subtotal * 0.05).toFixed(2));
+      const totalAmount = subtotal + tax;
+
+      // 3. Create Order
+      const orderNum = "DIN-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+      const orderDoc = await Order.create({
+        tenantId,
+        outletId: outletObjectId,
+        customerId: new Types.ObjectId("6a3c17666bb70afe757e4999"), // dummy customer id
+        orderNumber: orderNum,
+        source: "DINE_IN",
+        subtotal,
+        tax,
+        deliveryFee: 0,
+        discount: 0,
+        totalAmount,
+        orderStatus: "PLACED",
+        paymentStatus: "PENDING",
+        diningContext: {
+          tableId: table._id,
+          tableNumber: table.tableNumber,
+          seatNumber: "Seat 1",
+          sessionId: activeSessionId
+        },
+        isSandbox: true,
+        sessionId: activeSessionId,
+        createdBy: req.user?.userId ? new Types.ObjectId(req.user.userId) : null
+      });
+
+      // 4. Create OrderItems
+      for (const item of menuItems) {
+        await OrderItem.create({
+          orderId: orderDoc._id,
+          tenantId,
+          menuItemId: item._id,
+          name: item.name,
+          quantity: 1,
+          unitPrice: item.price,
+          totalPrice: item.price,
+          course: "MAINS",
+          holdStatus: "FIRED",
+          firedAt: new Date(),
+          kdsStation: "HOT"
+        });
+      }
+
+      // 5. Create OrderTimeline log
+      await OrderTimeline.create({
+        tenantId,
+        qrsessionId: activeSessionId,
+        orderId: orderDoc._id,
+        status: "ORDER_PLACED",
+        sourceSystem: "GUEST_WEB",
+        notes: `Dine-In order placed on Table ${table.tableNumber} for Seat 1`,
+        audit: {
+          triggeredById: req.user?.userId ? new Types.ObjectId(req.user.userId) : undefined,
+          triggeredByType: "CUSTOMER"
+        }
+      });
+
+      // 6. Publish Event & Socket Updates
+      await EventBusService.publishOrderCreated(tenantId, outletObjectId, orderDoc._id.toString(), {
+        orderNumber: orderDoc.orderNumber,
+        source: "DINE_IN",
+        totalAmount: orderDoc.totalAmount
+      });
+
+      const io = RealtimeService.getIO();
+      if (io) {
+        io.to(outletObjectId.toString()).emit("ORDER_CREATED", {
+          orderId: orderDoc._id.toString(),
+          tableId: table._id.toString(),
+          tableNumber: table.tableNumber,
+          sessionId: activeSessionId.toString()
+        });
+        io.to(outletObjectId.toString()).emit("TABLE_STATUS_CHANGED", {
+          tableId: table._id.toString(),
+          operationalStatus: "OCCUPIED"
+        });
+      }
+
+      ApiResponseHandler.success(res, 201, "Mock Dine-In order placed successfully", {
+        orderId: orderDoc._id.toString(),
+        orderNumber: orderDoc.orderNumber,
+        tableNumber: table.tableNumber,
+        totalAmount
+      });
+    } catch (error: any) {
+      ApiResponseHandler.internalError(res, error.message || "Failed to simulate Dine-In order");
+    }
   }
 }

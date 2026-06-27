@@ -27,4 +27,5 @@ export const getSimulatorMetricsApi = (sessionId) => api.get(`/v1/integrations/d
 export const getSimulatorEventsApi = (sessionId) => api.get(`/v1/integrations/dev/simulator/${sessionId}/events`);
 export const stopSimulatorSessionApi = (sessionId) => api.post(`/v1/integrations/dev/simulator/${sessionId}/stop`, {});
 export const runSmokeTestApi = (payload) => api.post('/v1/integrations/dev/run-smoke-test', payload);
+export const simulateDineInApi = (payload) => api.post('/v1/integrations/dev/simulate-dinein', payload);
 
