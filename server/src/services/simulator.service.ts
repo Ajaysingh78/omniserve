@@ -154,41 +154,38 @@ export class SimulatorService {
    */
   static async stopSimulation(sessionId: string): Promise<ISimulationSession | null> {
     const sessionState = this.activeSessions.get(sessionId);
-    if (!sessionState) return await SimulationSession.findById(sessionId);
-
-    sessionState.stopRequested = true;
-
-    // Clear any pending timers
-    sessionState.timeoutIds.forEach(clearTimeout);
-    sessionState.timeoutIds = [];
-
-    const session = await SimulationSession.findById(sessionId);
-    if (!session || session.status !== "RUNNING") {
-      this.cleanupSession(sessionId);
-      return session;
+    if (sessionState) {
+      sessionState.stopRequested = true;
+      sessionState.timeoutIds.forEach(clearTimeout);
+      sessionState.timeoutIds = [];
     }
 
-    // Mark active jobs as CANCELLED
-    session.jobs.forEach(job => {
-      if (job.status === "RUNNING" || job.status === "PENDING") {
-        job.status = "CANCELLED";
-        job.completedAt = new Date();
-      }
-    });
+    const session = await SimulationSession.findById(sessionId);
+    if (!session) return null;
 
-    session.status = "CANCELLED";
-    session.finishedAt = new Date();
-    await session.save();
+    if (session.status === "RUNNING") {
+      // Mark active jobs as CANCELLED
+      session.jobs.forEach(job => {
+        if (job.status === "RUNNING" || job.status === "PENDING") {
+          job.status = "CANCELLED";
+          job.completedAt = new Date();
+        }
+      });
 
-    await this.logEvent({
-      tenantId: session.tenantId,
-      sessionId: session._id as Types.ObjectId,
-      eventType: "SESSION_COMPLETED",
-      details: { reason: "User cancelled" }
-    });
+      session.status = "CANCELLED";
+      session.finishedAt = new Date();
+      await session.save();
 
-    // Finalize metrics
-    await SimulationMetricsService.persistSessionMetrics(sessionId);
+      await this.logEvent({
+        tenantId: session.tenantId,
+        sessionId: session._id as Types.ObjectId,
+        eventType: "SESSION_COMPLETED",
+        details: { reason: "User cancelled" }
+      });
+
+      // Finalize metrics
+      await SimulationMetricsService.persistSessionMetrics(sessionId);
+    }
 
     this.cleanupSession(sessionId);
 

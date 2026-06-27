@@ -212,6 +212,8 @@ export default function DeveloperCockpit() {
         if (metricsData && metricsData.status !== 'RUNNING') {
           addToast(`Simulation session ${metricsData.status.toLowerCase()}`, metricsData.status === 'COMPLETED' ? 'success' : 'info');
           setActiveSessionId(null);
+          setSimulationMetrics(null);
+          setSimulationEvents([]);
           await fetchSimulatorSessions();
         }
       } catch (err) {
@@ -345,6 +347,8 @@ export default function DeveloperCockpit() {
       await stopSimulatorSessionApi(activeSessionId);
       addToast('Simulation session stopped successfully', 'success');
       setActiveSessionId(null);
+      setSimulationMetrics(null);
+      setSimulationEvents([]);
       await fetchSimulatorSessions();
     } catch (err) {
       console.error('Failed to stop simulation:', err);
