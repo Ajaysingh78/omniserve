@@ -76,8 +76,7 @@ export default function ReservationCalendar() {
   const handleCreate = async (e) => {
     e.preventDefault();
     try {
-      // Find a default outletId from tables
-      const outletId = tables[0]?.outletId || '';
+      const outletId = localStorage.getItem('selectedOutletId') || tables[0]?.outletId || '';
       await createReservationApi({
         ...form,
         outletId,

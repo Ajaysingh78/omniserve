@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { Types } from "mongoose";
+import mongoose, { Types } from "mongoose";
 import { OrderGatewayService } from "../services/ordergateway.service.js";
 import { IntegrationProvider } from "../types/integration.type.js";
 import { ApiResponseHandler } from "../utils/response.handler.js";
@@ -1024,12 +1024,65 @@ export class IntegrationController {
         seededInventoryCount++;
       }
 
+      // Seed default Dining Areas and Tables so they appear instantly in Floor View/Designer
+      const DiningArea = mongoose.model("DiningArea");
+      const Table = mongoose.model("Table");
+
+      let mainDiningArea = await DiningArea.findOne({
+        tenantId: tenantObjectId,
+        outletId: outletObjectId,
+        name: "Main Dining Room",
+        isDeleted: false
+      });
+
+      if (!mainDiningArea) {
+        mainDiningArea = await DiningArea.create({
+          tenantId: tenantObjectId,
+          outletId: outletObjectId,
+          name: "Main Dining Room",
+          description: "Primary indoor dining room",
+          displayOrder: 1,
+          isActive: true
+        });
+      }
+
+      const defaultTables = [
+        { tableNumber: "1", seatCount: 4, layout: { x: 50, y: 50, width: 80, height: 80, rotation: 0, shape: "square" } },
+        { tableNumber: "2", seatCount: 2, layout: { x: 180, y: 50, width: 60, height: 60, rotation: 0, shape: "round" } },
+        { tableNumber: "3", seatCount: 6, layout: { x: 50, y: 180, width: 120, height: 80, rotation: 0, shape: "rectangle" } },
+        { tableNumber: "4", seatCount: 4, layout: { x: 220, y: 180, width: 80, height: 80, rotation: 0, shape: "square" } },
+        { tableNumber: "5", seatCount: 8, layout: { x: 120, y: 320, width: 160, height: 80, rotation: 0, shape: "rectangle" } }
+      ];
+
+      for (const t of defaultTables) {
+        const tableDoc = await Table.findOne({
+          tenantId: tenantObjectId,
+          outletId: outletObjectId,
+          tableNumber: t.tableNumber,
+          isDeleted: false
+        });
+
+        if (!tableDoc) {
+          await Table.create({
+            tenantId: tenantObjectId,
+            outletId: outletObjectId,
+            diningAreaId: mainDiningArea._id,
+            tableNumber: t.tableNumber,
+            seatCount: t.seatCount,
+            layout: t.layout,
+            status: "ACTIVE",
+            operationalStatus: "AVAILABLE"
+          });
+        }
+      }
+
       ApiResponseHandler.success(res, 201, "Demo catalog seeded successfully", {
         categories: Object.keys(categoryIdMap).length,
         menuItems: seededItemsCount,
         variants: seededVariantsCount,
         addons: seededAddonsCount,
-        inventory: seededInventoryCount
+        inventory: seededInventoryCount,
+        tables: defaultTables.length
       });
     } catch (error: any) {
       ApiResponseHandler.internalError(res, error.message || "Failed to load demo catalog");
