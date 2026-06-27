@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { Types } from "mongoose";
+import mongoose, { Types } from "mongoose";
 import { RestaurantOperationsService } from "../services/dining/restaurant-operations.service.js";
 import Table from "../models/table.model.js";
 import QRSession from "../models/qrsession.model.js";
@@ -246,4 +246,97 @@ export class DiningOperationsController {
       ApiResponseHandler.badRequest(res, error.message || "Failed to retrieve unified timeline");
     }
   }
+
+  /**
+   * GET /api/v1/dining/tables
+   * Retrieves all tables for a given tenant + outlet
+   */
+  static async listTables(req: Request, res: Response): Promise<void> {
+    try {
+      const tenantIdStr = String(req.user?.tenantId || req.query.tenantId || req.headers["x-tenant-id"] || "");
+      const outletIdStr = String(req.user?.outletId || req.query.outletId || req.headers["x-outlet-id"] || "");
+
+      if (!tenantIdStr || !outletIdStr) {
+        ApiResponseHandler.badRequest(res, "Tenant ID and Outlet ID are required");
+        return;
+      }
+
+      const tables = await Table.find({
+        tenantId: new Types.ObjectId(tenantIdStr),
+        outletId: new Types.ObjectId(outletIdStr),
+        isDeleted: false
+      }).lean();
+
+      ApiResponseHandler.success(res, 200, "Tables retrieved successfully", {
+        count: tables.length,
+        tables
+      });
+    } catch (error: any) {
+      console.error("[DiningOperationsController] listTables error:", error);
+      ApiResponseHandler.badRequest(res, error.message || "Failed to retrieve tables");
+    }
+  }
+
+  /**
+   * GET /api/v1/dining/areas
+   * Retrieves all dining areas for a given tenant + outlet
+   */
+  static async listDiningAreas(req: Request, res: Response): Promise<void> {
+    try {
+      const tenantIdStr = String(req.user?.tenantId || req.query.tenantId || req.headers["x-tenant-id"] || "");
+      const outletIdStr = String(req.user?.outletId || req.query.outletId || req.headers["x-outlet-id"] || "");
+
+      if (!tenantIdStr || !outletIdStr) {
+        ApiResponseHandler.badRequest(res, "Tenant ID and Outlet ID are required");
+        return;
+      }
+
+      // Check if DiningArea exists in models
+      const DiningArea = mongoose.model("DiningArea");
+      const areas = await DiningArea.find({
+        tenantId: new Types.ObjectId(tenantIdStr),
+        outletId: new Types.ObjectId(outletIdStr),
+        isDeleted: false
+      }).sort({ displayOrder: 1 }).lean();
+
+      ApiResponseHandler.success(res, 200, "Dining areas retrieved successfully", {
+        count: areas.length,
+        areas
+      });
+    } catch (error: any) {
+      console.error("[DiningOperationsController] listDiningAreas error:", error);
+      ApiResponseHandler.badRequest(res, error.message || "Failed to retrieve dining areas");
+    }
+  }
+
+  /**
+   * GET /api/v1/dining/waiter-tasks
+   * Retrieves all waiter tasks for an outlet
+   */
+  static async listWaiterTasks(req: Request, res: Response): Promise<void> {
+    try {
+      const tenantIdStr = String(req.user?.tenantId || req.query.tenantId || req.headers["x-tenant-id"] || "");
+      const outletIdStr = String(req.user?.outletId || req.query.outletId || req.headers["x-outlet-id"] || "");
+
+      if (!tenantIdStr || !outletIdStr) {
+        ApiResponseHandler.badRequest(res, "Tenant ID and Outlet ID are required");
+        return;
+      }
+
+      const tasks = await WaiterTask.find({
+        tenantId: new Types.ObjectId(tenantIdStr),
+        outletId: new Types.ObjectId(outletIdStr),
+        isDeleted: false
+      }).sort({ createdAt: -1 }).lean();
+
+      ApiResponseHandler.success(res, 200, "Waiter tasks retrieved successfully", {
+        count: tasks.length,
+        tasks
+      });
+    } catch (error: any) {
+      console.error("[DiningOperationsController] listWaiterTasks error:", error);
+      ApiResponseHandler.badRequest(res, error.message || "Failed to retrieve waiter tasks");
+    }
+  }
 }
+

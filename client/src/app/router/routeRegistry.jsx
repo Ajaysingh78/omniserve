@@ -60,6 +60,7 @@ export const routeComponents = {
   CheckoutPage: createLazyPage(() => import('../../pages/website/CheckoutPage')),
   OrderSuccessPage: createLazyPage(() => import('../../pages/website/OrderSuccessPage')),
   OrderTrackingPage: createLazyPage(() => import('../../pages/website/OrderTrackingPage')),
+  OperationsCockpitPage: createLazyPage(() => import('../../pages/operations/OperationsCockpit')),
 };
 
 export const authRoutes = [
@@ -89,6 +90,7 @@ export const dashboardRoutes = [
   { path: '/integrations/mappings', title: 'Integrations', component: routeComponents.MappingReviewPage, roles: [SUPER_ADMIN, RESTAURANT_OWNER, OUTLET_MANAGER] },
   { path: '/integrations/dev', title: 'Integrations', component: routeComponents.DeveloperCockpitPage, roles: [SUPER_ADMIN, RESTAURANT_OWNER, OUTLET_MANAGER], nav: { section: 'Management', label: 'Developer Sandbox', icon: HiOutlineCog6Tooth } },
   { path: '/inventory', title: 'Inventory', component: routeComponents.InventoryPage, roles: [SUPER_ADMIN, RESTAURANT_OWNER, OUTLET_MANAGER, STAFF], nav: { section: 'Operations', label: 'Inventory', icon: HiOutlineCube } },
+  { path: '/operations', title: 'Operations Cockpit', component: routeComponents.OperationsCockpitPage, roles: 'all', nav: { section: 'Operations', label: 'Operations Cockpit', icon: HiOutlineSquares2X2 } },
 ];
 
 export const publicWebsiteRoutes = [

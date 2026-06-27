@@ -13,4 +13,13 @@ router.put("/tables/layout", verifyToken, DiningOperationsController.updateTable
 // Unified chronological timeline route
 router.get("/timeline/:sessionId", verifyToken, DiningOperationsController.getUnifiedTimeline);
 
+// Get all tables route
+router.get("/tables", verifyToken, DiningOperationsController.listTables);
+
+// Get all dining areas route
+router.get("/areas", verifyToken, DiningOperationsController.listDiningAreas);
+
+// Get all waiter tasks route
+router.get("/waiter-tasks", verifyToken, DiningOperationsController.listWaiterTasks);
+
 export default router;
