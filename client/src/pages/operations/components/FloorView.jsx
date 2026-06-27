@@ -1,11 +1,27 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getTablesApi, getDiningAreasApi, executeDiningOperationApi, getUnifiedTimelineApi, getSessionBillApi } from '../../../api/models/operations.api';
+import { 
+  getTablesApi, 
+  getDiningAreasApi, 
+  executeDiningOperationApi, 
+  getUnifiedTimelineApi, 
+  getSessionBillApi 
+} from '../../../api/models/operations.api';
+import { listUsersApi } from '../../../api/models/user.api';
 import { useSocket } from '../../../context/SocketContext';
 import { useToast } from '../../../components/ui/Toast';
 import Button from '../../../components/ui/Button';
 import Badge from '../../../components/ui/Badge';
 import Spinner from '../../../components/ui/Spinner';
-import { HiOutlineUser, HiOutlineXMark, HiOutlinePlus, HiOutlineTrash, HiArrowsRightLeft, HiOutlineArrowRight } from 'react-icons/hi2';
+import { 
+  HiOutlineUser, 
+  HiOutlineXMark, 
+  HiOutlinePlus, 
+  HiOutlineTrash, 
+  HiArrowsRightLeft, 
+  HiOutlineArrowRight,
+  HiOutlineArrowsUpDown,
+  HiUserMinus
+} from 'react-icons/hi2';
 
 export default function FloorView() {
   const { lastMessage, joinSession, leaveSession } = useSocket();
@@ -14,6 +30,7 @@ export default function FloorView() {
   const [diningAreas, setDiningAreas] = useState([]);
   const [selectedAreaId, setSelectedAreaId] = useState('');
   const [tables, setTables] = useState([]);
+  const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
   
   // Table Drawer state
@@ -22,20 +39,23 @@ export default function FloorView() {
   const [tableTimeline, setTableTimeline] = useState([]);
   const [billDetails, setBillDetails] = useState(null);
 
-  // Seat operation modal states
-  const [seatModal, setSeatModal] = useState({ open: false, mode: '', data: {} });
+  // Operations modal states
+  const [opModal, setOpModal] = useState({ open: false, type: '', data: {} });
 
   const fetchData = useCallback(async () => {
     try {
-      const [areasRes, tablesRes] = await Promise.all([
+      const [areasRes, tablesRes, usersRes] = await Promise.all([
         getDiningAreasApi(),
-        getTablesApi()
+        getTablesApi(),
+        listUsersApi().catch(() => ({ data: { data: [] } }))
       ]);
       const areas = areasRes.data?.data?.areas || [];
       const allTables = tablesRes.data?.data?.tables || [];
+      const users = usersRes.data?.data?.users || usersRes.data?.data || [];
 
       setDiningAreas(areas);
       setTables(allTables);
+      setStaff(users.filter(u => u.role === 'STAFF' || u.role === 'OUTLET_MANAGER'));
 
       if (areas.length > 0 && !selectedAreaId) {
         setSelectedAreaId(areas[0]._id || areas[0].id);
@@ -76,9 +96,8 @@ export default function FloorView() {
   // WebSocket event handler
   useEffect(() => {
     if (!lastMessage) return;
-    const { event, payload } = lastMessage;
+    const { event } = lastMessage;
 
-    // Direct local state patching for lightning fast real-time updates
     const tableEvents = [
       'TABLE_OCCUPIED', 'TABLE_AVAILABLE', 'TABLE_RESERVED', 'TABLE_STATUS_CHANGED',
       'TABLE_TRANSFERRED', 'TABLE_MERGED', 'TABLE_UNMERGED', 'TABLE_CLEANING_STARTED',
@@ -88,7 +107,6 @@ export default function FloorView() {
 
     if (tableEvents.includes(event)) {
       fetchData().then(() => {
-        // If drawer is open, refresh detail views
         if (selectedTable) {
           const updatedTable = tables.find(t => t._id === selectedTable._id || t.id === selectedTable.id);
           if (updatedTable) {
@@ -98,11 +116,10 @@ export default function FloorView() {
         }
       });
     }
-  }, [lastMessage, tables, selectedTable, fetchData, loadDrawerDetails]);
+  }, [lastMessage, selectedTable, fetchData, loadDrawerDetails, tables]);
 
   // Handle table drawer toggle
   const handleTableClick = (table) => {
-    // Leave previous session room
     if (selectedTable?.activeSessionId) {
       leaveSession(selectedTable.activeSessionId.toString());
     }
@@ -127,30 +144,27 @@ export default function FloorView() {
         payload
       });
       addToast(`Operation ${operationType} succeeded`, 'success');
+      setOpModal({ open: false, type: '', data: {} });
       fetchData();
     } catch (err) {
       addToast(err.response?.data?.message || 'Operation failed', 'error');
     }
   };
 
-  // Color mapper for table operational statuses
   const getTableColor = (table) => {
     if (table.operationalStatus === 'CLEANING') return 'bg-purple-500 text-white hover:bg-purple-650';
     if (table.operationalStatus === 'BILL_REQUESTED') return 'bg-yellow-500 text-black hover:bg-yellow-600';
     if (table.operationalStatus === 'RESERVED') return 'bg-blue-500 text-white hover:bg-blue-600';
-    if (table.activeSessionId) return 'bg-red-500 text-white hover:bg-red-600'; // Occupied
-    return 'bg-success-green text-white hover:bg-emerald-600'; // Available
+    if (table.activeSessionId) return 'bg-red-500 text-white hover:bg-red-600';
+    return 'bg-success-green text-white hover:bg-emerald-600';
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-24">
-        <Spinner size="lg" />
-      </div>
-    );
+    return <div className="flex items-center justify-center py-24"><Spinner size="lg" /></div>;
   }
 
   const currentAreaTables = tables.filter(t => t.diningAreaId?.toString() === selectedAreaId || t.diningAreaId?._id?.toString() === selectedAreaId);
+  const availableTables = tables.filter(t => !t.activeSessionId && t._id !== selectedTable?._id);
 
   return (
     <div className="relative flex flex-col gap-6 animate-fade-in">
@@ -173,7 +187,6 @@ export default function FloorView() {
 
       {/* Grid Floor workspace */}
       <div className="relative w-full h-[600px] bg-white dark:bg-zinc-950 border border-border-base dark:border-zinc-900 rounded-xl overflow-hidden shadow-inner">
-        {/* Dynamic Canvas grid background */}
         <div className="absolute inset-0 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] dark:bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:20px_20px] opacity-70" />
 
         {currentAreaTables.length === 0 ? (
@@ -237,21 +250,49 @@ export default function FloorView() {
             <div className="space-y-2">
               <h3 className="text-[12px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Operational Actions</h3>
               <div className="grid grid-cols-2 gap-2">
-                {!selectedTable.activeSessionId ? (
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="w-full"
-                    onClick={() => runOperation('TRANSFER_TABLE', { fromTableId: selectedTable._id, toTableId: '' })} // example shell
-                  >
-                    Host Session
-                  </Button>
-                ) : (
+                {selectedTable.activeSessionId ? (
                   <>
                     <Button
                       size="sm"
                       variant="outline"
-                      className="w-full"
+                      onClick={() => setOpModal({ open: true, type: 'TRANSFER_TABLE', data: { fromTableId: selectedTable._id } })}
+                    >
+                      Transfer Table
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setOpModal({ open: true, type: 'MERGE_TABLE', data: { primaryTableId: selectedTable._id } })}
+                    >
+                      Merge Table
+                    </Button>
+                    {selectedTable.isMerged && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="col-span-2"
+                        onClick={() => runOperation('UNMERGE_TABLE', { primaryTableId: selectedTable._id })}
+                      >
+                        Unmerge Table
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setOpModal({ open: true, type: 'CHANGE_WAITER', data: { sessionId: selectedTable.activeSessionId } })}
+                    >
+                      Assign Waiter
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setOpModal({ open: true, type: 'CHANGE_GUEST_COUNT', data: { tableId: selectedTable._id, currentCap: selectedTable.seatCount } })}
+                    >
+                      Guest Capacity
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
                       onClick={() => runOperation('START_CLEANING', { tableId: selectedTable._id })}
                     >
                       Start Cleaning
@@ -259,7 +300,6 @@ export default function FloorView() {
                     <Button
                       size="sm"
                       variant="primary"
-                      className="w-full"
                       onClick={() => runOperation('REQUEST_BILL', { sessionId: selectedTable.activeSessionId })}
                     >
                       Request Bill
@@ -273,6 +313,10 @@ export default function FloorView() {
                       Close Session
                     </Button>
                   </>
+                ) : (
+                  <div className="col-span-2 text-center text-xs text-on-surface-variant dark:text-zinc-550 border border-dashed p-4 rounded-lg">
+                    No active session to run operations. Scan QR or seat a reservation to occupy this table.
+                  </div>
                 )}
               </div>
             </div>
@@ -283,6 +327,10 @@ export default function FloorView() {
                 <div className="border-t border-border-base dark:border-zinc-900 pt-4">
                   <h3 className="text-[12px] font-bold text-on-surface-variant/70 uppercase tracking-wider mb-2">Live Session Details</h3>
                   <div className="bg-surface-container-low dark:bg-zinc-900/40 p-4 rounded-lg space-y-2.5 text-[13px]">
+                    <div className="flex justify-between">
+                      <span className="text-on-surface-variant dark:text-zinc-400">Assigned Waiter:</span>
+                      <span className="font-bold">{billDetails.billSession?.waiterName || 'None'}</span>
+                    </div>
                     <div className="flex justify-between">
                       <span className="text-on-surface-variant dark:text-zinc-400">Split Mode:</span>
                       <span className="font-bold uppercase">{billDetails.billSession?.splitType || 'None'}</span>
@@ -307,7 +355,7 @@ export default function FloorView() {
                   <div className="flex justify-between items-center">
                     <h3 className="text-[12px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Seats Occupied</h3>
                     <button 
-                      onClick={() => setSeatModal({ open: true, mode: 'add', data: { sessionId: selectedTable.activeSessionId } })}
+                      onClick={() => setOpModal({ open: true, type: 'ADD_SEAT', data: { sessionId: selectedTable.activeSessionId } })}
                       className="text-primary text-[12px] font-bold flex items-center gap-1 hover:underline cursor-pointer"
                     >
                       <HiOutlinePlus /> Add Seat
@@ -323,14 +371,23 @@ export default function FloorView() {
                         <span className="text-[11px] text-on-surface-variant dark:text-zinc-550 mb-2 truncate">
                           Order: #{order.orderNumber || ''}
                         </span>
-                        <div className="flex justify-between items-center">
+                        <div className="flex justify-between items-center gap-1.5">
                           <span className="text-[11px] font-bold">${order.totalAmount?.toFixed(2)}</span>
-                          <button 
-                            onClick={() => runOperation('REMOVE_SEAT', { sessionId: selectedTable.activeSessionId, seatNumber: order.diningContext?.seatNumber })}
-                            className="text-red-500 text-xs hover:text-red-650 shrink-0 cursor-pointer"
-                          >
-                            <HiOutlineTrash />
-                          </button>
+                          <div className="flex gap-1">
+                            <button
+                              title="Move/Swap Seat"
+                              onClick={() => setOpModal({ open: true, type: 'MOVE_SEAT', data: { sessionId: selectedTable.activeSessionId, seatNumber: order.diningContext?.seatNumber } })}
+                              className="text-primary hover:bg-indigo-50 dark:hover:bg-zinc-900 p-1 rounded text-xs cursor-pointer"
+                            >
+                              <HiArrowsRightLeft />
+                            </button>
+                            <button 
+                              onClick={() => runOperation('REMOVE_SEAT', { sessionId: selectedTable.activeSessionId, seatNumber: order.diningContext?.seatNumber })}
+                              className="text-red-500 p-1 hover:bg-red-50 dark:hover:bg-red-950/20 rounded text-xs cursor-pointer"
+                            >
+                              <HiOutlineTrash />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -343,7 +400,7 @@ export default function FloorView() {
                   <div className="relative border-l border-border-base dark:border-zinc-800 pl-4 space-y-4 ml-1">
                     {tableTimeline.slice(-5).reverse().map((event, idx) => (
                       <div key={idx} className="relative text-[12px]">
-                        <span className="absolute -left-[21px] top-1.5 w-2 h-2 rounded-full bg-primary dark:bg-primary-fixed-dim" />
+                        <span className="absolute -left-[21px] top-1.5 w-2.5 h-2.5 rounded-full bg-primary dark:bg-primary-fixed-dim" />
                         <span className="text-on-surface-variant dark:text-zinc-500 text-[10px] block">
                           {new Date(event.timestamp).toLocaleTimeString()}
                         </span>
@@ -364,32 +421,142 @@ export default function FloorView() {
         </div>
       )}
 
-      {/* Seat Operation Modal */}
-      {seatModal.open && (
+      {/* Unified Operations Modal Dialog */}
+      {opModal.open && (
         <div className="fixed inset-0 bg-black/50 z-[200] flex items-center justify-center backdrop-blur-xs">
-          <div className="bg-white dark:bg-zinc-950 p-6 rounded-xl border border-border-base dark:border-zinc-900 w-[350px] space-y-4 shadow-2xl">
-            <h3 className="text-[15px] font-bold text-on-background">Add Seat to Session</h3>
-            <div className="space-y-3">
-              <label className="text-[12px] font-bold text-on-surface-variant dark:text-zinc-400">Seat Designation (e.g. Seat 5)</label>
-              <input
-                type="text"
-                placeholder="Seat Number"
-                id="seatNumberInput"
-                className="w-full bg-surface-container dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-lg p-2 text-sm text-on-background"
-              />
+          <div className="bg-white dark:bg-zinc-950 p-6 rounded-xl border border-border-base dark:border-zinc-900 w-[380px] space-y-4 shadow-2xl animate-scale-in">
+            <h3 className="text-[15px] font-bold text-on-background capitalize">
+              {opModal.type.replace('_', ' ')}
+            </h3>
+            
+            <div className="space-y-4 text-xs">
+              {/* Add Seat */}
+              {opModal.type === 'ADD_SEAT' && (
+                <div className="space-y-2">
+                  <label className="font-bold text-on-surface-variant dark:text-zinc-400">Seat Designation (e.g. Seat 5)</label>
+                  <input
+                    type="text"
+                    id="seatNumberInput"
+                    className="w-full bg-surface-container dark:bg-zinc-900 border border-border-base dark:border-zinc-850 rounded-lg p-2 text-xs"
+                    placeholder="Enter seat number"
+                  />
+                </div>
+              )}
+
+              {/* Transfer Table */}
+              {opModal.type === 'TRANSFER_TABLE' && (
+                <div className="space-y-2">
+                  <label className="font-bold text-on-surface-variant dark:text-zinc-400">Select Target Table</label>
+                  <select
+                    id="toTableIdInput"
+                    className="w-full bg-surface-container dark:bg-zinc-900 border border-border-base dark:border-zinc-850 rounded-lg p-2 text-xs text-on-background"
+                  >
+                    <option value="">Choose available destination</option>
+                    {availableTables.map(t => (
+                      <option key={t._id} value={t._id}>Table {t.tableNumber} (Cap: {t.seatCount})</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Merge Table */}
+              {opModal.type === 'MERGE_TABLE' && (
+                <div className="space-y-2">
+                  <label className="font-bold text-on-surface-variant dark:text-zinc-400 font-semibold mb-1 block">Choose Table to Merge</label>
+                  <select
+                    id="secondaryTableIdInput"
+                    className="w-full bg-surface-container dark:bg-zinc-900 border border-border-base dark:border-zinc-850 rounded-lg p-2 text-xs text-on-background"
+                  >
+                    <option value="">Select table</option>
+                    {availableTables.map(t => (
+                      <option key={t._id} value={t._id}>Table {t.tableNumber} (Cap: {t.seatCount})</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Assign Waiter */}
+              {opModal.type === 'CHANGE_WAITER' && (
+                <div className="space-y-2">
+                  <label className="font-bold text-on-surface-variant dark:text-zinc-400">Select Waiter Staff</label>
+                  <select
+                    id="waiterIdInput"
+                    className="w-full bg-surface-container dark:bg-zinc-900 border border-border-base dark:border-zinc-850 rounded-lg p-2 text-xs text-on-background"
+                  >
+                    <option value="">Select Waiter</option>
+                    {staff.map(u => (
+                      <option key={u._id || u.id} value={u._id || u.id}>{u.name} ({u.role})</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Change Capacity */}
+              {opModal.type === 'CHANGE_GUEST_COUNT' && (
+                <div className="space-y-2">
+                  <label className="font-bold text-on-surface-variant dark:text-zinc-400">Guest Count / Sizing</label>
+                  <input
+                    type="number"
+                    id="guestCountInput"
+                    defaultValue={opModal.data.currentCap || 4}
+                    className="w-full bg-surface-container dark:bg-zinc-900 border border-border-base dark:border-zinc-850 rounded-lg p-2 text-xs"
+                  />
+                </div>
+              )}
+
+              {/* Move / Swap Seat */}
+              {opModal.type === 'MOVE_SEAT' && (
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <label className="font-bold text-on-surface-variant dark:text-zinc-400">Target Seat Designation</label>
+                    <input
+                      type="text"
+                      id="targetSeatInput"
+                      className="w-full bg-surface-container dark:bg-zinc-900 border border-border-base dark:border-zinc-850 rounded-lg p-2 text-xs"
+                      placeholder="e.g. Seat 2"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 py-1">
+                    <input type="checkbox" id="swapCheckbox" className="checkbox checkbox-xs" />
+                    <label htmlFor="swapCheckbox" className="font-semibold text-on-surface-variant">Swap seat content instead of moving</label>
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button size="sm" variant="outline" onClick={() => setSeatModal({ open: false, mode: '', data: {} })}>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-border-base dark:border-zinc-900">
+              <Button size="sm" variant="outline" onClick={() => setOpModal({ open: false, type: '', data: {} })}>
                 Cancel
               </Button>
               <Button size="sm" variant="primary" onClick={() => {
-                const seatNum = document.getElementById('seatNumberInput')?.value;
-                if (seatNum) {
-                  runOperation('ADD_SEAT', { sessionId: seatModal.data.sessionId, seatNumber: seatNum });
-                  setSeatModal({ open: false, mode: '', data: {} });
+                if (opModal.type === 'ADD_SEAT') {
+                  const num = document.getElementById('seatNumberInput')?.value;
+                  if (num) runOperation('ADD_SEAT', { sessionId: opModal.data.sessionId, seatNumber: num });
+                } else if (opModal.type === 'TRANSFER_TABLE') {
+                  const toId = document.getElementById('toTableIdInput')?.value;
+                  if (toId) runOperation('TRANSFER_TABLE', { fromTableId: opModal.data.fromTableId, toTableId: toId });
+                } else if (opModal.type === 'MERGE_TABLE') {
+                  const secId = document.getElementById('secondaryTableIdInput')?.value;
+                  if (secId) runOperation('MERGE_TABLE', { primaryTableId: opModal.data.primaryTableId, secondaryTableIds: [secId] });
+                } else if (opModal.type === 'CHANGE_WAITER') {
+                  const waiterId = document.getElementById('waiterIdInput')?.value;
+                  if (waiterId) runOperation('CHANGE_WAITER', { sessionId: opModal.data.sessionId, waiterId });
+                } else if (opModal.type === 'CHANGE_GUEST_COUNT') {
+                  const count = document.getElementById('guestCountInput')?.value;
+                  if (count) runOperation('CHANGE_GUEST_COUNT', { tableId: opModal.data.tableId, seatCount: count });
+                } else if (opModal.type === 'MOVE_SEAT') {
+                  const target = document.getElementById('targetSeatInput')?.value;
+                  const isSwap = document.getElementById('swapCheckbox')?.checked;
+                  if (target) {
+                    runOperation(isSwap ? 'SWAP_SEAT' : 'MOVE_SEAT', {
+                      sessionId: opModal.data.sessionId,
+                      fromSeatNumber: opModal.data.seatNumber,
+                      ...(isSwap ? { seatNumberA: opModal.data.seatNumber, seatNumberB: target } : { toSeatNumber: target })
+                    });
+                  }
                 }
               }}>
-                Confirm
+                Execute
               </Button>
             </div>
           </div>
