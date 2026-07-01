@@ -172,7 +172,6 @@ const orderSchema = new Schema<IOrder>(
     },
     sessionId: {
       type: Schema.Types.ObjectId,
-      ref: "SimulationSession",
       default: null,
     },
   },

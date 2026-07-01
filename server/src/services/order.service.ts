@@ -380,7 +380,6 @@ export class OrderService {
               quantity: 100,
               threshold: 10,
               isLowStock: false,
-              isSandbox: true,
             }], { session });
             inventory = newInventory;
           }

@@ -185,7 +185,6 @@ const integrationEventQueueSchema = new Schema<IIntegrationEventQueue>(
     },
     sessionId: {
       type: Schema.Types.ObjectId,
-      ref: "SimulationSession",
       default: null,
     },
   },
