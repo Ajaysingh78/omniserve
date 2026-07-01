@@ -4,6 +4,7 @@ import { useSocket } from '../../../context/SocketContext';
 import { useToast } from '../../../components/ui/Toast';
 import Button from '../../../components/ui/Button';
 import Spinner from '../../../components/ui/Spinner';
+import Badge from '../../../components/ui/Badge';
 import { HiOutlineReceiptPercent, HiOutlineCheckCircle, HiOutlineUserGroup, HiOutlineCreditCard } from 'react-icons/hi2';
 
 export default function BillingWorkspace() {

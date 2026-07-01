@@ -22,22 +22,22 @@ const originalStartSession = mongoose.startSession;
   return session;
 };
 
-import app from "../../../server/src/app.js";
-import Tenant from "../../../server/src/models/tenant.model.js";
-import User from "../../../server/src/models/user.model.js";
-import Restaurant from "../../../server/src/models/restaurant.model.js";
-import Outlet from "../../../server/src/models/outlet.model.js";
-import Category from "../../../server/src/models/category.model.js";
-import MenuItem from "../../../server/src/models/menuitems.model.js";
-import DiningArea from "../../../server/src/models/diningarea.model.js";
-import Table from "../../../server/src/models/table.model.js";
-import QRSession from "../../../server/src/models/qrsession.model.js";
-import OrderGroup from "../../../server/src/models/ordergroup.model.js";
-import BillSession from "../../../server/src/models/billsession.model.js";
-import ExternalOrder from "../../../server/src/models/externalorder.model.js";
-import Order from "../../../server/src/models/order.model.js";
-import Customer from "../../../server/src/models/customer.model.js";
-import Notification from "../../../server/src/models/notification.model.js";
+import app from "../../server/src/app.js";
+import Tenant from "../../server/src/models/tenant.model.js";
+import User from "../../server/src/models/user.model.js";
+import Restaurant from "../../server/src/models/restaurant.model.js";
+import Outlet from "../../server/src/models/outlet.model.js";
+import Category from "../../server/src/models/category.model.js";
+import MenuItem from "../../server/src/models/menuitems.model.js";
+import DiningArea from "../../server/src/models/diningarea.model.js";
+import Table from "../../server/src/models/table.model.js";
+import QRSession from "../../server/src/models/qrsession.model.js";
+import OrderGroup from "../../server/src/models/ordergroup.model.js";
+import BillSession from "../../server/src/models/billsession.model.js";
+import ExternalOrder from "../../server/src/models/externalorder.model.js";
+import Order from "../../server/src/models/order.model.js";
+import Customer from "../../server/src/models/customer.model.js";
+import Notification from "../../server/src/models/notification.model.js";
 
 // Set testing environment
 process.env.NODE_ENV = "test";

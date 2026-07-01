@@ -7,15 +7,15 @@ try {
    console.warn('Unable to set custom DNS servers, using system defaults:', e);
 }
 import mongoose from 'mongoose';
-import connectToMongoDB from '../../../server/src/config/db.config.js';
-import Table from '../../../server/src/models/table.model.js';
-import QRSession from '../../../server/src/models/qrsession.model.js';
-import Order from '../../../server/src/models/order.model.js';
-import OrderItem from '../../../server/src/models/orderitems.model.js';
-import BillSession from '../../../server/src/models/billsession.model.js';
-import WaiterTask from '../../../server/src/models/waitertask.model.js';
-import MenuItem from '../../../server/src/models/menuitems.model.js';
-import { BillingService } from '../../../server/src/services/dining/billing.service.js';
+import connectToMongoDB from '../../server/src/config/db.config.js';
+import Table from '../../server/src/models/table.model.js';
+import QRSession from '../../server/src/models/qrsession.model.js';
+import Order from '../../server/src/models/order.model.js';
+import OrderItem from '../../server/src/models/orderitems.model.js';
+import BillSession from '../../server/src/models/billsession.model.js';
+import WaiterTask from '../../server/src/models/waitertask.model.js';
+import MenuItem from '../../server/src/models/menuitems.model.js';
+import { BillingService } from '../../server/src/services/dining/billing.service.js';
 
 async function run() {
   console.log('--- STARTING E2E DINING WORKFLOW INTEGRATION TEST ---');

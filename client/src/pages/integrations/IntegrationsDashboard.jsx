@@ -4,13 +4,7 @@ import {
   getMappingsHealthApi,
   getExternalOrdersApi,
   replayOrderApi,
-  simulateMockSwiggyOrderApi,
-  simulateMockZomatoOrderApi,
-  getIntegrationStatsApi,
-  getIntegrationEventsApi,
-  getSyncJobsApi,
-  replayEventApi,
-  getDevConfigApi
+  getIntegrationStatsApi, getIntegrationEventsApi, getSyncJobsApi, replayEventApi
 } from '../../api/models/integration.api';
 import { getPayload } from '../../utils/apiData';
 import Button from '../../components/ui/Button';
@@ -21,8 +15,6 @@ export default function IntegrationsDashboard() {
   const [stats, setStats] = useState(null);
   const [events, setEvents] = useState([]);
   const [syncJobs, setSyncJobs] = useState([]);
-  const [devConfig, setDevConfig] = useState(null);
-  
   const [loadingHealth, setLoadingHealth] = useState(true);
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [loadingStats, setLoadingStats] = useState(true);
@@ -31,9 +23,6 @@ export default function IntegrationsDashboard() {
   
   const [replayingId, setReplayingId] = useState(null);
   const [replayingEventId, setReplayingEventId] = useState(null);
-  const [simulating, setSimulating] = useState(false);
-  const [simulatorChannel, setSimulatorChannel] = useState('swiggy');
-  const [selectedMappingId, setSelectedMappingId] = useState('legacy');
   const [feedbackMsg, setFeedbackMsg] = useState(null);
   const [activeTab, setActiveTab] = useState('overview'); // overview, events, jobs
   const [selectedItemDetail, setSelectedItemDetail] = useState(null); // Modal popup trace
@@ -49,45 +38,6 @@ export default function IntegrationsDashboard() {
   const [syncStatus, setSyncStatus] = useState('');
   const [syncType, setSyncType] = useState('');
   const [syncCorrelationId, setSyncCorrelationId] = useState('');
-
-  // Simulator payload state
-  const [simOrderId, setSimOrderId] = useState(`SW-${Date.now().toString().slice(-5)}`);
-  const [simCustomerName, setSimCustomerName] = useState('Rahul Aggregator');
-  const [simCustomerPhone, setSimCustomerPhone] = useState('9876543210');
-  const [simItemId, setSimItemId] = useState('1001');
-  const [simItemPrice, setSimItemPrice] = useState('180');
-  const [simItemQty, setSimItemQty] = useState('2');
-
-  const fetchDevConfig = async () => {
-    try {
-      const res = await getDevConfigApi();
-      setDevConfig(getPayload(res));
-    } catch (err) {
-      console.error('Failed to fetch dev config:', err);
-    }
-  };
-
-  const handleChannelChange = (channel) => {
-    setSimulatorChannel(channel);
-    setSelectedMappingId('legacy');
-    setSimItemId(channel === 'swiggy' ? '1001' : '2002');
-    setSimItemPrice(channel === 'swiggy' ? '180' : '250');
-  };
-
-  const handleMappingChange = (e) => {
-    const val = e.target.value;
-    setSelectedMappingId(val);
-    if (val === 'legacy') {
-      setSimItemId(simulatorChannel === 'swiggy' ? '1001' : '2002');
-      setSimItemPrice(simulatorChannel === 'swiggy' ? '180' : '250');
-    } else {
-      const matched = devConfig?.mappings?.menuItems?.find(m => m._id === val);
-      if (matched) {
-        setSimItemId(matched.externalItemId);
-        setSimItemPrice(String(matched.menuItemId?.price || 150));
-      }
-    }
-  };
 
   const fetchHealth = async () => {
     try {
@@ -167,8 +117,7 @@ export default function IntegrationsDashboard() {
     fetchHealth();
     fetchOrders();
     fetchStats();
-    fetchDevConfig();
-  }, []);
+      }, []);
 
   useEffect(() => {
     if (activeTab === 'events') {
@@ -205,73 +154,6 @@ export default function IntegrationsDashboard() {
       setFeedbackMsg({ type: 'error', text: err.response?.data?.message || 'Replay failed' });
     } finally {
       setReplayingEventId(null);
-    }
-  };
-
-  const triggerSimulation = async (e) => {
-    e.preventDefault();
-    try {
-      setSimulating(true);
-      setFeedbackMsg(null);
-      
-      let res;
-      if (simulatorChannel === 'swiggy') {
-        const payload = {
-          order_id: simOrderId,
-          outlet_id: '6a3c17666bb70afe757e4a91', // Seed external outlet mapping
-          customer: {
-            name: simCustomerName,
-            phone: simCustomerPhone
-          },
-          items: [
-            {
-              item_id: simItemId,
-              name: 'Simulated Burger Item',
-              quantity: Number(simItemQty),
-              price: Number(simItemPrice)
-            }
-          ],
-          pricing: {
-            subtotal: Number(simItemQty) * Number(simItemPrice),
-            total_amount: Number(simItemQty) * Number(simItemPrice)
-          }
-        };
-        res = await simulateMockSwiggyOrderApi(payload);
-      } else {
-        const payload = {
-          orderId: simOrderId,
-          outletCode: '6a3c17666bb70afe757e4a91',
-          customerDetails: {
-            customerName: simCustomerName,
-            customerPhone: simCustomerPhone
-          },
-          cart: {
-            items: [
-              {
-                itemId: simItemId,
-                title: 'Simulated Pizza Item',
-                qty: Number(simItemQty),
-                rate: Number(simItemPrice),
-                extraAddons: []
-              }
-            ]
-          },
-          billDetails: {
-            itemSubTotal: Number(simItemQty) * Number(simItemPrice),
-            totalBill: Number(simItemQty) * Number(simItemPrice)
-          }
-        };
-        res = await simulateMockZomatoOrderApi(payload);
-      }
-      
-      setFeedbackMsg({ type: 'success', text: `Simulation trigger: ${res.data?.message || 'Success'}` });
-      setSimOrderId(`SIM-${Date.now().toString().slice(-5)}`);
-      fetchOrders();
-      fetchStats();
-    } catch (err) {
-      setFeedbackMsg({ type: 'error', text: err.response?.data?.message || 'Simulator call failed' });
-    } finally {
-      setSimulating(false);
     }
   };
 
@@ -492,17 +374,16 @@ export default function IntegrationsDashboard() {
             </div>
           </div>
 
-          {/* Connected Orders & Simulator */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 bg-white dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-xl p-5 shadow-xs">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-bold text-on-surface dark:text-zinc-200 uppercase tracking-wider">
-                  Inbound Webhook Logs (Aggregators Ingestion)
-                </h3>
-                <button onClick={fetchOrders} className="text-xs font-bold text-primary dark:text-primary-fixed-dim hover:underline">Refresh</button>
-              </div>
+          {/* Connected Orders */}
+          <div className="bg-white dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-xl p-5 shadow-xs">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-on-surface dark:text-zinc-200 uppercase tracking-wider">
+                Inbound Webhook Logs (Aggregators Ingestion)
+              </h3>
+              <button onClick={fetchOrders} className="text-xs font-bold text-primary dark:text-primary-fixed-dim hover:underline">Refresh</button>
+            </div>
 
-              <div className="overflow-x-auto">
+            <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr className="border-b border-border-base dark:border-zinc-800 text-on-surface-variant/70 dark:text-zinc-500 font-bold">
@@ -578,112 +459,7 @@ export default function IntegrationsDashboard() {
               </div>
             </div>
 
-            {/* Simulator Form */}
-            <div className="bg-white dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-xl p-5 shadow-xs flex flex-col justify-between">
-              <div>
-                <div className="flex items-center gap-1.5 mb-2">
-                  <span className="text-lg">🛠️</span>
-                  <h3 className="text-sm font-bold text-on-surface dark:text-zinc-200 uppercase tracking-wider">
-                    Ingestion Simulator
-                  </h3>
-                </div>
-                <p className="text-xs text-on-surface-variant dark:text-zinc-405 mb-4">
-                  Simulate inbound order webhooks locally to test catalog matching and staff notifications.
-                </p>
-
-                <form onSubmit={triggerSimulation} className="space-y-3.5">
-                  <div>
-                    <label className="block text-[11px] font-bold text-on-surface-variant dark:text-zinc-450 uppercase mb-1">Channel Provider</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleChannelChange('swiggy')}
-                        className={`py-1.5 text-xs font-bold rounded-lg border ${
-                          simulatorChannel === 'swiggy' 
-                            ? 'border-orange-500 bg-orange-50 text-orange-655 dark:bg-orange-950/20' 
-                            : 'border-border-base dark:border-zinc-800 bg-transparent text-on-surface-variant'
-                        }`}
-                      >
-                        Swiggy
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleChannelChange('zomato')}
-                        className={`py-1.5 text-xs font-bold rounded-lg border ${
-                          simulatorChannel === 'zomato' 
-                            ? 'border-red-500 bg-red-50 text-red-655 dark:bg-red-950/20' 
-                            : 'border-border-base dark:border-zinc-800 bg-transparent text-on-surface-variant'
-                        }`}
-                      >
-                        Zomato
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold text-on-surface-variant dark:text-zinc-450 uppercase mb-1">Select Catalog Item</label>
-                    <select
-                      value={selectedMappingId}
-                      onChange={handleMappingChange}
-                      className="w-full bg-surface-subtle dark:bg-zinc-950 border border-border-base dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-on-surface dark:text-zinc-200 focus:outline-none focus:border-primary font-semibold"
-                    >
-                      <option value="legacy">Legacy (Documentation Fallback ID)</option>
-                      {devConfig?.mappings?.menuItems
-                        ?.filter(m => m.provider === (simulatorChannel === 'swiggy' ? 'MOCK_SWIGGY' : 'MOCK_ZOMATO'))
-                        ?.map(m => (
-                          <option key={m._id} value={m._id}>
-                            {m.menuItemId?.name || m.externalItemId} ({m.externalItemId}) — ₹{m.menuItemId?.price}
-                          </option>
-                        ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold text-on-surface-variant dark:text-zinc-450 uppercase mb-1">External Order ID</label>
-                    <input
-                      type="text"
-                      value={simOrderId}
-                      onChange={(e) => setSimOrderId(e.target.value)}
-                      className="w-full bg-surface-subtle dark:bg-zinc-950 border border-border-base dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-on-surface dark:text-zinc-200 focus:outline-none focus:border-primary"
-                      required
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-[11px] font-bold text-on-surface-variant dark:text-zinc-450 uppercase mb-1">Ext Item ID</label>
-                      <input
-                        type="text"
-                        value={simItemId}
-                        onChange={(e) => setSimItemId(e.target.value)}
-                        className="w-full bg-surface-subtle dark:bg-zinc-950 border border-border-base dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-on-surface dark:text-zinc-200 focus:outline-none focus:border-primary"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-on-surface-variant dark:text-zinc-450 uppercase mb-1">Price (₹)</label>
-                      <input
-                        type="number"
-                        value={simItemPrice}
-                        onChange={(e) => setSimItemPrice(e.target.value)}
-                        className="w-full bg-surface-subtle dark:bg-zinc-950 border border-border-base dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-on-surface dark:text-zinc-200 focus:outline-none focus:border-primary"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    className="w-full text-xs font-bold py-2 mt-2"
-                    disabled={simulating}
-                  >
-                    {simulating ? 'Sending Payload...' : 'Ingest Webhook Order'}
-                  </Button>
-                </form>
-              </div>
-            </div>
-          </div>
+            
         </div>
       )}
 
