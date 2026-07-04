@@ -7,7 +7,6 @@ import { useSocket } from '../../context/SocketContext';
 import RestaurantOperationsDashboard from './components/RestaurantOperationsDashboard';
 import FloorView from './components/FloorView';
 import FloorDesigner from './components/FloorDesigner';
-import KitchenDisplay from './components/KitchenDisplay';
 import WaiterConsole from './components/WaiterConsole';
 import BillingWorkspace from './components/BillingWorkspace';
 import ReservationCalendar from './components/ReservationCalendar';
@@ -57,7 +56,6 @@ export default function OperationsCockpit() {
     { id: 'floor', label: 'Live Floor', icon: HiOutlineMap, component: FloorView },
     { id: 'dine-in-orders', label: 'Dine-In Orders', icon: HiOutlineListBullet, component: null },
     { id: 'designer', label: 'Floor Designer', icon: HiOutlinePencilSquare, component: FloorDesigner },
-    { id: 'kds', label: 'Kitchen (KDS)', icon: HiOutlineQueueList, component: KitchenDisplay },
     { id: 'waiters', label: 'Waiter Console', icon: HiOutlineUserGroup, component: WaiterConsole },
     { id: 'billing', label: 'Billing Splits', icon: HiOutlineReceiptPercent, component: BillingWorkspace },
     { id: 'reservations', label: 'Reservations', icon: HiOutlineCalendarDays, component: ReservationCalendar },
@@ -69,9 +67,9 @@ export default function OperationsCockpit() {
   const ActiveComponent = tabs.find(t => t.id === activeTab)?.component || RestaurantOperationsDashboard;
 
   return (
-    <div className="space-y-6">
+    <div className="h-[calc(100vh-112px)] flex flex-col overflow-hidden space-y-4">
       {/* Top Banner with WebSocket connectivity status */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shrink-0">
         <PageHeader 
           title="Operations Cockpit" 
           subtitle="Real-time control center for dining floor, kitchen, service tasks, and shifts."
@@ -109,7 +107,7 @@ export default function OperationsCockpit() {
       </div>
 
       {/* Primary Subpage Workspace wrapper */}
-      <div className="min-h-[500px]">
+      <div className="flex-1 overflow-y-auto min-h-0">
         {activeTab === 'dine-in-orders' ? (
           <OrdersPage mode="DINE_IN" hideHeader={true} onNavigate={setActiveTab} />
         ) : (

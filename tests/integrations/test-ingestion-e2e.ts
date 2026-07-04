@@ -1,3 +1,13 @@
+import { configDotenv } from 'dotenv';
+configDotenv({ path: 'server/.env' });
+
+import dns from 'dns';
+try {
+   dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch (e) {
+   console.warn('Unable to set custom DNS servers, using system defaults:', e);
+}
+
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 
@@ -34,9 +44,10 @@ process.env.JWT_SECRET = "test_jwt_secret_key";
 process.env.WEBHOOK_SECRET = "whsec_test";
 
 const MONGO_URIS = [
-  "mongodb+srv://futurestack07:nitishkumar07@teckstack.lqqhjs0.mongodb.net/FoodMesh-Test",
+  process.env.MONGO_URI,
+  "mongodb+srv://futurestack07:nitishkumar07@teckstack.lqqhjs0.mongodb.net/FoodMesh-Test-New",
   "mongodb://127.0.0.1:27017/FoodMesh-Test"
-];
+].filter(Boolean);
 
 async function runTests() {
   console.log("Connecting to MongoDB...");

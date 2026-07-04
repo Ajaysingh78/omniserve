@@ -33,6 +33,17 @@ export default function BillingWorkspace() {
       const billingTables = tables.filter(t => t.activeSessionId);
       setActiveTables(billingTables);
 
+      const targetTableId = sessionStorage.getItem('selectedTableId');
+      if (targetTableId) {
+        sessionStorage.removeItem('selectedTableId'); // Clear it immediately
+        const matched = billingTables.find(t => t._id === targetTableId || t.id === targetTableId);
+        if (matched) {
+          setSelectedTable(matched);
+          loadBillDetails(matched.activeSessionId);
+          return;
+        }
+      }
+
       if (billingTables.length > 0 && !selectedTable) {
         setSelectedTable(billingTables[0]);
         loadBillDetails(billingTables[0].activeSessionId);

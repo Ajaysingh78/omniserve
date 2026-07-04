@@ -1,3 +1,13 @@
+import dotenv from 'dotenv';
+dotenv.config({ path: 'server/.env' });
+
+import dns from 'dns';
+try {
+   dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch (e) {
+   console.warn('Unable to set custom DNS servers, using system defaults:', e);
+}
+
 import mongoose from 'mongoose';
 const originalStartSession = mongoose.startSession;
 mongoose.startSession = async function(options) {
@@ -25,13 +35,31 @@ import { RealtimeService } from '../../../server/src/services/realtime.service.j
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test_jwt_secret_key';
 
-const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/FoodMesh-AcceptanceDineIn";
+const MONGO_URIS = [
+  process.env.MONGO_URI,
+  "mongodb+srv://futurestack07:nitishkumar07@teckstack.lqqhjs0.mongodb.net/FoodMesh-Test-New",
+  "mongodb://127.0.0.1:27017/FoodMesh-AcceptanceDineIn"
+].filter(Boolean);
 const PORT = 5004;
 
 async function runDineInAcceptance() {
   console.log('--- STARTING DINE-IN COCKPIT ACCEPTANCE TEST ---');
-  await mongoose.connect(MONGO_URI);
-  console.log('Connected to MongoDB.');
+  
+  let connected = false;
+  for (const uri of MONGO_URIS) {
+    try {
+      console.log(`Connecting to: ${uri}`);
+      await mongoose.connect(uri, { serverSelectionTimeoutMS: 4000 });
+      console.log('Connected successfully!');
+      connected = true;
+      break;
+    } catch (e) {
+      console.warn(`Connection failed: ${e.message}`);
+    }
+  }
+  if (!connected) {
+    throw new Error('Unable to connect to MongoDB.');
+  }
 
   // Full cleanup
   const collections = await mongoose.connection.db.listCollections().toArray();

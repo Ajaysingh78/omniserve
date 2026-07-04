@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { fetchOrders, updateOrderStatus } from '../../store/orderSlice';
 import Button from '../../components/ui/Button';
 import { ORDER_STATUS } from '../../utils/constants';
@@ -20,6 +21,7 @@ const next = {
 
 export default function StaffDashboard() {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { orders, loading } = useSelector((s) => s.orders);
 
   useEffect(() => { 
@@ -115,16 +117,32 @@ export default function StaffDashboard() {
                         <span className="font-bold text-on-surface dark:text-zinc-300">₹{order.totalAmount || 0}</span>
                         <span className="font-semibold">{order.items?.length || 0} items</span>
                       </div>
-                      {next[col.status] && (
+                      <div className="flex gap-2 mt-3.5 flex-wrap">
                         <Button 
                           size="sm" 
-                          variant="secondary" 
-                          className="w-full mt-3 text-[11px] font-bold" 
-                          onClick={() => dispatch(updateOrderStatus({ id: order.id || order._id, status: next[col.status] }))}
+                          variant="outline" 
+                          className="flex-1 text-[11px] font-bold" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/orders?orderId=${order.id || order._id}`);
+                          }}
                         >
-                          → {next[col.status]}
+                          View Info
                         </Button>
-                      )}
+                        {next[col.status] && (
+                          <Button 
+                            size="sm" 
+                            variant="secondary" 
+                            className="flex-1 text-[11px] font-bold" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              dispatch(updateOrderStatus({ id: order.id || order._id, status: next[col.status] }));
+                            }}
+                          >
+                            → {next[col.status]}
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   ))
                 )}

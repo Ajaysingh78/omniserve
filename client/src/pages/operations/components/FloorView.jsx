@@ -23,7 +23,7 @@ import {
   HiUserMinus
 } from 'react-icons/hi2';
 
-export default function FloorView() {
+export default function FloorView({ onNavigate }) {
   const { lastMessage, joinSession, leaveSession } = useSocket();
   const { addToast } = useToast();
   
@@ -246,6 +246,35 @@ export default function FloorView() {
 
           {/* Drawer Body Scroll */}
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            {/* Navigation Actions */}
+            <div className="space-y-2 pb-4 border-b border-border-base dark:border-zinc-900">
+              <h3 className="text-[12px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Navigation</h3>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    sessionStorage.setItem('selectedTableNumber', selectedTable.tableNumber);
+                    if (onNavigate) onNavigate('waiters');
+                  }}
+                  className="font-bold text-xs"
+                >
+                  Go to Waiter Tasks
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    sessionStorage.setItem('selectedTableId', selectedTable._id || selectedTable.id);
+                    if (onNavigate) onNavigate('billing');
+                  }}
+                  className="font-bold text-xs"
+                >
+                  Go to Billing Splits
+                </Button>
+              </div>
+            </div>
+
             {/* Quick Actions Panel */}
             <div className="space-y-2">
               <h3 className="text-[12px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Operational Actions</h3>
@@ -368,9 +397,19 @@ export default function FloorView() {
                           <HiOutlineUser className="text-on-surface-variant" />
                           <span className="font-bold text-[12px]">Seat {order.diningContext?.seatNumber || (index + 1)}</span>
                         </div>
-                        <span className="text-[11px] text-on-surface-variant dark:text-zinc-550 mb-2 truncate">
-                          Order: #{order.orderNumber || ''}
-                        </span>
+                        <div className="flex items-center justify-between gap-1 mb-2">
+                          <span className="text-[11px] text-on-surface-variant dark:text-zinc-550 truncate">
+                            Order: #{order.orderNumber || ''}
+                          </span>
+                          <button
+                            onClick={() => {
+                              window.open(`/orders?orderId=${order._id || order.id}`, '_blank');
+                            }}
+                            className="text-[10px] text-primary hover:underline font-bold cursor-pointer"
+                          >
+                            View Details
+                          </button>
+                        </div>
                         <div className="flex justify-between items-center gap-1.5">
                           <span className="text-[11px] font-bold">${order.totalAmount?.toFixed(2)}</span>
                           <div className="flex gap-1">
