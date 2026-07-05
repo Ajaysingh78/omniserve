@@ -22,6 +22,7 @@ import {
   HiOutlineArrowsUpDown,
   HiUserMinus
 } from 'react-icons/hi2';
+import OrderLifecycleActions from '../../../components/shared/OrderLifecycleActions';
 
 export default function FloorView({ onNavigate }) {
   const { lastMessage, joinSession, leaveSession } = useSocket();
@@ -397,20 +398,19 @@ export default function FloorView({ onNavigate }) {
                           <HiOutlineUser className="text-on-surface-variant" />
                           <span className="font-bold text-[12px]">Seat {order.diningContext?.seatNumber || (index + 1)}</span>
                         </div>
-                        <div className="flex items-center justify-between gap-1 mb-2">
-                          <span className="text-[11px] text-on-surface-variant dark:text-zinc-550 truncate">
-                            Order: #{order.orderNumber || ''}
-                          </span>
-                          <button
-                            onClick={() => {
-                              window.open(`/orders?orderId=${order._id || order.id}`, '_blank');
-                            }}
-                            className="text-[10px] text-primary hover:underline font-bold cursor-pointer"
-                          >
-                            View Details
-                          </button>
+                        <span className="text-[11px] text-on-surface-variant dark:text-zinc-550 mb-2 truncate">
+                          Order: #{order.orderNumber || ''}
+                        </span>
+                        
+                        {/* Status action button */}
+                        <div className="mb-2">
+                          <OrderLifecycleActions 
+                            order={order} 
+                            onStatusChanged={() => loadDrawerDetails(selectedTable)} 
+                          />
                         </div>
-                        <div className="flex justify-between items-center gap-1.5">
+
+                        <div className="flex justify-between items-center gap-1.5 border-t border-border-base dark:border-zinc-800 pt-2">
                           <span className="text-[11px] font-bold">${order.totalAmount?.toFixed(2)}</span>
                           <div className="flex gap-1">
                             <button

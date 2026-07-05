@@ -632,7 +632,6 @@ export default function IntegrationsDashboard() {
                 <option value="SWIGGY">Swiggy</option>
                 <option value="ZOMATO">Zomato</option>
                 <option value="WEBSITE">Website</option>
-                <option value="POS">POS</option>
                 <option value="SYSTEM">System Engine</option>
               </select>
             </div>
