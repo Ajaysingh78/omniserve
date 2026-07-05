@@ -187,8 +187,8 @@ export default function FloorView({ onNavigate }) {
       </div>
 
       {/* Grid Floor workspace */}
-      <div className="relative w-full h-[600px] bg-white dark:bg-zinc-950 border border-border-base dark:border-zinc-900 rounded-xl overflow-hidden shadow-inner">
-        <div className="absolute inset-0 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] dark:bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:20px_20px] opacity-70" />
+      <div className="relative w-full h-150 bg-white dark:bg-zinc-950 border border-border-base dark:border-zinc-900 rounded-xl overflow-hidden shadow-inner">
+        <div className="absolute inset-0 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] dark:bg-[radial-gradient(#1e293b_1px,transparent_1px)] [bg-size:20px_20px] opacity-70" />
 
         {currentAreaTables.length === 0 ? (
           <div className="absolute inset-0 flex items-center justify-center flex-col text-on-surface-variant dark:text-zinc-550">
@@ -231,7 +231,7 @@ export default function FloorView({ onNavigate }) {
 
       {/* Table Side Detail Drawer */}
       {drawerOpen && selectedTable && (
-        <div className="fixed inset-y-0 right-0 w-[450px] bg-white dark:bg-zinc-950 border-l border-border-base dark:border-zinc-900 shadow-2xl z-[150] flex flex-col animate-slide-in-right">
+        <div className="fixed inset-y-0 right-0 w-112.5 bg-white dark:bg-zinc-950 border-l border-border-base dark:border-zinc-900 shadow-2xl z-150 flex flex-col animate-slide-in-right">
           {/* Header */}
           <div className="flex justify-between items-center px-6 py-4 border-b border-border-base dark:border-zinc-900">
             <div>
@@ -439,7 +439,7 @@ export default function FloorView({ onNavigate }) {
                   <div className="relative border-l border-border-base dark:border-zinc-800 pl-4 space-y-4 ml-1">
                     {tableTimeline.slice(-5).reverse().map((event, idx) => (
                       <div key={idx} className="relative text-[12px]">
-                        <span className="absolute -left-[21px] top-1.5 w-2.5 h-2.5 rounded-full bg-primary dark:bg-primary-fixed-dim" />
+                        <span className="absolute -left-5.25 top-1.5 w-2.5 h-2.5 rounded-full bg-primary dark:bg-primary-fixed-dim" />
                         <span className="text-on-surface-variant dark:text-zinc-500 text-[10px] block">
                           {new Date(event.timestamp).toLocaleTimeString()}
                         </span>
@@ -462,8 +462,8 @@ export default function FloorView({ onNavigate }) {
 
       {/* Unified Operations Modal Dialog */}
       {opModal.open && (
-        <div className="fixed inset-0 bg-black/50 z-[200] flex items-center justify-center backdrop-blur-xs">
-          <div className="bg-white dark:bg-zinc-950 p-6 rounded-xl border border-border-base dark:border-zinc-900 w-[380px] space-y-4 shadow-2xl animate-scale-in">
+        <div className="fixed inset-0 bg-black/50 z-200 flex items-center justify-center backdrop-blur-xs">
+          <div className="bg-white dark:bg-zinc-950 p-6 rounded-xl border border-border-base dark:border-zinc-900 w-95 space-y-4 shadow-2xl animate-scale-in">
             <h3 className="text-[15px] font-bold text-on-background capitalize">
               {opModal.type.replace('_', ' ')}
             </h3>
@@ -501,7 +501,7 @@ export default function FloorView({ onNavigate }) {
               {/* Merge Table */}
               {opModal.type === 'MERGE_TABLE' && (
                 <div className="space-y-2">
-                  <label className="font-bold text-on-surface-variant dark:text-zinc-400 font-semibold mb-1 block">Choose Table to Merge</label>
+                  <label className="font-bold text-on-surface-variant dark:text-zinc-400 mb-1 block">Choose Table to Merge</label>
                   <select
                     id="secondaryTableIdInput"
                     className="w-full bg-surface-container dark:bg-zinc-900 border border-border-base dark:border-zinc-850 rounded-lg p-2 text-xs text-on-background"

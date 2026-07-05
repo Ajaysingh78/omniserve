@@ -45,7 +45,7 @@ export default function StaffDashboard() {
           return (
             <div 
               key={col.status} 
-              className="bg-white dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-xl p-4 min-h-[400px] flex flex-col shadow-sm"
+              className="bg-white dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-xl p-4 min-h-100 flex flex-col shadow-sm"
             >
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-border-base dark:border-zinc-850">
                 <span className={`text-[12px] font-bold uppercase tracking-wider ${col.color}`}>
