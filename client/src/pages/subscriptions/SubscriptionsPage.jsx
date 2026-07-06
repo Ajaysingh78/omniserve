@@ -44,7 +44,7 @@ import {
 // High-fidelity fallback plans in case API list is temporarily empty
 const FALLBACK_PLANS = [
   {
-    _id: "free-fallback-id",
+    _id: "6a3c17666bb70afe757e2221",
     name: "Free Trial Plan",
     slug: "free",
     description: "1 Outlet, 5 Employees, 100 Orders/mo, QR ordering, basic support.",
@@ -56,7 +56,7 @@ const FALLBACK_PLANS = [
     limits: { outlets: 1, employees: 5, monthlyOrders: 100, menuItems: 100, storageGB: 1 }
   },
   {
-    _id: "starter-fallback-id",
+    _id: "6a3c17666bb70afe757e2222",
     name: "Starter Plan",
     slug: "starter",
     description: "2 Outlets, 15 Employees, Unlimited QR Orders, CRM, Analytics, Inventory.",
@@ -68,7 +68,7 @@ const FALLBACK_PLANS = [
     limits: { outlets: 2, employees: 15, monthlyOrders: 1000000, menuItems: 500, storageGB: 5 }
   },
   {
-    _id: "pro-fallback-id",
+    _id: "6a3c17666bb70afe757e2223",
     name: "Professional Plan",
     slug: "professional",
     description: "10 Outlets, Unlimited Employees, Advanced Inventory, Finance, KDS, Reports.",
@@ -80,7 +80,7 @@ const FALLBACK_PLANS = [
     limits: { outlets: 10, employees: 10000, monthlyOrders: 1000000, menuItems: 2000, storageGB: 20 }
   },
   {
-    _id: "enterprise-fallback-id",
+    _id: "6a3c17666bb70afe757e2224",
     name: "Enterprise Plan",
     slug: "enterprise",
     description: "Custom Pricing, Unlimited Everything, Dedicated Account Manager, API Access.",
