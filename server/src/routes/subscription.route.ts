@@ -10,7 +10,7 @@ const router: Router = express.Router();
 // ==========================================
 
 // Plans configuration
-router.get("/plans", verifyToken, isSuperAdmin, AdminSubscriptionController.listPlans);
+router.get("/plans", verifyToken, isRestaurantOwner, AdminSubscriptionController.listPlans);
 router.post("/plans", verifyToken, isSuperAdmin, AdminSubscriptionController.createPlan);
 router.put("/plans/:id", verifyToken, isSuperAdmin, AdminSubscriptionController.updatePlan);
 router.delete("/plans/:id", verifyToken, isSuperAdmin, AdminSubscriptionController.deletePlan);
