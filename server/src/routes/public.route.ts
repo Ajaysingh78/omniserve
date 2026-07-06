@@ -42,4 +42,8 @@ publicRouter.post("/cart/reorder", PublicController.reorderToCart);
 // Tracking
 publicRouter.get("/orders/track/:orderId", PublicController.trackOrder);
 
+// QR Session Bill & Payments
+publicRouter.get("/qr/session/:sessionToken/bill", PublicController.getQrSessionBill);
+publicRouter.post("/qr/session/:sessionToken/pay", PublicController.payQrSessionBill);
+
 export default publicRouter;

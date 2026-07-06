@@ -25,6 +25,11 @@ import { EventBusService } from "../services/event-bus.service.js";
 import { IntegrationProvider } from "../types/integration.type.js";
 import { ApiResponseHandler } from "../utils/response.handler.js";
 import { RealtimeService } from "../services/realtime.service.js";
+import { BillingService } from "../services/dining/billing.service.js";
+import { WaiterTaskService } from "../services/dining/waiter-task.service.js";
+import Payment from "../models/payment.model.js";
+import { PaymentMethod, PaymentStatus } from "../enums/enums.js";
+
 
 export class PublicController {
   /**
@@ -1480,6 +1485,144 @@ export class PublicController {
     } catch (error: any) {
       console.error("[PublicController] resolveQrCode error:", error);
       ApiResponseHandler.internalError(res, error.message || "Failed to resolve QR Code");
+    }
+  }
+
+  /**
+   * GET /api/public/qr/session/:sessionToken/bill
+   * Retrieves the active QR session's orders, items, and billing details
+   */
+  static async getQrSessionBill(req: Request, res: Response): Promise<void> {
+    try {
+      const { sessionToken } = req.params;
+
+      const session = await QRSession.findOne({ sessionToken, isDeleted: false });
+      if (!session) {
+        ApiResponseHandler.notFound(res, "Active session not found");
+        return;
+      }
+
+      if (session.status === "CLOSED" || session.status === "EXPIRED") {
+        ApiResponseHandler.badRequest(res, "Session has already been closed");
+        return;
+      }
+
+      const result = await BillingService.getSessionBill(session.tenantId, session._id.toString());
+      
+      // Let's also attach table details
+      const table = await Table.findById(session.tableId);
+
+      ApiResponseHandler.success(res, 200, "QR Session bill retrieved successfully", {
+        ...result,
+        table: table ? {
+          tableNumber: table.tableNumber,
+          operationalStatus: table.operationalStatus,
+          seatCount: table.seatCount
+        } : null
+      });
+    } catch (error: any) {
+      console.error("[PublicController] getQrSessionBill error:", error);
+      ApiResponseHandler.internalError(res, error.message || "Failed to retrieve QR session bill");
+    }
+  }
+
+  /**
+   * POST /api/public/qr/session/:sessionToken/pay
+   * Submit payment request (UPI, PhonePe, Card, Cash) for dine-in tables
+   */
+  static async payQrSessionBill(req: Request, res: Response): Promise<void> {
+    try {
+      const { sessionToken } = req.params;
+      const { paymentMode, tip, seatNumber } = req.body;
+
+      const session = await QRSession.findOne({ sessionToken, isDeleted: false });
+      if (!session) {
+        ApiResponseHandler.notFound(res, "Active session not found");
+        return;
+      }
+
+      if (session.status === "CLOSED" || session.status === "EXPIRED") {
+        ApiResponseHandler.badRequest(res, "Session is already closed");
+        return;
+      }
+
+      // 1. Retrieve/Generate BillSession
+      const billData = await BillingService.getSessionBill(session.tenantId, session._id.toString());
+      if (!billData.billSession) {
+        ApiResponseHandler.badRequest(res, "No bill session found to pay");
+        return;
+      }
+
+      const billSessionId = billData.billSession._id.toString();
+
+      // Apply tip adjustments if needed
+      if (tip && Number(tip) > 0) {
+        await BillingService.requestBill(session.tenantId, session.outletId, session._id.toString(), {
+          tip: Number(tip),
+          notes: "Tip added by customer"
+        });
+      }
+
+      if (paymentMode === "CASH") {
+        // Request bill (sets statuses)
+        await BillingService.requestBill(session.tenantId, session.outletId, session._id.toString(), {
+          notes: `Cash payment requested${seatNumber ? ` for seat ${seatNumber}` : ""}`
+        });
+
+        // Trigger Waiter Task
+        await WaiterTaskService.createTask(
+          session.tenantId,
+          session.outletId,
+          session.tableId,
+          session._id,
+          "BILL",
+          "CUSTOMER",
+          {
+            priority: "HIGH",
+            seatNumber: seatNumber || undefined,
+            metadata: {
+              paymentMode: "CASH",
+              notes: "Diner requested cash payment at table"
+            }
+          }
+        );
+
+        ApiResponseHandler.success(res, 200, "Cash payment requested. Waiter notified.", {
+          status: "REQUESTED"
+        });
+        return;
+      }
+
+      // For UPI / PHONEPE / CARD: Settle instantly
+      let finalPaymentMethod = PaymentMethod.UPI;
+      if (paymentMode === "CARD") {
+        finalPaymentMethod = PaymentMethod.CARD;
+      } else if (paymentMode === "PHONEPE" || paymentMode === "UPI") {
+        finalPaymentMethod = PaymentMethod.UPI;
+      }
+
+      // Create Payment Document in DB
+      const transactionId = `TXN-QR-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+      const paymentDoc = await Payment.create({
+        tenantId: session.tenantId,
+        orderId: billData.billSession.orderIds[0], // link to one of the orders in session
+        transactionId,
+        paymentMethod: finalPaymentMethod,
+        amount: billData.billSession.outstandingBalance,
+        currency: "INR",
+        status: PaymentStatus.SUCCESS
+      });
+
+      // Call settleBill
+      const result = await BillingService.settleBill(session.tenantId, session.outletId, billSessionId, {
+        seatNumber: seatNumber || undefined,
+        paymentId: paymentDoc._id.toString()
+      });
+
+      ApiResponseHandler.success(res, 200, "Payment processed successfully", result);
+    } catch (error: any) {
+      console.error("[PublicController] payQrSessionBill error:", error);
+      ApiResponseHandler.internalError(res, error.message || "Failed to process payment");
     }
   }
 }

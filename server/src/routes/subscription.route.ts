@@ -1,28 +1,39 @@
-import express, { Router } from 'express';
-import { SubscriptionController } from '../controllers/subscription.controller.js';
-import { verifyToken, isRestaurantOwner, isSuperAdmin } from '../middleware/auth.middleware.js';
+import express, { Router } from "express";
+import { AdminSubscriptionController } from "../subscription/controllers/admin-subscription.controller.js";
+import { RestaurantSubscriptionController } from "../subscription/controllers/restaurant-subscription.controller.js";
+import { verifyToken, isRestaurantOwner, isSuperAdmin } from "../middleware/auth.middleware.js";
 
 const router: Router = express.Router();
 
-/**
- * All routes are protected.
- * `/current` is visible to restaurant owners and super admins.
- * Mutating and historical subscription endpoints remain super-admin only.
- */
+// ==========================================
+// Super Admin Routes (Plan and SaaS management)
+// ==========================================
 
-// GET current active subscription
-router.get('/current', verifyToken, isRestaurantOwner, SubscriptionController.getCurrentSubscription);
+// Plans configuration
+router.get("/plans", verifyToken, isSuperAdmin, AdminSubscriptionController.listPlans);
+router.post("/plans", verifyToken, isSuperAdmin, AdminSubscriptionController.createPlan);
+router.put("/plans/:id", verifyToken, isSuperAdmin, AdminSubscriptionController.updatePlan);
+router.delete("/plans/:id", verifyToken, isSuperAdmin, AdminSubscriptionController.deletePlan);
 
-// GET list of subscriptions for the tenant
-router.get('/', verifyToken, isSuperAdmin, SubscriptionController.getSubscriptionsByTenantId);
+// Global Subscriptions lists
+router.get("/admin/list", verifyToken, isSuperAdmin, AdminSubscriptionController.listSubscriptions);
+router.get("/admin/invoices", verifyToken, isSuperAdmin, AdminSubscriptionController.listInvoices);
+router.get("/admin/analytics", verifyToken, isSuperAdmin, AdminSubscriptionController.getAnalytics);
+router.get("/admin/:id", verifyToken, isSuperAdmin, AdminSubscriptionController.getSubscriptionById);
 
-// GET details of a single subscription
-router.get('/:id', verifyToken, isSuperAdmin, SubscriptionController.getSubscriptionById);
 
-// Create a new active subscription (enforces single active subscription)
-router.post('/', verifyToken, isSuperAdmin, SubscriptionController.createSubscription);
+// ==========================================
+// Restaurant Tenant Owner Routes (Self-Service)
+// ==========================================
 
-// Cancel subscription (sets status = CANCELLED)
-router.patch('/:id/cancel', verifyToken, isSuperAdmin, SubscriptionController.cancelSubscription);
+router.get("/my-subscription", verifyToken, isRestaurantOwner, RestaurantSubscriptionController.getMySubscription);
+router.get("/usage", verifyToken, isRestaurantOwner, RestaurantSubscriptionController.getUsage);
+router.get("/invoice-history", verifyToken, isRestaurantOwner, RestaurantSubscriptionController.getInvoiceHistory);
+
+router.post("/upgrade", verifyToken, isRestaurantOwner, RestaurantSubscriptionController.upgrade);
+router.post("/downgrade", verifyToken, isRestaurantOwner, RestaurantSubscriptionController.downgrade);
+router.post("/cancel", verifyToken, isRestaurantOwner, RestaurantSubscriptionController.cancel);
+router.post("/resume", verifyToken, isRestaurantOwner, RestaurantSubscriptionController.resume);
+router.post("/renew", verifyToken, isRestaurantOwner, RestaurantSubscriptionController.renew);
 
 export default router;
