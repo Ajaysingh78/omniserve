@@ -3,6 +3,7 @@ import Reservation, { ReservationStatus } from "../../models/reservation.model.j
 import Table from "../../models/table.model.js";
 import { EventBusService } from "../../events/eventBus.js";
 import { QRSessionService } from "./qrsession.service.js";
+import Outlet from "../../models/outlet.model.js";
 
 export interface ICreateReservationInput {
   outletId: Types.ObjectId;
@@ -38,6 +39,17 @@ export class ReservationService {
     tenantId: Types.ObjectId,
     input: ICreateReservationInput
   ): Promise<IReservationResult> {
+    // Validate outlet is active (open)
+    const outlet = await Outlet.findOne({
+      _id: new Types.ObjectId(input.outletId),
+      tenantId,
+      isDeleted: false
+    });
+    if (!outlet) throw new Error("Outlet not found");
+    if (outlet.status === "INACTIVE") {
+      throw new Error("This outlet is currently closed. Bookings are disabled.");
+    }
+
     // If a table is specified, validate it exists and is not already reserved at the slot
     let tableNumber: string | null = null;
     if (input.tableId) {

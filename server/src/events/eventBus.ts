@@ -815,4 +815,21 @@ export class EventBusService {
       options
     );
   }
+
+  static async publishOutletStatusChanged(
+    tenantId: string | Types.ObjectId,
+    outletId: string | Types.ObjectId,
+    payload: unknown,
+    options?: PublishOptions
+  ): Promise<IIntegrationEventQueue | null> {
+    return this.createEvent(
+      tenantId,
+      outletId,
+      RealtimeEvent.OUTLET_STATUS_CHANGED,
+      "OUTLET",
+      outletId,
+      payload,
+      options
+    );
+  }
 }

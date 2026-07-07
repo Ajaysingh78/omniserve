@@ -47,6 +47,9 @@ export class OrderService {
     if (!outlet) {
       throw new Error('Outlet not found or does not belong to this tenant');
     }
+    if (outlet.status === 'INACTIVE') {
+      throw new Error('Outlet is currently closed. Bookings and orders are disabled.');
+    }
 
     // Validate each Item
     for (const item of items) {

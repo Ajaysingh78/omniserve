@@ -33,8 +33,8 @@ router.get('/:id', verifyToken, OutletController.getOutletById);
 // Update outlet details (restaurant owner role check)
 router.put('/:id', verifyToken, isRestaurantOwner, OutletController.updateOutlet);
 
-// Activate/deactivate outlet (restaurant owner role check)
-router.patch('/:id/status', verifyToken, isRestaurantOwner, OutletController.toggleOutletStatus);
+// Activate/deactivate outlet (outlet manager or above check)
+router.patch('/:id/status', verifyToken, isOutletManager, OutletController.toggleOutletStatus);
 
 // Update operating hours (restaurant owner or outlet manager role check)
 router.patch('/:id/operating-hours', verifyToken, isOutletManager, OutletController.updateOperatingHours);
