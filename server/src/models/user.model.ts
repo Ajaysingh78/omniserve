@@ -2,7 +2,7 @@ import mongoose, { Document, Model, Schema, Types } from 'mongoose';
 import { UserRole, UserStatus } from "./enums.js";
 
 export interface IUser extends Document {
-  tenantId: Types.ObjectId;
+  tenantId?: Types.ObjectId | null;
   restaurantId?: Types.ObjectId | null;
   outletId?: Types.ObjectId | null;
   outletIds?: Types.ObjectId[];
@@ -30,6 +30,8 @@ export interface IUser extends Document {
   address?: string | null;
   idProof?: string | null;
   idProofStatus?: string | null;
+  twoFactorEnabled?: boolean;
+  twoFactorSecret?: string | null;
   // virtuals
   fullName: string;
 }
@@ -39,7 +41,8 @@ const userSchema = new Schema<IUser>(
     tenantId: {
       type: Schema.Types.ObjectId,
       ref: 'Tenant',
-      required: [true, 'Tenant is required'],
+      required: false,
+      default: null,
     },
     restaurantId: {
       type: Schema.Types.ObjectId,
@@ -169,6 +172,14 @@ const userSchema = new Schema<IUser>(
       type: String,
       enum: ['NONE', 'PENDING', 'VERIFIED', 'REJECTED'],
       default: 'NONE',
+    },
+    twoFactorEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    twoFactorSecret: {
+      type: String,
+      default: null,
     },
   },
   {

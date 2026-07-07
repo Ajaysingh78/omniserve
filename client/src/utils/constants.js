@@ -1,5 +1,6 @@
 /* ── Role hierarchy & display ── */
 export const USER_ROLES = {
+  SYSTEM_ADMIN: 'SYSTEM_ADMIN',
   SUPER_ADMIN: 'SUPER_ADMIN',
   RESTAURANT_OWNER: 'RESTAURANT_OWNER',
   OUTLET_MANAGER: 'OUTLET_MANAGER',
@@ -7,6 +8,7 @@ export const USER_ROLES = {
 };
 
 export const ROLE_LABELS = {
+  SYSTEM_ADMIN: 'System Admin',
   SUPER_ADMIN: 'Super Admin',
   RESTAURANT_OWNER: 'Restaurant Owner',
   OUTLET_MANAGER: 'Outlet Manager',
@@ -14,6 +16,7 @@ export const ROLE_LABELS = {
 };
 
 export const ROLE_BADGE_VARIANT = {
+  SYSTEM_ADMIN: 'primary',
   SUPER_ADMIN: 'info',
   RESTAURANT_OWNER: 'success',
   OUTLET_MANAGER: 'warning',

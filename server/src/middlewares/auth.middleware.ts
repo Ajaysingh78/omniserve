@@ -10,7 +10,7 @@ declare global {
     interface Request {
       user?: {
         userId: string;
-        tenantId: string;
+        tenantId?: string;
         restaurantId?: string;
         outletId?: string;
         outletIds?: string[];

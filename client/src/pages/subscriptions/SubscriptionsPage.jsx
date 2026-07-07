@@ -38,7 +38,9 @@ import {
   HiOutlineTrash,
   HiOutlinePencilSquare,
   HiOutlineCheck,
-  HiOutlineInformationCircle
+  HiOutlineInformationCircle,
+  HiChevronLeft,
+  HiChevronRight
 } from 'react-icons/hi2';
 
 // High-fidelity fallback plans in case API list is temporarily empty
@@ -84,10 +86,10 @@ const FALLBACK_PLANS = [
 export default function SubscriptionsPage() {
   const { user } = useAuth();
   const { addToast } = useToast();
-  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  const isSuperAdmin = false; // SUPER_ADMIN behaves as the Tenant Owner; SaaS plan configuration console is reserved for future developer roles.
 
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState(isSuperAdmin ? 'analytics' : 'current');
+  const [activeTab, setActiveTab] = useState('current');
 
   // --- Common States ---
   const [plans, setPlans] = useState([]);
@@ -98,6 +100,7 @@ export default function SubscriptionsPage() {
   const [invoices, setInvoices] = useState([]);
   const [billingCycleToggle, setBillingCycleToggle] = useState('MONTHLY'); // MONTHLY / YEARLY
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [checkoutStep, setCheckoutStep] = useState(1);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [paymentProvider, setPaymentProvider] = useState('stripe');
   
@@ -114,6 +117,7 @@ export default function SubscriptionsPage() {
   const [allInvoices, setAllInvoices] = useState([]);
   const [planFormOpen, setPlanFormOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState(null);
+  const [wizardStep, setWizardStep] = useState(1);
   const [planForm, setPlanForm] = useState({
     name: '',
     slug: '',
@@ -216,6 +220,7 @@ export default function SubscriptionsPage() {
 
   const triggerUpgrade = (plan) => {
     setSelectedPlan(plan);
+    setCheckoutStep(1); // Start at step 1 (Overview / Fixed Details)
     setPaymentModalOpen(true);
     // Reset inputs
     setCardNumber('');
@@ -269,6 +274,39 @@ export default function SubscriptionsPage() {
     }
   };
 
+  const handleCreatePlan = () => {
+    setEditingPlan(null);
+    setPlanForm({
+      name: '',
+      slug: 'free',
+      description: '',
+      monthlyPrice: 0,
+      yearlyPrice: 0,
+      trialDays: 14,
+      features: {
+        inventory: false,
+        crm: false,
+        analytics: false,
+        finance: false,
+        kitchenDisplay: false,
+        waiterApp: false,
+        qrOrdering: true,
+        reports: false,
+        apiAccess: false,
+        whiteLabel: false,
+      },
+      limits: {
+        outlets: 1,
+        employees: 5,
+        monthlyOrders: 100,
+        menuItems: 100,
+        storageGB: 1,
+      }
+    });
+    setWizardStep(1);
+    setPlanFormOpen(true);
+  };
+
   const handleEditPlan = (plan) => {
     setEditingPlan(plan);
     setPlanForm({
@@ -281,6 +319,7 @@ export default function SubscriptionsPage() {
       features: { ...plan.features },
       limits: { ...plan.limits }
     });
+    setWizardStep(1);
     setPlanFormOpen(true);
   };
 
@@ -594,125 +633,201 @@ export default function SubscriptionsPage() {
           <Table columns={columns} data={invoices} emptyMessage="No subscription billing receipts available" />
         )}
 
-        {/* HIGH FIDELITY MOCK PAYMENT MODAL */}
+        {/* HIGH FIDELITY MOCK PAYMENT MODAL (2-STEP WIZARD) */}
         <Modal isOpen={paymentModalOpen} onClose={() => setPaymentModalOpen(false)} title="Checkout Subscription" size="sm">
-          <div className="space-y-4">
-            <div className="p-4 bg-zinc-50 dark:bg-zinc-900/50 border border-border-base dark:border-zinc-900 rounded-xl text-xs space-y-2">
-              <div className="flex justify-between font-bold">
-                <span className="text-zinc-500">Plan:</span>
-                <span className="text-on-background">{selectedPlan?.name}</span>
+          {/* STEP 1: CONFIRM DETAILS (DATES & AMOUNT FIXED) */}
+          {checkoutStep === 1 && (
+            <div className="space-y-4 animate-fade-in">
+              {/* Plan Summary Card */}
+              <div className="p-4 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-xl">
+                <span className="text-[10px] text-indigo-500 font-bold uppercase tracking-wider block">Selected Plan</span>
+                <h4 className="text-base font-black text-on-background mt-0.5">{selectedPlan?.name}</h4>
+                <p className="text-[11px] text-zinc-500 mt-1">{selectedPlan?.description}</p>
               </div>
-              <div className="flex justify-between font-bold">
-                <span className="text-zinc-500">Billing Cycle:</span>
-                <span className="text-on-background capitalize">{billingCycleToggle.toLowerCase()}</span>
-              </div>
-              <div className="flex justify-between font-bold text-indigo-500 border-t border-zinc-150 dark:border-zinc-900 pt-2.5 text-sm">
-                <span>Subtotal Price:</span>
-                <span>₹{(billingCycleToggle === 'MONTHLY' ? selectedPlan?.monthlyPrice : selectedPlan?.yearlyPrice)?.toLocaleString()}</span>
-              </div>
-              <div className="text-[9px] text-zinc-550 flex items-center gap-1 pt-1"><HiOutlineInformationCircle className="w-3.5 h-3.5" /> 18% GST will be applied. Total: ₹{((billingCycleToggle === 'MONTHLY' ? selectedPlan?.monthlyPrice : selectedPlan?.yearlyPrice) * 1.18).toFixed(2)}</div>
-            </div>
 
-            <div className="space-y-2.5">
-              <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Payment Method</label>
-              <div className="grid grid-cols-3 gap-2">
-                {['stripe', 'razorpay', 'manual'].map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => setPaymentProvider(p)}
-                    className={`py-2 text-[10px] font-bold uppercase tracking-wider border rounded-xl transition cursor-pointer ${
-                      paymentProvider === p
-                        ? 'border-indigo-600 bg-indigo-600/5 text-indigo-500 font-extrabold ring-1 ring-indigo-500'
-                        : 'border-border-base dark:border-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-900 text-zinc-450'
-                    }`}
-                  >
-                    {p}
-                  </button>
-                ))}
+              {/* Details Grid */}
+              <div className="p-4 bg-zinc-50 dark:bg-zinc-900/50 border border-border-base dark:border-zinc-900 rounded-xl space-y-3 text-xs font-semibold">
+                <h5 className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Duration & Period</h5>
+                
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Billing Cycle:</span>
+                  <span className="text-on-background capitalize">{billingCycleToggle.toLowerCase()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Subscription Period:</span>
+                  <span className="text-on-background">{billingCycleToggle === 'MONTHLY' ? '1 Month' : '1 Year'}</span>
+                </div>
+                {selectedPlan?.trialDays > 0 ? (
+                  <div className="flex justify-between text-green-600">
+                    <span>Free Trial Period:</span>
+                    <span>{selectedPlan.trialDays} Days</span>
+                  </div>
+                ) : (
+                  <div className="flex justify-between text-zinc-500">
+                    <span>Free Trial Period:</span>
+                    <span>None</span>
+                  </div>
+                )}
+                <div className="flex justify-between border-t border-zinc-100 dark:border-zinc-900 pt-2 text-[11px]">
+                  <span className="text-zinc-500">Start Date:</span>
+                  <span className="text-on-background">{new Date().toLocaleDateString(undefined, { dateStyle: 'medium' })}</span>
+                </div>
+                <div className="flex justify-between text-[11px]">
+                  <span className="text-zinc-500">First Billing Date:</span>
+                  <span className="text-on-background">
+                    {(() => {
+                      const d = new Date();
+                      if (selectedPlan?.trialDays > 0) {
+                        d.setDate(d.getDate() + selectedPlan.trialDays);
+                      } else if (billingCycleToggle === 'MONTHLY') {
+                        d.setMonth(d.getMonth() + 1);
+                      } else {
+                        d.setFullYear(d.getFullYear() + 1);
+                      }
+                      return d.toLocaleDateString(undefined, { dateStyle: 'medium' });
+                    })()}
+                  </span>
+                </div>
+              </div>
+
+              {/* Financials details */}
+              <div className="p-4 bg-zinc-50 dark:bg-zinc-900/50 border border-border-base dark:border-zinc-900 rounded-xl space-y-2.5 text-xs font-semibold">
+                <h5 className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Billing Summary</h5>
+                
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Base Price:</span>
+                  <span className="text-on-background">₹{(billingCycleToggle === 'MONTHLY' ? selectedPlan?.monthlyPrice : selectedPlan?.yearlyPrice)?.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">GST (18%):</span>
+                  <span className="text-on-background">₹{((billingCycleToggle === 'MONTHLY' ? selectedPlan?.monthlyPrice : selectedPlan?.yearlyPrice) * 0.18).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex justify-between border-t border-zinc-150 dark:border-zinc-900 pt-2.5 text-sm font-black text-indigo-500">
+                  <span>Total Payable:</span>
+                  <span>₹{((billingCycleToggle === 'MONTHLY' ? selectedPlan?.monthlyPrice : selectedPlan?.yearlyPrice) * 1.18).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                </div>
+              </div>
+
+              {/* Footer buttons */}
+              <div className="pt-4 border-t border-border-base dark:border-zinc-900 flex justify-end gap-2">
+                <Button variant="secondary" onClick={() => setPaymentModalOpen(false)} className="text-xs font-bold">Cancel</Button>
+                <Button variant="primary" onClick={() => setCheckoutStep(2)} className="text-xs font-bold flex items-center gap-1.5">
+                  Next <HiChevronRight className="w-4 h-4" />
+                </Button>
               </div>
             </div>
+          )}
 
-            {/* STRIPE PAYMENT CARD INPUT MOCK */}
-            {paymentProvider === 'stripe' && (
-              <div className="space-y-3 p-4 bg-zinc-50 dark:bg-zinc-950 border border-border-base dark:border-zinc-900 rounded-xl animate-fade-in">
-                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-1"><HiOutlineCreditCard /> Card Details</span>
-                <input
-                  type="text"
-                  placeholder="Card Number (e.g. 4111 2222 3333 4444)"
-                  className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-lg text-xs outline-none focus:border-indigo-500 font-mono"
-                  value={cardNumber}
-                  onChange={(e) => setCardNumber(e.target.value.replace(/[^0-9 ]/g, ''))}
-                  required
-                />
-                <div className="grid grid-cols-2 gap-2">
+          {/* STEP 2: CHOOSE PAYMENT METHOD & INPUTS */}
+          {checkoutStep === 2 && (
+            <div className="space-y-4 animate-fade-in">
+              {/* Plan Total Sticky Header */}
+              <div className="p-3 bg-zinc-50 dark:bg-zinc-900/30 border border-zinc-150 dark:border-zinc-900 rounded-xl flex justify-between items-center text-xs font-bold">
+                <span className="text-zinc-500">Amount to pay:</span>
+                <span className="text-indigo-500 text-sm font-black">₹{((billingCycleToggle === 'MONTHLY' ? selectedPlan?.monthlyPrice : selectedPlan?.yearlyPrice) * 1.18).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+              </div>
+
+              <div className="space-y-2.5">
+                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Choose Payment Method</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {['stripe', 'razorpay', 'manual'].map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => setPaymentProvider(p)}
+                      className={`py-2 text-[10px] font-bold uppercase tracking-wider border rounded-xl transition cursor-pointer ${
+                        paymentProvider === p
+                          ? 'border-indigo-600 bg-indigo-600/5 text-indigo-500 font-extrabold ring-1 ring-indigo-500'
+                          : 'border-border-base dark:border-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-900 text-zinc-450'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* STRIPE PAYMENT CARD INPUT MOCK */}
+              {paymentProvider === 'stripe' && (
+                <div className="space-y-3 p-4 bg-zinc-50 dark:bg-zinc-950 border border-border-base dark:border-zinc-900 rounded-xl animate-fade-in font-sans">
+                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-1"><HiOutlineCreditCard /> Card Details</span>
                   <input
                     type="text"
-                    placeholder="Expiry (MM/YY)"
-                    className="px-3 py-2 bg-white dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-lg text-xs outline-none focus:border-indigo-500 font-mono"
-                    value={cardExpiry}
-                    onChange={(e) => setCardExpiry(e.target.value)}
+                    placeholder="Card Number (e.g. 4111 2222 3333 4444)"
+                    className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-lg text-xs outline-none focus:border-indigo-500 font-mono"
+                    value={cardNumber}
+                    onChange={(e) => setCardNumber(e.target.value.replace(/[^0-9 ]/g, ''))}
                     required
                   />
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      placeholder="Expiry (MM/YY)"
+                      className="px-3 py-2 bg-white dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-lg text-xs outline-none focus:border-indigo-500 font-mono"
+                      value={cardExpiry}
+                      onChange={(e) => setCardExpiry(e.target.value)}
+                      required
+                    />
+                    <input
+                      type="password"
+                      placeholder="CVV"
+                      maxLength={3}
+                      className="px-3 py-2 bg-white dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-lg text-xs outline-none focus:border-indigo-500 font-mono"
+                      value={cardCvv}
+                      onChange={(e) => setCardCvv(e.target.value.replace(/[^0-9]/g, ''))}
+                      required
+                    />
+                  </div>
                   <input
-                    type="password"
-                    placeholder="CVV"
-                    maxLength={3}
-                    className="px-3 py-2 bg-white dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-lg text-xs outline-none focus:border-indigo-500 font-mono"
-                    value={cardCvv}
-                    onChange={(e) => setCardCvv(e.target.value.replace(/[^0-9]/g, ''))}
+                    type="text"
+                    placeholder="Cardholder Name"
+                    className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-lg text-xs outline-none focus:border-indigo-500"
+                    value={cardName}
+                    onChange={(e) => setCardName(e.target.value)}
                     required
                   />
                 </div>
-                <input
-                  type="text"
-                  placeholder="Cardholder Name"
-                  className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-lg text-xs outline-none focus:border-indigo-500"
-                  value={cardName}
-                  onChange={(e) => setCardName(e.target.value)}
-                  required
-                />
-              </div>
-            )}
+              )}
 
-            {/* RAZORPAY UPI MOCK */}
-            {paymentProvider === 'razorpay' && (
-              <div className="p-4 bg-zinc-50 dark:bg-zinc-950 border border-border-base dark:border-zinc-900 rounded-xl flex flex-col items-center justify-center space-y-3 animate-fade-in text-center">
-                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-1">Razorpay UPI Checkout</span>
-                {/* Mock QR placeholder */}
-                <div className="w-32 h-32 bg-white p-2 border border-zinc-200 rounded-lg flex items-center justify-center shadow-inner select-none">
-                  <span className="text-xl">📱 UPI QR</span>
+              {/* RAZORPAY UPI MOCK */}
+              {paymentProvider === 'razorpay' && (
+                <div className="p-4 bg-zinc-50 dark:bg-zinc-950 border border-border-base dark:border-zinc-900 rounded-xl flex flex-col items-center justify-center space-y-3 animate-fade-in text-center">
+                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-1">Razorpay UPI Checkout</span>
+                  <div className="w-28 h-28 bg-white p-2 border border-zinc-200 rounded-lg flex items-center justify-center shadow-inner select-none">
+                    <span className="text-lg font-sans">📱 UPI QR</span>
+                  </div>
+                  <span className="text-[10px] text-zinc-500">Scan QR Code using PhonePe, GPay, or UPI app to pay</span>
                 </div>
-                <span className="text-[10px] text-zinc-500">Scan QR Code using PhonePe, GPay, or UPI app to pay</span>
-              </div>
-            )}
+              )}
 
-            {/* MANUAL CODE PANEL */}
-            {paymentProvider === 'manual' && (
-              <div className="p-4 bg-zinc-50 dark:bg-zinc-950 border border-border-base dark:border-zinc-900 rounded-xl space-y-3 animate-fade-in">
-                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Offline Manual Code</span>
-                <input
-                  type="text"
-                  placeholder="Activation voucher code (e.g. OFF-REN-XXXX)"
-                  className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-lg text-xs outline-none focus:border-indigo-500 font-mono"
-                  required
-                />
-              </div>
-            )}
+              {/* MANUAL CODE PANEL */}
+              {paymentProvider === 'manual' && (
+                <div className="p-4 bg-zinc-50 dark:bg-zinc-950 border border-border-base dark:border-zinc-900 rounded-xl space-y-3 animate-fade-in">
+                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Offline Manual Code</span>
+                  <input
+                    type="text"
+                    placeholder="Activation voucher code (e.g. OFF-REN-XXXX)"
+                    className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-lg text-xs outline-none focus:border-indigo-500 font-mono"
+                    required
+                  />
+                </div>
+              )}
 
-            <div className="pt-4 border-t border-border-base dark:border-zinc-900 flex justify-end gap-2">
-              <Button variant="secondary" onClick={() => setPaymentModalOpen(false)} disabled={paymentProcessing} className="text-xs font-bold">Cancel</Button>
-              <Button variant="primary" onClick={handleProcessUpgrade} disabled={paymentProcessing} className="text-xs font-extrabold shadow-lg shadow-indigo-600/25 flex items-center gap-1.5 py-2">
-                {paymentProcessing ? (
-                  <>
-                    <div className="w-3.5 h-3.5 border-b-2 border-white rounded-full animate-spin"></div>
-                    <span>Processing Payment...</span>
-                  </>
-                ) : (
-                  <span>Simulate Payment & Activate</span>
-                )}
-              </Button>
+              {/* Footer buttons */}
+              <div className="pt-4 border-t border-border-base dark:border-zinc-900 flex justify-end gap-2">
+                <Button variant="secondary" onClick={() => setCheckoutStep(1)} disabled={paymentProcessing} className="text-xs font-bold flex items-center gap-1"><HiChevronLeft className="w-4 h-4" /> Back</Button>
+                <Button variant="primary" onClick={handleProcessUpgrade} disabled={paymentProcessing} className="text-xs font-extrabold shadow-lg shadow-indigo-600/25 flex items-center gap-1.5 py-2">
+                  {paymentProcessing ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-b-2 border-white rounded-full animate-spin"></div>
+                      <span>Processing Payment...</span>
+                    </>
+                  ) : (
+                    <span>Simulate Payment & Activate</span>
+                  )}
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
         </Modal>
       </div>
     );
@@ -745,7 +860,7 @@ export default function SubscriptionsPage() {
         title="Subscription Console"
         description="Monitor tenant allocations, compile ARR/MRR statistics, and configure core feature-guard tier models."
         actions={
-          <Button onClick={() => { setEditingPlan(null); setPlanFormOpen(true); }} className="flex items-center gap-1.5 font-bold cursor-pointer">
+          <Button onClick={handleCreatePlan} className="flex items-center gap-1.5 font-bold cursor-pointer hover:scale-105 transition-all">
             <HiPlus /> Add Billing Plan
           </Button>
         }
@@ -828,23 +943,31 @@ export default function SubscriptionsPage() {
       {activeTab === 'plans' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {plans.map((p) => (
-            <Card key={p._id} className="bg-white dark:bg-zinc-950 p-5 rounded-xl border border-border-base dark:border-zinc-900 flex flex-col justify-between shadow">
+            <Card 
+              key={p._id} 
+              onClick={() => handleEditPlan(p)}
+              className="bg-white dark:bg-zinc-950 p-6 rounded-2xl border border-border-base dark:border-zinc-900 flex flex-col justify-between shadow-md hover:shadow-xl hover:border-indigo-500/80 hover:translate-y-[-4px] cursor-pointer transition-all duration-300 relative group overflow-hidden"
+            >
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               <div>
                 <div className="flex justify-between items-start mb-4">
-                  <h4 className="font-extrabold text-on-background text-base">{p.name}</h4>
-                  <div className="flex gap-1.5">
-                    <button onClick={() => handleEditPlan(p)} className="p-1.5 border border-border-base dark:border-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-900 rounded-lg text-zinc-500 transition cursor-pointer">
-                      <HiOutlinePencilSquare className="w-3.5 h-3.5" />
-                    </button>
-                    <button onClick={() => handleDeletePlan(p._id)} className="p-1.5 border border-border-base dark:border-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-900 rounded-lg text-red-500 transition cursor-pointer">
-                      <HiOutlineTrash className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                  <h4 className="font-black text-on-background text-base tracking-tight group-hover:text-indigo-500 transition-colors duration-200">{p.name}</h4>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); handleDeletePlan(p._id); }} 
+                    className="p-1.5 border border-zinc-200 dark:border-zinc-850 hover:bg-red-500 hover:text-white dark:hover:bg-red-600 hover:border-transparent rounded-lg text-zinc-450 dark:text-zinc-500 transition-all duration-200 cursor-pointer shadow-sm z-10"
+                    title="Delete Plan"
+                  >
+                    <HiOutlineTrash className="w-4 h-4" />
+                  </button>
                 </div>
-                <div className="space-y-1 text-xs mb-4">
-                  <div><span className="text-zinc-500">Monthly Price:</span> <span className="font-bold text-on-background">₹{p.monthlyPrice}</span></div>
-                  <div><span className="text-zinc-500">Yearly Price:</span> <span className="font-bold text-on-background">₹{p.yearlyPrice}</span></div>
-                  <div><span className="text-zinc-500">Limits:</span> <span className="text-on-background">{p.limits.outlets} Outlets, {p.limits.employees} Staff</span></div>
+                <div className="space-y-2.5 text-xs text-on-surface-variant dark:text-zinc-400">
+                  <div className="flex items-center gap-1.5"><span className="text-zinc-500 font-medium">Monthly:</span> <span className="font-bold text-on-background">₹{p.monthlyPrice.toLocaleString()}</span></div>
+                  <div className="flex items-center gap-1.5"><span className="text-zinc-500 font-medium">Yearly:</span> <span className="font-bold text-on-background">₹{p.yearlyPrice.toLocaleString()}</span></div>
+                  <div className="flex items-center gap-1.5"><span className="text-zinc-500 font-medium">Access Limits:</span> <span className="font-bold text-indigo-500 dark:text-indigo-400">{p.limits.outlets} Outlets, {p.limits.employees} Staff</span></div>
+                </div>
+                <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-900 flex justify-between items-center text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+                  <span>View & Configure</span>
+                  <span className="material-symbols-outlined text-[14px] group-hover:translate-x-1 transition-transform duration-200">arrow_forward</span>
                 </div>
               </div>
             </Card>
@@ -862,133 +985,320 @@ export default function SubscriptionsPage() {
         <Table columns={allInvoicesColumns} data={allInvoices} emptyMessage="No client financial logs" />
       )}
 
-      {/* PLAN CREATE / EDIT MODAL */}
-      <Modal isOpen={planFormOpen} onClose={() => setPlanFormOpen(false)} title={editingPlan ? 'Edit Billing Plan' : 'Add New Billing Plan'} size="md">
-        <form onSubmit={handleSavePlan} className="space-y-4 max-h-[80vh] overflow-y-auto px-1">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider block">Plan Name</label>
-              <input
-                type="text"
-                className="w-full px-4 py-2.5 bg-surface-subtle dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-lg text-on-surface dark:text-zinc-200 text-sm outline-none"
-                value={planForm.name}
-                onChange={(e) => setPlanForm(prev => ({ ...prev, name: e.target.value }))}
-                required
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider block">Plan Slug</label>
-              <input
-                type="text"
-                disabled={!!editingPlan}
-                className="w-full px-4 py-2.5 bg-surface-subtle dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-lg text-on-surface dark:text-zinc-200 text-sm outline-none disabled:bg-zinc-200 dark:disabled:bg-zinc-950"
-                value={planForm.slug}
-                onChange={(e) => setPlanForm(prev => ({ ...prev, slug: e.target.value.toLowerCase() }))}
-                required
-              />
-            </div>
-          </div>
+      {/* PLAN CREATE / EDIT MODAL (MULTI-STEP WIZARD) */}
+      <Modal isOpen={planFormOpen} onClose={() => setPlanFormOpen(false)} title={editingPlan ? `Configure Billing Plan: ${planForm.name || ''}` : 'Add New Billing Plan'} size="md">
+        {/* Step Indicator Progress Bar */}
+        <div className="mb-6 px-1">
+          <div className="flex items-center justify-between relative">
+            <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-0.5 bg-zinc-200 dark:bg-zinc-800 z-0"></div>
+            <div 
+              className="absolute left-0 top-1/2 -translate-y-1/2 h-0.5 bg-indigo-600 z-0 transition-all duration-300"
+              style={{ width: `${((wizardStep - 1) / 3) * 100}%` }}
+            ></div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider block">Description</label>
-            <textarea
-              className="w-full px-4 py-2.5 bg-surface-subtle dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-lg text-on-surface dark:text-zinc-200 text-sm outline-none resize-none h-16"
-              value={planForm.description}
-              onChange={(e) => setPlanForm(prev => ({ ...prev, description: e.target.value }))}
-            />
+            {[
+              { step: 1, label: "Overview" },
+              { step: 2, label: "Basic Info" },
+              { step: 3, label: "Limits" },
+              { step: 4, label: "Features" }
+            ].map((s) => {
+              const isActive = wizardStep === s.step;
+              const isCompleted = wizardStep > s.step;
+              return (
+                <div key={s.step} className="flex flex-col items-center z-10 relative">
+                  <div 
+                    onClick={() => wizardStep > s.step && setWizardStep(s.step)}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 cursor-pointer ${
+                      isCompleted 
+                        ? 'bg-green-600 text-white shadow-md shadow-green-600/20' 
+                        : isActive 
+                           ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 border-2 border-indigo-400' 
+                           : 'bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-400 dark:text-zinc-500'
+                    }`}
+                  >
+                    {isCompleted ? <HiOutlineCheck className="w-3.5 h-3.5" /> : s.step}
+                  </div>
+                  <span className={`text-[9px] font-bold mt-1.5 uppercase tracking-wider ${
+                    isActive ? 'text-indigo-500' : isCompleted ? 'text-green-500' : 'text-zinc-400 dark:text-zinc-500'
+                  }`}>
+                    {s.label}
+                  </span>
+                </div>
+              );
+            })}
           </div>
+        </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider block">Monthly Price</label>
-              <input
-                type="number"
-                className="w-full px-4 py-2.5 bg-surface-subtle dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-lg text-on-surface dark:text-zinc-200 text-sm outline-none"
-                value={planForm.monthlyPrice}
-                onChange={(e) => setPlanForm(prev => ({ ...prev, monthlyPrice: Number(e.target.value) }))}
-                required
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider block">Yearly Price</label>
-              <input
-                type="number"
-                className="w-full px-4 py-2.5 bg-surface-subtle dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-lg text-on-surface dark:text-zinc-200 text-sm outline-none"
-                value={planForm.yearlyPrice}
-                onChange={(e) => setPlanForm(prev => ({ ...prev, yearlyPrice: Number(e.target.value) }))}
-                required
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider block">Trial Days</label>
-              <input
-                type="number"
-                className="w-full px-4 py-2.5 bg-surface-subtle dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-lg text-on-surface dark:text-zinc-200 text-sm outline-none"
-                value={planForm.trialDays}
-                onChange={(e) => setPlanForm(prev => ({ ...prev, trialDays: Number(e.target.value) }))}
-                required
-              />
-            </div>
-          </div>
-
-          <div className="border-t border-border-base dark:border-zinc-900 pt-4">
-            <h5 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Hard limits</h5>
-            <div className="grid grid-cols-3 gap-2 text-xs">
-              <div>
-                <span className="text-zinc-500 block mb-1">Outlets</span>
-                <input
-                  type="number"
-                  className="w-full px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg"
-                  value={planForm.limits.outlets}
-                  onChange={(e) => setPlanForm(prev => ({ ...prev, limits: { ...prev.limits, outlets: Number(e.target.value) } }))}
-                />
+        <form onSubmit={handleSavePlan} className="space-y-4 max-h-[75vh] overflow-y-auto px-1">
+          {/* STEP 1: READ-ONLY PLAN SUMMARY */}
+          {wizardStep === 1 && (
+            <div className="space-y-5 animate-fade-in">
+              <div className="p-5 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 bg-indigo-600 text-white text-[9px] uppercase font-black tracking-widest px-3 py-1 rounded-bl-xl shadow">
+                  {planForm.slug || 'custom'}
+                </div>
+                <h4 className="text-lg font-black text-on-background tracking-tight">{planForm.name || 'Untitled Plan'}</h4>
+                <p className="text-xs text-zinc-500 mt-2 leading-relaxed">{planForm.description || 'No description configured.'}</p>
+                
+                <div className="mt-4 flex gap-6">
+                  <div>
+                    <span className="text-[9px] text-zinc-400 font-bold block uppercase tracking-wider">Monthly Price</span>
+                    <span className="text-base font-black text-on-background">₹{planForm.monthlyPrice.toLocaleString()}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-zinc-400 font-bold block uppercase tracking-wider">Yearly Price</span>
+                    <span className="text-base font-black text-on-background">₹{planForm.yearlyPrice.toLocaleString()}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-zinc-400 font-bold block uppercase tracking-wider">Trial Days</span>
+                    <span className="text-base font-black text-on-background">{planForm.trialDays} days</span>
+                  </div>
+                </div>
               </div>
-              <div>
-                <span className="text-zinc-500 block mb-1">Employees</span>
-                <input
-                  type="number"
-                  className="w-full px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg"
-                  value={planForm.limits.employees}
-                  onChange={(e) => setPlanForm(prev => ({ ...prev, limits: { ...prev.limits, employees: Number(e.target.value) } }))}
-                />
+
+              <div className="grid grid-cols-2 gap-4">
+                {/* Resource Limits List */}
+                <div className="p-4 bg-zinc-50 dark:bg-zinc-900/40 border border-border-base dark:border-zinc-900/85 rounded-xl space-y-3">
+                  <h5 className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5 mb-2">
+                    <HiOutlineChartBar className="text-indigo-500 w-4 h-4" /> Allocated Limits
+                  </h5>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between font-semibold"><span className="text-zinc-500">Outlets:</span><span className="text-on-background">{planForm.limits.outlets}</span></div>
+                    <div className="flex justify-between font-semibold"><span className="text-zinc-500">Staff members:</span><span className="text-on-background">{planForm.limits.employees}</span></div>
+                    <div className="flex justify-between font-semibold"><span className="text-zinc-500">Monthly Orders:</span><span className="text-on-background">{planForm.limits.monthlyOrders >= 1000000 ? 'Unlimited' : planForm.limits.monthlyOrders}</span></div>
+                    <div className="flex justify-between font-semibold"><span className="text-zinc-500">Menu Items:</span><span className="text-on-background">{planForm.limits.menuItems}</span></div>
+                    <div className="flex justify-between font-semibold"><span className="text-zinc-500">Storage Size:</span><span className="text-on-background">{planForm.limits.storageGB} GB</span></div>
+                  </div>
+                </div>
+
+                {/* Features Checklist */}
+                <div className="p-4 bg-zinc-50 dark:bg-zinc-900/40 border border-border-base dark:border-zinc-900/85 rounded-xl">
+                  <h5 className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5 mb-3">
+                    <HiOutlineShieldCheck className="text-indigo-500 w-4 h-4" /> Enabled Features
+                  </h5>
+                  <div className="grid grid-cols-1 gap-2 max-h-[145px] overflow-y-auto pr-1">
+                    {Object.entries(planForm.features).map(([feat, enabled]) => (
+                      <div key={feat} className="flex items-center gap-2 text-xs font-semibold">
+                        {enabled ? (
+                          <HiOutlineCheckCircle className="text-green-500 w-4 h-4 shrink-0" />
+                        ) : (
+                          <HiOutlineXCircle className="text-zinc-400 dark:text-zinc-650 w-4 h-4 shrink-0" />
+                        )}
+                        <span className={`capitalize ${enabled ? 'text-on-surface' : 'text-zinc-500'}`}>
+                          {feat.replace(/([A-Z])/g, ' $1')}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-              <div>
-                <span className="text-zinc-500 block mb-1">Orders / month</span>
-                <input
-                  type="number"
-                  className="w-full px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg"
-                  value={planForm.limits.monthlyOrders}
-                  onChange={(e) => setPlanForm(prev => ({ ...prev, limits: { ...prev.limits, monthlyOrders: Number(e.target.value) } }))}
-                />
+
+              <div className="pt-4 border-t border-border-base dark:border-zinc-900 flex justify-end">
+                <Button type="button" onClick={() => setWizardStep(2)} className="text-xs font-bold flex items-center gap-1.5">
+                  Next <HiChevronRight className="w-4 h-4" />
+                </Button>
               </div>
             </div>
-          </div>
+          )}
 
-          <div className="border-t border-border-base dark:border-zinc-900 pt-4">
-            <h5 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Enabled features</h5>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              {Object.keys(planForm.features).map((feat) => (
-                <label key={feat} className="flex items-center gap-2 cursor-pointer text-on-surface-variant dark:text-zinc-400 capitalize">
+          {/* STEP 2: EDIT PLAN BASIC DETAILS & PRICING */}
+          {wizardStep === 2 && (
+            <div className="space-y-4 animate-fade-in">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">Plan Name</label>
                   <input
-                    type="checkbox"
-                    checked={planForm.features[feat]}
-                    onChange={(e) => setPlanForm(prev => ({
-                      ...prev,
-                      features: { ...prev.features, [feat]: e.target.checked }
-                    }))}
-                  />
-                  <span>{feat.replace(/([A-Z])/g, ' $1')}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="pt-4 border-t border-border-base dark:border-zinc-900 flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setPlanFormOpen(false)} className="text-xs font-bold">Cancel</Button>
-            <Button type="submit" className="text-xs font-bold">Save Plan</Button>
-          </div>
-        </form>
-      </Modal>
+                    type="text"
+                    className="w-full px-4 py-2.5 bg-surface-subtle dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-lg text-on-surface dark:text-zinc-200 text-sm outline-none focus:border-indigo-500 transition-all"
+                     value={planForm.name}
+                     onChange={(e) => setPlanForm(prev => ({ ...prev, name: e.target.value }))}
+                     required
+                   />
+                 </div>
+                 <div className="space-y-1.5">
+                   <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">Plan Slug (Choose Type)</label>
+                   <select
+                     disabled={!!editingPlan}
+                     className="w-full px-4 py-2.5 bg-surface-subtle dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-lg text-on-surface dark:text-zinc-200 text-sm outline-none cursor-pointer focus:border-indigo-500 disabled:bg-zinc-200 dark:disabled:bg-zinc-950 transition-all"
+                     value={planForm.slug}
+                     onChange={(e) => setPlanForm(prev => ({ ...prev, slug: e.target.value }))}
+                     required
+                   >
+                     <option value="free">Free Trial (free)</option>
+                     <option value="pro">Pro Plan (pro)</option>
+                     <option value="super">Super Plan (super)</option>
+                   </select>
+                 </div>
+               </div>
+ 
+               <div className="space-y-1.5">
+                 <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">Description</label>
+                 <textarea
+                   className="w-full px-4 py-2.5 bg-surface-subtle dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-lg text-on-surface dark:text-zinc-200 text-sm outline-none resize-none h-16 focus:border-indigo-500 transition-all"
+                   value={planForm.description}
+                   onChange={(e) => setPlanForm(prev => ({ ...prev, description: e.target.value }))}
+                 />
+               </div>
+ 
+               <div className="grid grid-cols-3 gap-4">
+                 <div className="space-y-1.5">
+                   <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">Monthly Price (INR)</label>
+                   <input
+                     type="number"
+                     min="0"
+                     className="w-full px-4 py-2.5 bg-surface-subtle dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-lg text-on-surface dark:text-zinc-200 text-sm outline-none focus:border-indigo-500 transition-all"
+                     value={planForm.monthlyPrice}
+                     onChange={(e) => setPlanForm(prev => ({ ...prev, monthlyPrice: Number(e.target.value) }))}
+                     required
+                   />
+                 </div>
+                 <div className="space-y-1.5">
+                   <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">Yearly Price (INR)</label>
+                   <input
+                     type="number"
+                     min="0"
+                     className="w-full px-4 py-2.5 bg-surface-subtle dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-lg text-on-surface dark:text-zinc-200 text-sm outline-none focus:border-indigo-500 transition-all"
+                     value={planForm.yearlyPrice}
+                     onChange={(e) => setPlanForm(prev => ({ ...prev, yearlyPrice: Number(e.target.value) }))}
+                     required
+                   />
+                 </div>
+                 <div className="space-y-1.5">
+                   <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">Trial Days</label>
+                   <input
+                     type="number"
+                     min="0"
+                     className="w-full px-4 py-2.5 bg-surface-subtle dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-lg text-on-surface dark:text-zinc-200 text-sm outline-none focus:border-indigo-500 transition-all"
+                     value={planForm.trialDays}
+                     onChange={(e) => setPlanForm(prev => ({ ...prev, trialDays: Number(e.target.value) }))}
+                     required
+                   />
+                 </div>
+               </div>
+ 
+               <div className="pt-4 border-t border-border-base dark:border-zinc-900 flex justify-end gap-2">
+                 <Button type="button" variant="secondary" onClick={() => setWizardStep(1)} className="text-xs font-bold flex items-center gap-1"><HiChevronLeft className="w-4 h-4" /> Back</Button>
+                 <Button type="button" onClick={() => setWizardStep(3)} className="text-xs font-bold flex items-center gap-1">Next <HiChevronRight className="w-4 h-4" /></Button>
+               </div>
+             </div>
+           )}
+ 
+           {/* STEP 3: EDIT HARD LIMITS */}
+           {wizardStep === 3 && (
+             <div className="space-y-4 animate-fade-in">
+               <div className="p-4 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-150 dark:border-zinc-900 rounded-2xl mb-1">
+                 <h5 className="text-[11px] font-extrabold text-zinc-400 uppercase tracking-widest mb-1">Limits Configuration</h5>
+                 <p className="text-[10px] text-zinc-500 leading-normal">Specify the maximum operational resource count allowed for tenants active on this billing tier.</p>
+               </div>
+ 
+               <div className="grid grid-cols-2 gap-4">
+                 <div className="space-y-1.5">
+                   <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">Outlets Limit</label>
+                   <input
+                     type="number"
+                     min="1"
+                     className="w-full px-4 py-2.5 bg-surface-subtle dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-lg text-on-surface dark:text-zinc-200 text-sm outline-none focus:border-indigo-500 transition-all"
+                     value={planForm.limits.outlets}
+                     onChange={(e) => setPlanForm(prev => ({ ...prev, limits: { ...prev.limits, outlets: Number(e.target.value) } }))}
+                     required
+                   />
+                 </div>
+                 <div className="space-y-1.5">
+                   <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">Employees (Staff) Limit</label>
+                   <input
+                     type="number"
+                     min="1"
+                     className="w-full px-4 py-2.5 bg-surface-subtle dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-lg text-on-surface dark:text-zinc-200 text-sm outline-none focus:border-indigo-500 transition-all"
+                     value={planForm.limits.employees}
+                     onChange={(e) => setPlanForm(prev => ({ ...prev, limits: { ...prev.limits, employees: Number(e.target.value) } }))}
+                     required
+                   />
+                 </div>
+               </div>
+ 
+               <div className="grid grid-cols-3 gap-4">
+                 <div className="space-y-1.5">
+                   <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">Monthly Orders Limit</label>
+                   <input
+                     type="number"
+                     min="0"
+                     className="w-full px-4 py-2.5 bg-surface-subtle dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-lg text-on-surface dark:text-zinc-200 text-sm outline-none focus:border-indigo-500 transition-all"
+                     value={planForm.limits.monthlyOrders}
+                     onChange={(e) => setPlanForm(prev => ({ ...prev, limits: { ...prev.limits, monthlyOrders: Number(e.target.value) } }))}
+                     required
+                   />
+                 </div>
+                 <div className="space-y-1.5">
+                   <label className="text-[10px] font-bold text-zinc-550 uppercase tracking-wider block">Menu Items Limit</label>
+                   <input
+                     type="number"
+                     min="0"
+                     className="w-full px-4 py-2.5 bg-surface-subtle dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-lg text-on-surface dark:text-zinc-200 text-sm outline-none focus:border-indigo-500 transition-all"
+                     value={planForm.limits.menuItems}
+                     onChange={(e) => setPlanForm(prev => ({ ...prev, limits: { ...prev.limits, menuItems: Number(e.target.value) } }))}
+                     required
+                   />
+                 </div>
+                 <div className="space-y-1.5">
+                   <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">Storage Limit (GB)</label>
+                   <input
+                     type="number"
+                     min="0"
+                     className="w-full px-4 py-2.5 bg-surface-subtle dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-lg text-on-surface dark:text-zinc-200 text-sm outline-none focus:border-indigo-500 transition-all"
+                     value={planForm.limits.storageGB}
+                     onChange={(e) => setPlanForm(prev => ({ ...prev, limits: { ...prev.limits, storageGB: Number(e.target.value) } }))}
+                     required
+                   />
+                 </div>
+               </div>
+ 
+               <div className="pt-4 border-t border-border-base dark:border-zinc-900 flex justify-end gap-2">
+                 <Button type="button" variant="secondary" onClick={() => setWizardStep(2)} className="text-xs font-bold flex items-center gap-1"><HiChevronLeft className="w-4 h-4" /> Back</Button>
+                 <Button type="button" onClick={() => setWizardStep(4)} className="text-xs font-bold flex items-center gap-1">Next <HiChevronRight className="w-4 h-4" /></Button>
+               </div>
+             </div>
+           )}
+ 
+           {/* STEP 4: EDIT ENABLED FEATURES */}
+           {wizardStep === 4 && (
+             <div className="space-y-4 animate-fade-in">
+               <div className="p-4 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-150 dark:border-zinc-900 rounded-2xl mb-1">
+                 <h5 className="text-[11px] font-extrabold text-zinc-400 uppercase tracking-widest mb-1">Feature Gates</h5>
+                 <p className="text-[10px] text-zinc-500 leading-normal">Select which modules are accessible to restaurants active on this billing tier.</p>
+               </div>
+ 
+               <div className="grid grid-cols-2 gap-3 max-h-[220px] overflow-y-auto pr-1">
+                 {Object.keys(planForm.features).map((feat) => (
+                   <label 
+                     key={feat} 
+                     className="flex items-center justify-between p-2.5 bg-white dark:bg-zinc-900/40 border border-border-base dark:border-zinc-800/80 rounded-xl cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-900 select-none transition-colors duration-150"
+                   >
+                     <span className="text-xs font-semibold text-on-surface dark:text-zinc-300 capitalize">
+                       {feat.replace(/([A-Z])/g, ' $1')}
+                     </span>
+                     <input
+                       type="checkbox"
+                       className="w-4.5 h-4.5 rounded text-indigo-650 border-zinc-300 focus:ring-indigo-500 cursor-pointer"
+                       checked={planForm.features[feat]}
+                       onChange={(e) => setPlanForm(prev => ({
+                         ...prev,
+                         features: { ...prev.features, [feat]: e.target.checked }
+                       }))}
+                     />
+                   </label>
+                 ))}
+               </div>
+ 
+               <div className="pt-4 border-t border-border-base dark:border-zinc-900 flex justify-end gap-2">
+                 <Button type="button" variant="secondary" onClick={() => setWizardStep(3)} className="text-xs font-bold flex items-center gap-1"><HiChevronLeft className="w-4 h-4" /> Back</Button>
+                 <Button type="submit" className="text-xs font-bold shadow-lg shadow-indigo-650/20">
+                   {editingPlan ? 'Save Changes' : 'Create Billing Plan'}
+                 </Button>
+               </div>
+             </div>
+           )}
+         </form>
+       </Modal>
     </div>
   );
 }

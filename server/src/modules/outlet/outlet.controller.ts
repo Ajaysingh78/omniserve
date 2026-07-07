@@ -4,6 +4,7 @@ import { OutletService } from "./outlet.service.js";
 import { ApiResponseHandler } from "../../utils/apiResponse.js";
 import { UserStatus, WeekDay } from "../../models/enums.js";
 import { AccessScope } from "../../utils/accessScope.utils.js";
+import { EventBusService } from "../../events/eventBus.js";
 
 export class OutletController {
   /**
@@ -239,12 +240,15 @@ export class OutletController {
         }
       }
 
+      const allowedOutletIds = await AccessScope.outletIdsForUser(req.user);
+
       const filters: {
         restaurantId?: string;
         status?: UserStatus;
         city?: string;
         limit: number;
         skip: number;
+        ids?: string[];
       } = { limit, skip };
 
       if (!restaurantId && AccessScope.isRestaurantScoped(req.user.role) && req.user.restaurantId) {
@@ -254,15 +258,12 @@ export class OutletController {
       if (restaurantId) filters.restaurantId = restaurantId;
       if (normalizedStatus) filters.status = normalizedStatus;
       if (city) filters.city = city;
+      if (allowedOutletIds !== null) filters.ids = allowedOutletIds;
 
       const { outlets, total } = await OutletService.getOutlets(req.user.tenantId, filters);
-      const allowedOutletIds = await AccessScope.outletIdsForUser(req.user);
-      const scopedOutlets = allowedOutletIds === null
-        ? outlets
-        : outlets.filter(outlet => allowedOutletIds.includes(outlet._id.toString()));
 
       ApiResponseHandler.success(res, 200, 'Outlets retrieved successfully', {
-        outlets: scopedOutlets.map(outlet => ({
+        outlets: outlets.map(outlet => ({
           id: outlet._id,
           restaurantId: outlet.restaurantId,
           tenantId: outlet.tenantId,
@@ -280,7 +281,7 @@ export class OutletController {
           updatedAt: outlet.updatedAt,
         })),
         pagination: {
-          total: scopedOutlets.length,
+          total,
           page,
           limit,
           pages: Math.ceil(total / limit),
@@ -520,6 +521,17 @@ export class OutletController {
         ApiResponseHandler.notFound(res, 'Outlet not found');
         return;
       }
+
+      // Publish event to trigger auto-updates on online platforms (Swiggy/Zomato connectors)
+      await EventBusService.publishOutletStatusChanged(
+        req.user.tenantId,
+        updatedOutlet._id,
+        {
+          status: userStatus,
+          name: updatedOutlet.name,
+        },
+        { createdBy: req.user.userId }
+      );
 
       ApiResponseHandler.success(res, 200, 'Outlet status updated', {
         id: updatedOutlet._id,

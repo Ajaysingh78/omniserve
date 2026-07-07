@@ -7,7 +7,7 @@ export class AuditLogService {
    * Helper to write a new audit log entry
    */
   static async createAuditLog(
-    tenantId: string,
+    tenantId: string | null | undefined,
     data: {
       userId: string;
       action: AuditAction;
@@ -20,7 +20,7 @@ export class AuditLogService {
     }
   ): Promise<IAuditLog> {
     const audit = new AuditLog({
-      tenantId: new Types.ObjectId(tenantId),
+      tenantId: tenantId ? new Types.ObjectId(tenantId) : null,
       userId: new Types.ObjectId(data.userId),
       action: data.action,
       entityType: data.entityType,
@@ -56,6 +56,65 @@ export class AuditLogService {
       isDeleted: false,
     };
 
+    if (filters.userId) {
+      query.userId = new Types.ObjectId(filters.userId);
+    }
+    if (filters.action) {
+      query.action = filters.action;
+    }
+    if (filters.entityType) {
+      query.entityType = filters.entityType;
+    }
+
+    if (filters.from || filters.to) {
+      query.createdAt = {};
+      if (filters.from) {
+        const fromDate = new Date(filters.from);
+        fromDate.setUTCHours(0, 0, 0, 0);
+        query.createdAt.$gte = fromDate;
+      }
+      if (filters.to) {
+        const toDate = new Date(filters.to);
+        toDate.setUTCHours(23, 59, 59, 999);
+        query.createdAt.$lte = toDate;
+      }
+    }
+
+    const [logs, total] = await Promise.all([
+      AuditLog.find(query)
+        .populate('userId', 'firstName lastName email role')
+        .sort({ createdAt: -1 })
+        .limit(filters.limit)
+        .skip(filters.skip),
+      AuditLog.countDocuments(query),
+    ]);
+
+    return { logs, total };
+  }
+
+  /**
+   * Retrieve list of audit logs globally (for system admins)
+   * Sorted by createdAt descending (newest-first)
+   */
+  static async getGlobalAuditLogs(
+    filters: {
+      tenantId?: string;
+      userId?: string;
+      action?: string;
+      entityType?: string;
+      from?: string;
+      to?: string;
+      limit: number;
+      skip: number;
+    }
+  ): Promise<{ logs: IAuditLog[]; total: number }> {
+    const query: any = {
+      isDeleted: false,
+    };
+
+    if (filters.tenantId) {
+      query.tenantId = new Types.ObjectId(filters.tenantId);
+    }
     if (filters.userId) {
       query.userId = new Types.ObjectId(filters.userId);
     }

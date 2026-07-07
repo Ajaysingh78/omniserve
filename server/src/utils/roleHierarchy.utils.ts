@@ -1,6 +1,7 @@
 import { UserRole } from "../models/enums.js";
 
 const ROLE_RANK: Record<UserRole, number> = {
+  [UserRole.SYSTEM_ADMIN]: 1000,
   [UserRole.SUPER_ADMIN]: 100,
   [UserRole.RESTAURANT_OWNER]: 80,
   [UserRole.OUTLET_MANAGER]: 60,

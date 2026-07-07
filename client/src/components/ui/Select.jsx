@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function Select({ label, error, id, className = '', children, ...rest }) {
+export default function Select({ label, error, id, className = '', children, options, ...rest }) {
   return (
     <div className="flex flex-col gap-1 w-full">
       {label && (
@@ -21,6 +21,11 @@ export default function Select({ label, error, id, className = '', children, ...
         {...rest}
       >
         {children}
+        {options && options.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
       </select>
       {error && <span className="text-xs text-error mt-1 font-medium">{error}</span>}
     </div>

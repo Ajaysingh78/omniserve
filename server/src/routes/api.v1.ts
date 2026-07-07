@@ -25,10 +25,14 @@ import billingRouter from "../modules/order/billing.routes.js";
 import shiftRouter from "../modules/outlet/shift.routes.js";
 import reservationRouter from "../modules/order/reservation.routes.js";
 import diningAnalyticsRouter from "../modules/analytics/dining-analytics.routes.js";
+import systemAdminRoutes from "../modules/systemAdmin/systemAdmin.routes.js";
+import healthRoutes from "../modules/health/health.routes.js";
 
 const router = Router();
 
 router.use("/auth", authRoutes);
+router.use("/system-admin", systemAdminRoutes);
+router.use("/health", healthRoutes);
 router.use("/subscriptions", subscriptionRoutes);
 router.use("/restaurants", restaurantRouter);
 router.use("/outlets", outletRoutes);

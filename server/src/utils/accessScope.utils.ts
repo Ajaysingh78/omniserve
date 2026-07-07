@@ -3,7 +3,7 @@ import { UserRole } from "../models/enums.js";
 import Outlet from '../models/outlet.model.js';
 
 interface ScopeUser {
-  tenantId: string;
+  tenantId?: string;
   restaurantId?: string;
   outletId?: string;
   outletIds?: string[];
@@ -12,7 +12,7 @@ interface ScopeUser {
 
 export class AccessScope {
   static isTenantWide(role: string): boolean {
-    return role === UserRole.SUPER_ADMIN;
+    return role === UserRole.SUPER_ADMIN || role === UserRole.SYSTEM_ADMIN;
   }
 
   static isRestaurantScoped(role: string): boolean {
@@ -35,8 +35,7 @@ export class AccessScope {
     }
 
     if (this.isRestaurantScoped(user.role)) {
-      if (!user.restaurantId) return [];
-
+      if (!user.restaurantId || !user.tenantId) return [];
       const outlets = await Outlet.find({
         tenantId: new Types.ObjectId(user.tenantId),
         restaurantId: new Types.ObjectId(user.restaurantId),
@@ -56,6 +55,7 @@ export class AccessScope {
     if (this.isRestaurantScoped(user.role)) return user.restaurantId === restaurantId;
 
     if (this.isOutletScoped(user.role) && user.outletId) {
+      if (!user.tenantId) return false;
       const outlet = await Outlet.findOne({
         _id: new Types.ObjectId(user.outletId),
         tenantId: new Types.ObjectId(user.tenantId),

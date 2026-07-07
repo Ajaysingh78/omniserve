@@ -2,7 +2,7 @@ import mongoose, { Document, Model, Schema, Types } from 'mongoose';
 import { AuditAction } from "./enums.js";
 
 export interface IAuditLog extends Document {
-  tenantId: Types.ObjectId;
+  tenantId?: Types.ObjectId | null;
   userId: Types.ObjectId;
   action: AuditAction;
   entityType: string;
@@ -21,7 +21,8 @@ const auditLogSchema = new Schema<IAuditLog>(
     tenantId: {
       type: Schema.Types.ObjectId,
       ref: 'Tenant',
-      required: [true, 'Tenant is required'],
+      required: false,
+      default: null,
     },
     userId: {
       type: Schema.Types.ObjectId,

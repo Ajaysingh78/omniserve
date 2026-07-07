@@ -10,6 +10,7 @@ import { HiPlus } from 'react-icons/hi2';
 import { listRestaurantsApi } from '../../api/models/restaurant.api';
 import { listOutletsApi, createOutletApi, updateOutletApi, toggleOutletStatusApi, deleteOutletApi } from '../../api/models/outlet.api';
 import { getEntityId, getList, getRefId } from '../../utils/apiData';
+import useAuth from '../../hooks/useAuth';
 
 const emptyForm = {
   restaurantId: '',
@@ -23,6 +24,7 @@ const emptyForm = {
 };
 
 export default function OutletsPage() {
+  const { user } = useAuth();
   const [data, setData] = useState([]);
   const [restaurants, setRestaurants] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -134,22 +136,29 @@ export default function OutletsPage() {
     { key: 'phone', label: 'Phone', render: (r) => r.phone || '-' },
     {
       key: 'status',
-      label: 'Status',
+      label: 'Status (Open/Closed)',
       render: (r) => {
         const isActive = r.status ? r.status === 'ACTIVE' : r.isActive !== false;
         return (
-          <Badge 
-            variant={isActive ? 'success' : 'neutral'} 
-            className="cursor-pointer hover:opacity-85 transition-opacity" 
-            onClick={() => handleToggle(r)}
-          >
-            {isActive ? 'Active' : 'Inactive'}
-          </Badge>
+          <div className="flex items-center gap-3">
+            <label className="relative inline-flex items-center cursor-pointer select-none">
+              <input 
+                type="checkbox" 
+                checked={isActive} 
+                onChange={() => handleToggle(r)} 
+                className="sr-only peer"
+              />
+              <div className="w-10 h-5 bg-zinc-350 dark:bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-350 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-zinc-700 peer-checked:bg-green-600 transition-colors duration-300"></div>
+              <span className={`ml-2 text-xs font-black uppercase tracking-wider ${isActive ? 'text-green-600' : 'text-zinc-400 dark:text-zinc-500'}`}>
+                {isActive ? 'Open' : 'Closed'}
+              </span>
+            </label>
+          </div>
         );
       },
     },
     { key: 'createdAt', label: 'Created', render: (r) => r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '-' },
-    { 
+    ...(user?.role !== 'OUTLET_MANAGER' ? [{ 
       key: 'actions', 
       label: 'Actions', 
       render: (r) => (
@@ -158,7 +167,7 @@ export default function OutletsPage() {
           <Button size="sm" variant="danger" onClick={() => handleDelete(r)}>Delete</Button>
         </div>
       ) 
-    },
+    }] : []),
   ];
 
   return (
@@ -172,9 +181,11 @@ export default function OutletsPage() {
             Manage physical kitchen outlet sites.
           </p>
         </div>
-        <Button onClick={openCreate} disabled={!restaurants.length} className="flex items-center gap-1 font-bold">
-          <HiPlus /> Add Outlet
-        </Button>
+        {user?.role !== 'OUTLET_MANAGER' && (
+          <Button onClick={openCreate} disabled={!restaurants.length} className="flex items-center gap-1 font-bold">
+            <HiPlus /> Add Outlet
+          </Button>
+        )}
       </div>
 
       <Table columns={columns} data={data} loading={loading} />

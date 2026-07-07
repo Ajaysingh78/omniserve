@@ -123,10 +123,16 @@ export class SubscriptionService {
     ];
 
     for (const planData of defaultPlans) {
-      const existing = await SubscriptionRepository.findPlanBySlug(planData.slug);
+      const existing = await SubscriptionPlanModel.collection.findOne({ slug: planData.slug });
       if (!existing) {
         await SubscriptionRepository.createPlan(planData as any);
         console.log(`[SubscriptionService] Seeded default plan: ${planData.name}`);
+      } else {
+        await SubscriptionPlanModel.updateOne(
+          { _id: existing._id },
+          { $set: { ...planData, isDeleted: false, isActive: true } }
+        );
+        console.log(`[SubscriptionService] Synchronized default plan: ${planData.name}`);
       }
     }
   }

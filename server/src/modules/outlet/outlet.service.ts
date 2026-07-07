@@ -53,7 +53,7 @@ export class OutletService {
    */
   static async getOutlets(
     tenantId: string,
-    filters: { restaurantId?: string; status?: UserStatus; city?: string; limit: number; skip: number }
+    filters: { restaurantId?: string; status?: UserStatus; city?: string; limit: number; skip: number; ids?: string[] }
   ): Promise<{ outlets: IOutlet[]; total: number }> {
     const query: any = {
       tenantId: new Types.ObjectId(tenantId),
@@ -71,6 +71,10 @@ export class OutletService {
     if (filters.city) {
       // Case-insensitive query for city — escaped to prevent ReDoS
       query.city = { $regex: new RegExp(`^${escapeRegex(filters.city)}$`, 'i') };
+    }
+
+    if (filters.ids) {
+      query._id = { $in: filters.ids.map(id => new Types.ObjectId(id)) };
     }
 
     const outlets = await Outlet.find(query)

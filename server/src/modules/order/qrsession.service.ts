@@ -4,6 +4,7 @@ import QRSession, { IQRSession, QRSessionStatus } from "../../models/qrsession.m
 import Table from "../../models/table.model.js";
 import Reservation from "../../models/reservation.model.js";
 import { TableService } from "../outlet/table.service.js";
+import Outlet from "../../models/outlet.model.js";
 
 export class QRSessionService {
   /**
@@ -15,6 +16,15 @@ export class QRSessionService {
     tableId: string | Types.ObjectId,
     options: { customerId?: string; seatNumber?: string; waiterId?: string; reservationId?: string } = {}
   ): Promise<IQRSession> {
+    // Validate outlet is active (open)
+    const outlet = await Outlet.findOne({ _id: new Types.ObjectId(outletId), isDeleted: false });
+    if (!outlet) {
+      throw new Error(`Outlet not found`);
+    }
+    if (outlet.status === "INACTIVE") {
+      throw new Error("This outlet is currently closed. Seating new sessions is disabled.");
+    }
+
     const table = await Table.findOne({ _id: new Types.ObjectId(tableId), isDeleted: false });
     if (!table) {
       throw new Error(`Table not found: ${tableId}`);

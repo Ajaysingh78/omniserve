@@ -49,6 +49,7 @@ export function initWorkerRegistry(): void {
   workerRegistry.register("ORDER_STATUS_CHANGED", compositeOrderStatusChangedWorker);
 
   // Stock & Catalog Events
+  workerRegistry.register("OUTLET_STATUS_CHANGED", statusSyncWorker);
   workerRegistry.register("INVENTORY_CHANGED", inventorySyncWorker);
   workerRegistry.register("MENU_CHANGED", menuSyncWorker);
 
