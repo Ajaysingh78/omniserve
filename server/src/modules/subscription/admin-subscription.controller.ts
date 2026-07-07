@@ -7,6 +7,7 @@ import { ApiResponseHandler } from "../../utils/apiResponse.js";
 import { SubscriptionStatus, BillingCycle, InvoiceStatus } from "./subscription.enum.js";
 import RestaurantSubscriptionModel from "../../models/subscription.model.js";
 import InvoiceModel from "../../models/invoice.model.js";
+import SubscriptionPlanModel from "../../models/subscriptionPlan.model.js";
 
 export class AdminSubscriptionController {
   /**
@@ -30,6 +31,14 @@ export class AdminSubscriptionController {
   static async createPlan(req: Request, res: Response): Promise<void> {
     try {
       const validated = createPlanSchema.parse(req.body);
+      
+      // Perform global uniqueness check on plan slug (ignoring isDeleted flag)
+      const existingPlan = await SubscriptionPlanModel.collection.findOne({ slug: validated.slug });
+      if (existingPlan) {
+        ApiResponseHandler.badRequest(res, "A subscription plan with this slug already exists.");
+        return;
+      }
+
       const plan = await SubscriptionRepository.createPlan(validated as any);
       ApiResponseHandler.success(res, 201, "Plan created successfully", { plan });
     } catch (error: any) {
