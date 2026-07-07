@@ -10,7 +10,7 @@ import Tenant from "../../models/tenant.model.js";
 
 interface TokenPayload {
   userId: string;
-  tenantId: string;
+  tenantId?: string;
   restaurantId?: string;
   outletId?: string;
   outletIds?: string[];
@@ -56,14 +56,14 @@ export class AuthService {
    */
   static async generateRefreshToken(
     userId: string,
-    tenantId: string,
+    tenantId?: string | null,
     ipAddress?: string,
     userAgent?: string
   ): Promise<string> {
 
     if(!process.env.JWT_REFRESH_SECRET || !process.env.JWT_REFRESH_EXPIRY) throw new Error('JWT_REFRESH_SECRET or JWT_REFRESH_EXPIRY is not defined');
     const token = jwt.sign(
-      { userId, tenantId },
+      { userId, ...(tenantId ? { tenantId } : {}) },
       process.env.JWT_REFRESH_SECRET,
       {
         expiresIn: process.env.JWT_REFRESH_EXPIRY,
@@ -75,7 +75,7 @@ export class AuthService {
 
     const refreshTokenDoc = new RefreshToken({
       userId: new Types.ObjectId(userId),
-      tenantId: new Types.ObjectId(tenantId),
+      tenantId: tenantId ? new Types.ObjectId(tenantId) : null,
       token,
       expiresAt,
       ipAddress,
@@ -101,10 +101,10 @@ export class AuthService {
   /**
    * Verify refresh token
    */
-  static verifyRefreshToken(token: string): { userId: string; tenantId: string } | null {
+  static verifyRefreshToken(token: string): { userId: string; tenantId?: string } | null {
     try {
       if(!process.env.JWT_REFRESH_SECRET) throw new Error('JWT_REFRESH_SECRET is not defined');
-      return jwt.verify(token, process.env.JWT_REFRESH_SECRET) as { userId: string; tenantId: string };
+      return jwt.verify(token, process.env.JWT_REFRESH_SECRET) as { userId: string; tenantId?: string };
     } catch (error) {
       return null;
     }
@@ -193,7 +193,7 @@ export class AuthService {
 
     const tokenPayload: TokenPayload = {
       userId: user._id.toString(),
-      tenantId: user.tenantId.toString(),
+      ...(user.tenantId ? { tenantId: user.tenantId.toString() } : {}),
       ...(user.restaurantId ? { restaurantId: user.restaurantId.toString() } : {}),
       ...(user.outletId ? { outletId: user.outletId.toString() } : {}),
       ...(user.outletIds && user.outletIds.length > 0 ? { outletIds: user.outletIds.map(id => id.toString()) } : {}),
@@ -205,7 +205,7 @@ export class AuthService {
     const accessToken = this.generateAccessToken(tokenPayload);
     const refreshToken = await this.generateRefreshToken(
       user._id.toString(),
-      user.tenantId.toString(),
+      user.tenantId ? user.tenantId.toString() : null,
       ipAddress,
       userAgent
     );
@@ -253,7 +253,7 @@ export class AuthService {
 
     const tokenPayload: TokenPayload = {
       userId: user._id.toString(),
-      tenantId: user.tenantId.toString(),
+      ...(user.tenantId ? { tenantId: user.tenantId.toString() } : {}),
       ...(user.restaurantId ? { restaurantId: user.restaurantId.toString() } : {}),
       ...(user.outletId ? { outletId: user.outletId.toString() } : {}),
       ...(user.outletIds && user.outletIds.length > 0 ? { outletIds: user.outletIds.map(id => id.toString()) } : {}),
@@ -265,7 +265,7 @@ export class AuthService {
     const newAccessToken = this.generateAccessToken(tokenPayload);
     const newRefreshToken = await this.generateRefreshToken(
       user._id.toString(),
-      user.tenantId.toString()
+      user.tenantId ? user.tenantId.toString() : null
     );
 
     return {

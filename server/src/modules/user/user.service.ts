@@ -196,7 +196,7 @@ export class UserService {
     });
 
     await NotificationService.createNotification(
-      user.tenantId.toString(),
+      user.tenantId!.toString(),
       user._id.toString(),
       'Invitation pending',
       `Accept your ${requestedRole} invitation for ${restaurantName}${outletId ? ` / ${outletName}` : ''}.`,

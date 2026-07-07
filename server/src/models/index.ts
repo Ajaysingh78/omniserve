@@ -20,4 +20,5 @@ export { default as WebhookLog } from "./webhookLog.model.js";
 export { default as Subscription } from './subscription.model.js';
 export { default as SubscriptionPlan } from './subscriptionPlan.model.js';
 export { default as SubscriptionUsage } from './subscriptionUsage.model.js';
+export { default as SystemAdminInvite } from './systemAdminInvite.model.js';
 export * from './enums.js';

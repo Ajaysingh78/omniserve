@@ -2,7 +2,7 @@ import mongoose, { Document, Model, Schema, Types } from "mongoose";
 
 export interface IRefreshToken extends Document {
   userId: Types.ObjectId;
-  tenantId: Types.ObjectId;
+  tenantId?: Types.ObjectId | null;
   token: string;
   expiresAt: Date;
   isRevoked: boolean;
@@ -26,7 +26,8 @@ const refreshTokenSchema = new Schema<IRefreshToken>(
     tenantId: {
       type: Schema.Types.ObjectId,
       ref: "Tenant",
-      required: [true, "Tenant is required"],
+      required: false,
+      default: null,
     },
     token: {
       type: String,

@@ -16,6 +16,7 @@ import {
   HiOutlineTag,
   HiOutlineSquares2X2,
   HiOutlineQueueList,
+  HiOutlineShieldCheck,
 } from 'react-icons/hi2';
 import { USER_ROLES } from '../../utils/constants';
 
@@ -26,11 +27,14 @@ function createLazyPage(importer) {
 }
 
 const {
+  SYSTEM_ADMIN,
   SUPER_ADMIN,
   RESTAURANT_OWNER,
   OUTLET_MANAGER,
   STAFF,
 } = USER_ROLES;
+
+const RESTAURANT_ROLES = [SUPER_ADMIN, RESTAURANT_OWNER, OUTLET_MANAGER, STAFF];
 
 export const routeComponents = {
   LoginPage: createLazyPage(() => import('../../pages/auth/LoginPage')),
@@ -65,6 +69,11 @@ export const routeComponents = {
   OperationsCockpitPage: createLazyPage(() => import('../../pages/operations/OperationsCockpit')),
   OnlineOrdersPage: createLazyPage(() => import('../../pages/orders/OrdersPage').then(module => ({ default: (props) => <module.default mode="ONLINE" {...props} /> }))),
   OrderPreparationPage: createLazyPage(() => import('../../pages/operations/OrderPreparationPage')),
+  SystemAdminDashboard: createLazyPage(() => import('../../pages/systemAdmin/SystemAdminDashboard')),
+  TenantManagement: createLazyPage(() => import('../../pages/systemAdmin/TenantManagement')),
+  GlobalAuditLogs: createLazyPage(() => import('../../pages/systemAdmin/GlobalAuditLogs')),
+  HealthDiagnostics: createLazyPage(() => import('../../pages/systemAdmin/HealthDiagnostics')),
+  AcceptSystemAdminInvite: createLazyPage(() => import('../../pages/systemAdmin/AcceptSystemAdminInvite')),
 };
 
 export const authRoutes = [
@@ -74,15 +83,15 @@ export const authRoutes = [
 
 export const dashboardRoutes = [
   { path: '/dashboard', title: 'Dashboard', component: routeComponents.DashboardPage, roles: 'all', nav: { section: 'Main', label: 'Dashboard', icon: HiOutlineHome } },
-  { path: '/orders', title: 'Orders', component: routeComponents.OrdersPage, roles: 'all', nav: { section: 'Operations', label: 'Orders', icon: HiOutlineShoppingCart } },
-  { path: '/notifications', title: 'Notifications', component: routeComponents.NotificationsPage, roles: 'all', nav: { section: 'Insights', label: 'Notifications', icon: HiOutlineBell } },
+  { path: '/orders', title: 'Orders', component: routeComponents.OrdersPage, roles: RESTAURANT_ROLES, nav: { section: 'Operations', label: 'Orders', icon: HiOutlineShoppingCart } },
+  { path: '/notifications', title: 'Notifications', component: routeComponents.NotificationsPage, roles: RESTAURANT_ROLES, nav: { section: 'Insights', label: 'Notifications', icon: HiOutlineBell } },
   { path: '/profile', title: 'Profile', component: routeComponents.ProfilePage, roles: 'all' },
   { path: '/restaurants', title: 'Restaurants', component: routeComponents.RestaurantsPage, roles: [SUPER_ADMIN], nav: { section: 'Management', label: 'Restaurants', icon: HiOutlineBuildingStorefront } },
   { path: '/audit-logs', title: 'Audit Logs', component: routeComponents.AuditLogsPage, roles: [SUPER_ADMIN], nav: { section: 'Insights', label: 'Audit Logs', icon: HiOutlineDocumentText } },
   { path: '/webhook-logs', title: 'Webhook Logs', component: routeComponents.WebhookLogsPage, roles: [SUPER_ADMIN], nav: { section: 'Insights', label: 'Webhook Logs', icon: HiOutlineDocumentText } },
   { path: '/subscriptions', title: 'Subscriptions', component: routeComponents.SubscriptionsPage, roles: [SUPER_ADMIN, RESTAURANT_OWNER], nav: { section: 'Finance', label: 'Subscriptions', icon: HiOutlineCreditCard } },
   { path: '/users', title: 'Users', component: routeComponents.UsersPage, roles: [SUPER_ADMIN, RESTAURANT_OWNER], nav: { section: 'Insights', label: 'Team', icon: HiOutlineCog6Tooth } },
-  { path: '/outlets', title: 'Outlets', component: routeComponents.OutletsPage, roles: [SUPER_ADMIN, RESTAURANT_OWNER], nav: { section: 'Management', label: 'Outlets', icon: HiOutlineMapPin } },
+  { path: '/outlets', title: 'Outlets', component: routeComponents.OutletsPage, roles: [SUPER_ADMIN, RESTAURANT_OWNER, OUTLET_MANAGER], nav: { section: 'Management', label: 'Outlets', icon: HiOutlineMapPin } },
   { path: '/analytics', title: 'Analytics', component: routeComponents.AnalyticsPage, roles: [SUPER_ADMIN, RESTAURANT_OWNER], nav: { section: 'Insights', label: 'Analytics', icon: HiOutlineChartBarSquare } },
   { path: '/payments', title: 'Payments', component: routeComponents.PaymentsPage, roles: [SUPER_ADMIN, RESTAURANT_OWNER], nav: { section: 'Finance', label: 'Payments', icon: HiOutlineCreditCard } },
   { path: '/categories', title: 'Categories', component: routeComponents.CategoriesPage, roles: [SUPER_ADMIN, RESTAURANT_OWNER, OUTLET_MANAGER], nav: { section: 'Management', label: 'Categories', icon: HiOutlineSquares2X2 } },
@@ -93,10 +102,15 @@ export const dashboardRoutes = [
   { path: '/integrations', title: 'Integrations', component: routeComponents.IntegrationsDashboardPage, roles: [SUPER_ADMIN, RESTAURANT_OWNER, OUTLET_MANAGER], nav: { section: 'Management', label: 'Integrations', icon: HiOutlineClipboardDocumentList } },
   { path: '/integrations/mappings', title: 'Integrations', component: routeComponents.MappingReviewPage, roles: [SUPER_ADMIN, RESTAURANT_OWNER, OUTLET_MANAGER] },
   { path: '/inventory', title: 'Inventory', component: routeComponents.InventoryPage, roles: [SUPER_ADMIN, RESTAURANT_OWNER, OUTLET_MANAGER, STAFF], nav: { section: 'Operations', label: 'Inventory', icon: HiOutlineCube } },
-  { path: '/operations/online', title: 'Online Orders', component: routeComponents.OnlineOrdersPage, roles: 'all' },
-  { path: '/operations/preparation', title: 'Order Preparation', component: routeComponents.OrderPreparationPage, roles: 'all', nav: { section: 'Operations', label: 'Order Preparation', icon: HiOutlineQueueList } },
-  { path: '/operations/dine-in', title: 'Restaurant Operations', component: routeComponents.OperationsCockpitPage, roles: 'all', nav: { section: 'Operations', label: 'Restaurant Operations', icon: HiOutlineSquares2X2 } },
-  { path: '/operations', title: 'Restaurant Operations', component: routeComponents.OperationsCockpitPage, roles: 'all' },
+  { path: '/operations/online', title: 'Online Orders', component: routeComponents.OnlineOrdersPage, roles: RESTAURANT_ROLES },
+  { path: '/operations/preparation', title: 'Order Preparation', component: routeComponents.OrderPreparationPage, roles: RESTAURANT_ROLES, nav: { section: 'Operations', label: 'Order Preparation', icon: HiOutlineQueueList } },
+  { path: '/operations/dine-in', title: 'Restaurant Operations', component: routeComponents.OperationsCockpitPage, roles: RESTAURANT_ROLES, nav: { section: 'Operations', label: 'Restaurant Operations', icon: HiOutlineSquares2X2 } },
+  { path: '/operations', title: 'Restaurant Operations', component: routeComponents.OperationsCockpitPage, roles: RESTAURANT_ROLES },
+  
+  // System Admin Routes
+  { path: '/system-admin/tenants', title: 'Tenant Operations', component: routeComponents.TenantManagement, roles: [SYSTEM_ADMIN], nav: { section: 'System Admin', label: 'Tenants', icon: HiOutlineBuildingStorefront } },
+  { path: '/system-admin/audit-logs', title: 'Global Audit Logs', component: routeComponents.GlobalAuditLogs, roles: [SYSTEM_ADMIN], nav: { section: 'System Admin', label: 'Audit Logs', icon: HiOutlineDocumentText } },
+  { path: '/system-admin/diagnostics', title: 'Health & Diagnostics', component: routeComponents.HealthDiagnostics, roles: [SYSTEM_ADMIN], nav: { section: 'System Admin', label: 'Diagnostics', icon: HiOutlineShieldCheck } },
 ];
 
 export const publicWebsiteRoutes = [
@@ -109,6 +123,7 @@ export const publicWebsiteRoutes = [
   { path: '/public/w/:outletSlug/table-session', component: routeComponents.TableSessionPage },
   { path: '/public/qr/:tableToken', component: routeComponents.QRRedirectPage },
   { path: '/qr/:tableToken', component: routeComponents.QRRedirectPage },
+  { path: '/system-admin/accept-invite', component: routeComponents.AcceptSystemAdminInvite },
 ];
 
 export function getPageTitle(pathname) {
