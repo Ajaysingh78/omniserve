@@ -1001,7 +1001,7 @@ export default function IntegrationsDashboard() {
                 </p>
                 <div className="bg-zinc-50 dark:bg-zinc-950 border border-border-base dark:border-zinc-850 p-2.5 rounded-lg flex items-center justify-between gap-2 overflow-hidden">
                   <span className="font-mono text-[10px] text-zinc-600 dark:text-zinc-400 truncate flex-1 select-all">
-                    {`${window.location.protocol}//${window.location.host}/api/v1/integrations/mock/${configureModal.channel.id === 'swiggy' ? 'swiggy' : 'zomato'}/orders?tenantId=${tenantId || '661817666bb70afe757e2a90'}`}
+                    {`${window.location.protocol}//${window.location.host}/api/integrations/mock/${configureModal.channel.id === 'swiggy' ? 'swiggy' : 'zomato'}/orders?tenantId=${tenantId || '661817666bb70afe757e2a90'}`}
                   </span>
                 </div>
               </div>

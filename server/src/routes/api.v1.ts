@@ -46,7 +46,6 @@ router.use("/webhooks", webhookRouter);
 router.use("/audit-logs", auditLogRouter);
 router.use("/users", userRoutes);
 router.use("/integrations", integrationRouter);
-router.use("/v1/integrations", integrationRouter);
 router.use("/public", publicRouter);
 router.use("/dining", diningRouter);
 router.use("/kds", kdsRouter);
