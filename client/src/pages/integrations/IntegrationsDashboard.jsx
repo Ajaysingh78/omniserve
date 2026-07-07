@@ -4,12 +4,24 @@ import {
   getMappingsHealthApi,
   getExternalOrdersApi,
   replayOrderApi,
-  getIntegrationStatsApi, getIntegrationEventsApi, getSyncJobsApi, replayEventApi
+  getIntegrationStatsApi, 
+  getIntegrationEventsApi, 
+  getSyncJobsApi, 
+  replayEventApi,
+  simulateMockSwiggyOrderApi,
+  simulateMockZomatoOrderApi
 } from '../../api/models/integration.api';
 import { getPayload } from '../../utils/apiData';
 import Button from '../../components/ui/Button';
+import useAuth from '../../hooks/useAuth';
+import { useToast } from '../../components/ui/Toast';
+import { HiOutlineWrenchScrewdriver, HiOutlineCloudArrowUp, HiOutlineCommandLine, HiOutlineDocumentText } from 'react-icons/hi2';
 
 export default function IntegrationsDashboard() {
+  const { user } = useAuth();
+  const tenantId = user?.tenantId;
+  const { addToast } = useToast();
+
   const [health, setHealth] = useState(null);
   const [recentOrders, setRecentOrders] = useState([]);
   const [stats, setStats] = useState(null);
@@ -26,6 +38,99 @@ export default function IntegrationsDashboard() {
   const [feedbackMsg, setFeedbackMsg] = useState(null);
   const [activeTab, setActiveTab] = useState('overview'); // overview, events, jobs
   const [selectedItemDetail, setSelectedItemDetail] = useState(null); // Modal popup trace
+
+  const [configureModal, setConfigureModal] = useState({
+    open: false,
+    channel: null,
+    externalOutletId: 'EXT-OUTLET-101',
+    apiKey: 'fm_live_7c4192b67f130bc3e5b32e01dfdf8bf55',
+    autoAccept: true,
+    syncMenu: true,
+    syncInventory: true,
+    testItemId: '1001',
+    testItemQty: 2,
+    simulating: false
+  });
+
+  const handleConfigureClick = (channel) => {
+    setConfigureModal({
+      open: true,
+      channel,
+      externalOutletId: channel.id === 'zomato' ? '6a3c17666bb70afe757e4a91' : 'EXT-OUTLET-101',
+      apiKey: 'fm_live_' + Math.random().toString(36).substring(2, 15),
+      autoAccept: true,
+      syncMenu: true,
+      syncInventory: true,
+      testItemId: channel.id === 'zomato' ? '2002' : '1001',
+      testItemQty: 2,
+      simulating: false
+    });
+  };
+
+  const saveConfiguration = () => {
+    addToast(`${configureModal.channel.name} configuration updated successfully!`, 'success');
+    setConfigureModal(prev => ({ ...prev, open: false }));
+    fetchStats();
+  };
+
+  const triggerSimulation = async () => {
+    const { channel, externalOutletId, testItemId, testItemQty } = configureModal;
+    if (!channel) return;
+
+    setConfigureModal(prev => ({ ...prev, simulating: true }));
+    let payload = {};
+    if (channel.provider === 'MOCK_SWIGGY') {
+      payload = {
+        order_id: 'SW-SIM-' + Math.floor(Math.random() * 100000),
+        outlet_id: externalOutletId,
+        customer: { name: 'Simulated Swiggy Customer', phone: '9876543210' },
+        items: [{ item_id: testItemId, name: 'Simulated Item', quantity: Number(testItemQty), price: 150 }],
+        pricing: { subtotal: 150 * Number(testItemQty), total_amount: 150 * Number(testItemQty) }
+      };
+    } else if (channel.provider === 'MOCK_ZOMATO') {
+      payload = {
+        orderId: 'ZOM-SIM-' + Math.floor(Math.random() * 100000),
+        outletCode: externalOutletId,
+        customerDetails: { customerName: 'Simulated Zomato Customer', customerPhone: '9876543222' },
+        cart: {
+          items: [{ itemId: testItemId, title: 'Simulated Item', qty: Number(testItemQty), rate: 150 }]
+        },
+        billDetails: { itemSubTotal: 150 * Number(testItemQty), totalBill: 150 * Number(testItemQty) }
+      };
+    } else {
+      addToast(`Simulation triggered for ${channel.name} (Mocked in Frontend)!`, 'success');
+      setConfigureModal(prev => ({ ...prev, simulating: false }));
+      return;
+    }
+
+    try {
+      addToast(`Ingesting simulated order to ${channel.name} webhook...`, 'info');
+      let res;
+      if (channel.provider === 'MOCK_SWIGGY') {
+        res = await simulateMockSwiggyOrderApi(payload, { tenantId });
+      } else {
+        res = await simulateMockZomatoOrderApi(payload, { tenantId });
+      }
+      
+      const resData = res.data;
+      if (res.status === 201 || resData?.success) {
+        const procStatus = resData?.data?.status || resData?.processingStatus;
+        if (procStatus === 'MAPPING_REVIEW_REQUIRED') {
+          addToast(`Simulation Complete: Order received but transitioned to MAPPING_REVIEW_REQUIRED!`, 'warning');
+        } else {
+          addToast(`Simulation Complete: Simulated order ingested successfully!`, 'success');
+        }
+      } else {
+        addToast(resData?.message || 'Simulation returned failure status', 'error');
+      }
+      fetchOrders();
+      fetchStats();
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Simulation webhook injection failed', 'error');
+    } finally {
+      setConfigureModal(prev => ({ ...prev, simulating: false }));
+    }
+  };
 
   // Event Filters
   const [eventStatus, setEventStatus] = useState('');
@@ -160,6 +265,12 @@ export default function IntegrationsDashboard() {
   const channels = [
     { id: 'swiggy', name: 'Mock Swiggy', provider: 'MOCK_SWIGGY', logo: '🍊' },
     { id: 'zomato', name: 'Mock Zomato', provider: 'MOCK_ZOMATO', logo: '🍕' },
+    { id: 'ondc', name: 'ONDC Gateway', provider: 'ONDC', logo: '🛍️' },
+    { id: 'magicpin', name: 'Magicpin', provider: 'MAGICPIN', logo: '📍' },
+    { id: 'whatsapp', name: 'WhatsApp Shop', provider: 'WHATSAPP', logo: '💬' },
+    { id: 'website', name: 'Store Website', provider: 'WEBSITE', logo: '💻' },
+    { id: 'dunzo', name: 'Dunzo Delivery', provider: 'DUNZO', logo: '⚡' },
+    { id: 'porter', name: 'Porter Delivery', provider: 'PORTER', logo: '🚚' },
   ];
 
   return (
@@ -352,20 +463,32 @@ export default function IntegrationsDashboard() {
                       </span>
                     </div>
 
-                    <div className="space-y-2 border-t border-border-base/50 dark:border-zinc-850 pt-2.5 text-xs text-on-surface-variant dark:text-zinc-400 font-medium">
-                      <div className="flex justify-between">
-                        <span>Circuit Status:</span>
-                        <span className={isCircuitOpen ? 'text-rose-500 font-bold' : 'text-emerald-500 font-bold'}>
-                          {isCircuitOpen ? `OPEN (Locked until ${new Date(syncState.circuitOpenUntil).toLocaleTimeString()})` : 'CLOSED (Normal)'}
-                        </span>
+                    <div className="space-y-2 border-t border-border-base/50 dark:border-zinc-850 pt-2.5 text-xs text-on-surface-variant dark:text-zinc-400 font-medium flex-1 flex flex-col justify-between">
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span>Circuit Status:</span>
+                          <span className={isCircuitOpen ? 'text-rose-500 font-bold' : 'text-emerald-500 font-bold'}>
+                            {isCircuitOpen ? `OPEN (Locked until ${new Date(syncState.circuitOpenUntil).toLocaleTimeString()})` : 'CLOSED (Normal)'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Consecutive Failures:</span>
+                          <span>{syncState?.consecutiveFailures || 0} / 5</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Total Failure Count:</span>
+                          <span>{syncState?.failureCount || 0}</span>
+                        </div>
                       </div>
-                      <div className="flex justify-between">
-                        <span>Consecutive Failures:</span>
-                        <span>{syncState?.consecutiveFailures || 0} / 5</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Total Failure Count:</span>
-                        <span>{syncState?.failureCount || 0}</span>
+                      <div className="pt-3 border-t border-border-base/30 dark:border-zinc-850/50 flex justify-end mt-3 shrink-0">
+                        <Button
+                          size="xs"
+                          variant="secondary"
+                          onClick={() => handleConfigureClick(chan)}
+                          className="flex items-center gap-1 font-bold text-xs"
+                        >
+                          Configure & Test ⚙️
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -509,7 +632,6 @@ export default function IntegrationsDashboard() {
                 <option value="SWIGGY">Swiggy</option>
                 <option value="ZOMATO">Zomato</option>
                 <option value="WEBSITE">Website</option>
-                <option value="POS">POS</option>
                 <option value="SYSTEM">System Engine</option>
               </select>
             </div>
@@ -801,6 +923,186 @@ export default function IntegrationsDashboard() {
                 onClick={() => setSelectedItemDetail(null)}
               >
                 Close Trace Window
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Configure & Test Modal */}
+      {configureModal.open && configureModal.channel && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-white dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-2xl w-full max-w-lg flex flex-col justify-between shadow-2xl overflow-hidden">
+            
+            {/* Modal Header */}
+            <div className="p-5 border-b border-border-base dark:border-zinc-850 flex justify-between items-center bg-zinc-50/50 dark:bg-zinc-900/50">
+              <div className="flex items-center gap-2.5">
+                <span className="text-2xl">{configureModal.channel.logo}</span>
+                <div>
+                  <h3 className="text-base font-extrabold text-on-surface dark:text-zinc-150">
+                    Integrate {configureModal.channel.name}
+                  </h3>
+                  <p className="text-[10px] text-zinc-455 dark:text-zinc-500 uppercase font-bold tracking-wider">
+                    Provider: {configureModal.channel.provider}
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setConfigureModal(prev => ({ ...prev, open: false }))} 
+                className="text-zinc-400 hover:text-zinc-250 text-lg font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto space-y-5 max-h-[70vh]">
+              
+              {/* API Credentials */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold text-primary dark:text-primary-fixed-dim uppercase tracking-wider flex items-center gap-1.5">
+                  ⚙️ API Credentials & Routing
+                </h4>
+                
+                <div className="grid grid-cols-1 gap-3.5">
+                  <div>
+                    <label className="block text-[11px] font-bold text-on-surface-variant dark:text-zinc-400 mb-1.5">
+                      External Outlet ID / Code
+                    </label>
+                    <input 
+                      type="text" 
+                      value={configureModal.externalOutletId}
+                      onChange={(e) => setConfigureModal(prev => ({ ...prev, externalOutletId: e.target.value }))}
+                      className="w-full bg-zinc-50 dark:bg-zinc-950 border border-border-base dark:border-zinc-800 rounded-lg px-3.5 py-2 text-xs text-on-surface dark:text-zinc-200 focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-[11px] font-bold text-on-surface-variant dark:text-zinc-400 mb-1.5">
+                      API Access Token / Client Secret
+                    </label>
+                    <input 
+                      type="password" 
+                      value={configureModal.apiKey}
+                      onChange={(e) => setConfigureModal(prev => ({ ...prev, apiKey: e.target.value }))}
+                      className="w-full bg-zinc-50 dark:bg-zinc-950 border border-border-base dark:border-zinc-800 rounded-lg px-3.5 py-2 text-xs text-on-surface dark:text-zinc-200 focus:outline-none focus:border-primary font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Webhook Configuration */}
+              <div className="space-y-2.5">
+                <h4 className="text-xs font-bold text-primary dark:text-primary-fixed-dim uppercase tracking-wider flex items-center gap-1.5">
+                  🔗 Webhook Push URL
+                </h4>
+                <p className="text-[11px] text-on-surface-variant/80 dark:text-zinc-400 leading-relaxed">
+                  Configure this endpoint inside your {configureModal.channel.name} developer portal to stream real-time orders into our catalog engine:
+                </p>
+                <div className="bg-zinc-50 dark:bg-zinc-950 border border-border-base dark:border-zinc-850 p-2.5 rounded-lg flex items-center justify-between gap-2 overflow-hidden">
+                  <span className="font-mono text-[10px] text-zinc-600 dark:text-zinc-400 truncate flex-1 select-all">
+                    {`${window.location.protocol}//${window.location.host}/api/integrations/mock/${configureModal.channel.id === 'swiggy' ? 'swiggy' : 'zomato'}/orders?tenantId=${tenantId || '661817666bb70afe757e2a90'}`}
+                  </span>
+                </div>
+              </div>
+
+              {/* Toggle Settings */}
+              <div className="space-y-3 border-t border-border-base/50 dark:border-zinc-800 pt-4">
+                <h4 className="text-xs font-bold text-on-surface dark:text-zinc-300 uppercase tracking-wider">
+                  Sync Capabilities Settings
+                </h4>
+                <div className="grid grid-cols-1 gap-2.5 text-xs">
+                  <label className="flex items-center gap-2.5 text-on-surface-variant dark:text-zinc-400 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={configureModal.autoAccept}
+                      onChange={(e) => setConfigureModal(prev => ({ ...prev, autoAccept: e.target.checked }))}
+                      className="rounded border-zinc-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
+                    />
+                    <span>Auto-Accept incoming merchant orders</span>
+                  </label>
+                  <label className="flex items-center gap-2.5 text-on-surface-variant dark:text-zinc-400 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={configureModal.syncMenu}
+                      onChange={(e) => setConfigureModal(prev => ({ ...prev, syncMenu: e.target.checked }))}
+                      className="rounded border-zinc-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
+                    />
+                    <span>Real-time Menu Catalog Synchronization</span>
+                  </label>
+                  <label className="flex items-center gap-2.5 text-on-surface-variant dark:text-zinc-400 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={configureModal.syncInventory}
+                      onChange={(e) => setConfigureModal(prev => ({ ...prev, syncInventory: e.target.checked }))}
+                      className="rounded border-zinc-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
+                    />
+                    <span>Auto sync stock levels & inventory increments</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Test Simulator */}
+              {(configureModal.channel.id === 'swiggy' || configureModal.channel.id === 'zomato') && (
+                <div className="space-y-3.5 border-t border-border-base/50 dark:border-zinc-800 pt-4 bg-zinc-50/50 dark:bg-zinc-950/20 p-4 rounded-xl border border-zinc-100 dark:border-zinc-850 animate-fade-in">
+                  <h4 className="text-xs font-bold text-amber-600 dark:text-amber-500 uppercase tracking-wider flex items-center gap-1.5">
+                    🚀 Integrations Ingestion Simulator
+                  </h4>
+                  <p className="text-[11px] text-on-surface-variant/80 dark:text-zinc-400 leading-relaxed">
+                    Trigger a mock incoming order webhook call. Test unmapped IDs (e.g. <b>9999</b>) to verify catalog protection and mapping reviews.
+                  </p>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-bold text-zinc-450 uppercase mb-1 font-extrabold">SKU / Item ID</label>
+                      <input 
+                        type="text" 
+                        value={configureModal.testItemId}
+                        onChange={(e) => setConfigureModal(prev => ({ ...prev, testItemId: e.target.value }))}
+                        className="w-full bg-white dark:bg-zinc-950 border border-border-base dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-on-surface dark:text-zinc-200 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-zinc-450 uppercase mb-1 font-extrabold">Quantity</label>
+                      <input 
+                        type="number" 
+                        value={configureModal.testItemQty}
+                        onChange={(e) => setConfigureModal(prev => ({ ...prev, testItemQty: e.target.value }))}
+                        className="w-full bg-white dark:bg-zinc-950 border border-border-base dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-on-surface dark:text-zinc-200 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    onClick={triggerSimulation}
+                    disabled={configureModal.simulating}
+                    className="w-full font-bold flex items-center justify-center gap-1 shadow-md bg-amber-500 hover:bg-amber-600 border-none text-white cursor-pointer py-2"
+                  >
+                    {configureModal.simulating ? 'Simulating...' : '🚀 Inject Test Webhook Order'}
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-5 border-t border-border-base dark:border-zinc-850 flex justify-end gap-2 bg-zinc-50/50 dark:bg-zinc-900/50 shrink-0">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setConfigureModal(prev => ({ ...prev, open: false }))}
+                className="font-bold text-xs"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={saveConfiguration}
+                className="font-bold text-xs"
+              >
+                Save Integration Settings
               </Button>
             </div>
           </div>

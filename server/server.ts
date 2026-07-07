@@ -11,11 +11,13 @@ try {
 
 import http from 'http';
 import app from './src/app.js';
-import connectToMongoDB from './src/config/db.config.js';
-import connectRedis from './src/config/redis.config.js';
-import { OutboxPollerService } from './src/services/outbox-poller.service.js';
-import { RealtimeService } from './src/services/realtime.service.js';
-import { startWaiterTaskEscalationWorker } from './src/workers/waiter-task-escalation.worker.js';
+import connectToMongoDB from './src/config/db.js';
+import connectRedis from './src/config/redis.js';
+import { OutboxPollerService } from './src/modules/integration/outbox-poller.service.js';
+import { RealtimeService } from './src/sockets/realtime.service.js';
+import { startWaiterTaskEscalationWorker } from './src/jobs/waiter-task-escalation.worker.js';
+import { startReservationHoldWorker } from './src/jobs/reservation-hold.worker.js';
+import { startSubscriptionBillingWorkers } from './src/jobs/subscription.job.js';
 
 const PORT = process.env.PORT || 5000;
 
@@ -28,6 +30,12 @@ const bootstrap = async () => {
 
       // Start SLA Escalation Checker background worker
       startWaiterTaskEscalationWorker();
+
+      // Start Reservation Hold Window worker
+      startReservationHoldWorker();
+
+      // Start SaaS Subscription Billing checks worker
+      startSubscriptionBillingWorkers();
 
       // Wrap Express app in standard Node HTTP Server for Socket.IO support
       const server = http.createServer(app);

@@ -28,6 +28,8 @@ export const ORDER_STATUS = {
   READY: 'READY',
   PICKED_UP: 'PICKED_UP',
   DELIVERED: 'DELIVERED',
+  SERVED: 'SERVED',
+  COMPLETED: 'COMPLETED',
   CANCELLED: 'CANCELLED',
 };
 
@@ -38,6 +40,8 @@ export const ORDER_STATUS_VARIANT = {
   READY: 'success',
   PICKED_UP: 'success',
   DELIVERED: 'success',
+  SERVED: 'success',
+  COMPLETED: 'success',
   CANCELLED: 'danger',
 };
 
@@ -48,6 +52,8 @@ export const ORDER_STATUS_LABELS = {
   READY: 'Ready',
   PICKED_UP: 'Picked Up',
   DELIVERED: 'Delivered',
+  SERVED: 'Served',
+  COMPLETED: 'Completed',
   CANCELLED: 'Cancelled',
 };
 
@@ -62,7 +68,7 @@ export const PAYMENT_STATUS_VARIANT = {
 export const PAYMENT_METHODS = ['CASH', 'CARD', 'UPI', 'WALLET', 'NET_BANKING', 'COD'];
 
 /* ── Subscription ── */
-export const SUBSCRIPTION_PLANS = ['FREE', 'STARTER', 'PRO', 'ENTERPRISE'];
+export const SUBSCRIPTION_PLANS = ['FREE', 'PRO', 'SUPER'];
 
 export const SUBSCRIPTION_STATUS_VARIANT = {
   ACTIVE: 'success',

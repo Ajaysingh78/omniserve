@@ -24,7 +24,17 @@ export default function OwnerDashboard() {
       listOutletsApi()
     ]).then(([statsRes, subRes, outletsRes]) => {
       if (statsRes.status === 'fulfilled') setStats(statsRes.value.data?.data);
-      if (subRes.status === 'fulfilled') setSub(subRes.value.data?.data);
+      if (subRes.status === 'fulfilled') {
+        const doc = subRes.value.data?.data?.subscription;
+        if (doc) {
+          setSub({
+            plan: doc.planId?.name || 'Free Trial Plan',
+            status: doc.status,
+            startDate: doc.startDate,
+            endDate: doc.endDate
+          });
+        }
+      }
       if (outletsRes.status === 'fulfilled') setOutlets(getList(outletsRes.value, 'outlets'));
       setLoading(false);
     }).catch(() => {
