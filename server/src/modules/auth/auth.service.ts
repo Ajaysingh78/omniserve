@@ -2,7 +2,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { IUser } from "../../models/user.model.js";
 import User from "../../models/user.model.js";
-import RefreshToken from "../../models/refreshToken.model.js";
+import RefreshToken from "../../models/refreshtoken.model.js";
 import { UserStatus, SubscriptionPlan, UserRole } from "../../models/enums.js";
 import { Types } from 'mongoose';
 import Tenant from "../../models/tenant.model.js";

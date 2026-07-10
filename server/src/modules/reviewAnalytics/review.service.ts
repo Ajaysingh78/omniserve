@@ -1,5 +1,5 @@
 import { Types } from 'mongoose';
-import ReviewAnalytics, { IReviewAnalytics } from "../../models/reviewAnalytics.model.js";
+import ReviewAnalytics, { IReviewAnalytics } from "../../models/reviewanalytics.model.js";
 import { SentimentLabel, ReviewSource } from "../../models/enums.js";
 
 export class ReviewService {

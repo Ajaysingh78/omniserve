@@ -3,7 +3,7 @@ import { Types } from 'mongoose';
 import { WebhookService } from "./webhook.service.js";
 import { ApiResponseHandler } from "../../utils/apiResponse.js";
 import { WebhookProvider, WebhookStatus } from "../../models/enums.js";
-import WebhookLog from "../../models/webhookLog.model.js";
+import WebhookLog from "../../models/webhooklog.model.js";
 
 export class WebhookController {
   /**

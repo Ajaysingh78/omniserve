@@ -1,14 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useSearchParams, Navigate, useNavigate } from 'react-router-dom';
 import PageHeader from '../../components/ui/PageHeader';
-import KitchenDisplay from './components/KitchenDisplay';
 import useAuth from '../../hooks/useAuth';
+import FloorView from './components/FloorView';
+import FloorDesigner from './components/FloorDesigner';
+import QRCodesCenter from './components/QRCodesCenter';
 import { listOutletsApi } from '../../api/models/outlet.api';
 import Button from '../../components/ui/Button';
 
-export default function OrderPreparationPage() {
+export default function FloorManagement() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'live';
+
+  const isStaff = user?.role === 'STAFF';
 
   const [outletsList, setOutletsList] = useState([]);
   const [selectedOutletId, setSelectedOutletId] = useState(
@@ -41,11 +47,26 @@ export default function OrderPreparationPage() {
     localStorage.setItem('selectedOutletId', newId);
   };
 
+  // Build tabs based on permissions
+  const tabs = [
+    { to: '/floor-management?tab=live', label: 'Live Floor' },
+  ];
+
+  if (!isStaff) {
+    tabs.push({ to: '/floor-management?tab=designer', label: 'Floor Designer' });
+    tabs.push({ to: '/floor-management?tab=qrcodes', label: 'QR Codes' });
+  }
+
+  // Guard direct URL entry
+  if (isStaff && (activeTab === 'designer' || activeTab === 'qrcodes')) {
+    return <Navigate to="/floor-management?tab=live" replace />;
+  }
+
   // Outlet selector & view all action element
   const headerActions = (
     <div className="flex items-center gap-3">
       {outletsList.length > 0 && (
-        <div className="flex items-center gap-2 bg-surface-subtle dark:bg-zinc-900 border border-border-base dark:border-zinc-850 rounded-lg px-3 py-1.5 shadow-sm">
+        <div className="flex items-center gap-2 bg-surface-subtle dark:bg-zinc-900 border border-border-base dark:border-zinc-855 rounded-lg px-3 py-1.5 shadow-sm">
           <span className="text-xs font-bold text-on-surface-variant dark:text-zinc-400">Outlet:</span>
           <select 
             value={selectedOutletId}
@@ -74,20 +95,18 @@ export default function OrderPreparationPage() {
   );
 
   return (
-    <div className="h-[calc(100vh-112px)] flex flex-col overflow-hidden space-y-4 animate-fade-in">
-      {/* Page Header */}
-      <div className="shrink-0">
-        <PageHeader 
-          section="Operations"
-          title="Order Preparation" 
-          description="Real-time Kitchen Display System (KDS). Monitor food and beverage prep status across all online and offline channels."
-          actions={headerActions}
-        />
-      </div>
-
-      {/* Embedded KDS Display */}
-      <div className="flex-1 overflow-y-auto min-h-0 bg-white dark:bg-zinc-950 p-6 rounded-xl border border-border-base dark:border-zinc-900">
-        <KitchenDisplay key={selectedOutletId} />
+    <div className="space-y-6">
+      <PageHeader
+        section="Operations"
+        title="Floor Management"
+        description="Monitor table operations, design layouts, and manage QR Codes."
+        tabs={tabs}
+        actions={headerActions}
+      />
+      <div>
+        {activeTab === 'live' && <FloorView key={selectedOutletId} />}
+        {activeTab === 'designer' && <FloorDesigner key={selectedOutletId} />}
+        {activeTab === 'qrcodes' && <QRCodesCenter key={selectedOutletId} />}
       </div>
     </div>
   );

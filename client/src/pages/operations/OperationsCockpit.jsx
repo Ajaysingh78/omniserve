@@ -39,23 +39,30 @@ export default function OperationsCockpit() {
   const { user } = useAuth();
   
   const [outlet, setOutlet] = useState(null);
+  const [outletsList, setOutletsList] = useState([]);
 
   useEffect(() => {
-    const fetchOutlet = async () => {
+    const fetchOutlets = async () => {
       if (!user) return;
-      const targetId = user.outletId || (user.outletIds && user.outletIds[0]);
-      if (!targetId) return;
       try {
         const res = await listOutletsApi();
-        const found = res.data?.data?.outlets?.find(o => o.id === targetId || o._id === targetId);
+        const list = res.data?.data?.outlets || [];
+        setOutletsList(list);
+        
+        let targetId = user.outletId || (user.outletIds && user.outletIds[0]) || localStorage.getItem('selectedOutletId');
+        let found = list.find(o => o.id === targetId || o._id === targetId);
+        if (!found && list.length > 0) {
+          found = list[0];
+        }
         if (found) {
           setOutlet(found);
+          localStorage.setItem('selectedOutletId', found.id || found._id);
         }
       } catch (err) {
         console.error('Failed to load outlet details:', err);
       }
     };
-    fetchOutlet();
+    fetchOutlets();
   }, [user]);
 
   // Listen for global real-time notifications to show toasts in cockpit
@@ -72,15 +79,18 @@ export default function OperationsCockpit() {
       addToast(`Bill requested for Session on Table ${payload.tableNumber || ''}`, 'info');
     } else if (event === 'WAITER_TASK_ESCALATED') {
       addToast(`CRITICAL: Waiter Task escalated for Table ${payload.tableId}`, 'error');
+    } else if (event === 'OUTLET_STATUS_CHANGED') {
+      const targetId = user?.outletId || (user?.outletIds && user.outletIds[0]);
+      if (payload.outletId === targetId) {
+        setOutlet(prev => prev ? { ...prev, status: payload.newStatus } : null);
+        addToast(`Outlet is now ${payload.newStatus === 'ACTIVE' ? 'OPEN' : 'CLOSED'}`, 'info');
+      }
     }
-  }, [lastMessage, addToast]);
+  }, [lastMessage, addToast, user]);
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: HiOutlinePresentationChartLine, component: RestaurantOperationsDashboard },
-    { id: 'floor', label: 'Live Floor', icon: HiOutlineMap, component: FloorView },
     { id: 'dine-in-orders', label: 'Dine-In Orders', icon: HiOutlineListBullet, component: null },
-    { id: 'qr-codes', label: 'QR Codes', icon: HiOutlineQrCode, component: QRCodesCenter },
-    { id: 'designer', label: 'Floor Designer', icon: HiOutlinePencilSquare, component: FloorDesigner },
     { id: 'waiters', label: 'Waiter Console', icon: HiOutlineUserGroup, component: WaiterConsole },
     { id: 'billing', label: 'Billing Splits', icon: HiOutlineReceiptPercent, component: BillingWorkspace },
     { id: 'reservations', label: 'Reservations', icon: HiOutlineCalendarDays, component: ReservationCalendar },
@@ -98,14 +108,31 @@ export default function OperationsCockpit() {
           title="Operations Cockpit" 
           subtitle="Real-time control center for dining floor, kitchen, service tasks, and outlets."
         />
-        <div className="flex items-center gap-4 self-start sm:self-center">
-          {/* Socket Connection Dot */}
-          <div className="flex items-center gap-1.5 bg-surface-subtle dark:bg-zinc-900 border border-border-base dark:border-zinc-800 px-2.5 py-1.5 rounded-xl">
-            <span className={`inline-block w-2 h-2 rounded-full ${connected ? 'bg-success-green animate-pulse' : 'bg-red-500'}`} />
-            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
-              {connected ? 'Sync Connected' : 'Sync Offline'}
-            </span>
-          </div>
+        <div className="flex items-center gap-4 self-start sm:self-center flex-wrap">
+          {/* Outlet selector dropdown */}
+          {outletsList.length > 1 && (
+            <div className="flex items-center gap-2 bg-surface-subtle dark:bg-zinc-900 border border-border-base dark:border-zinc-800 px-3 py-1.5 rounded-xl">
+              <span className="text-xs font-bold text-on-surface-variant dark:text-zinc-400">Outlet:</span>
+              <select
+                value={outlet?.id || outlet?._id || ''}
+                onChange={(e) => {
+                  const selectedId = e.target.value;
+                  const found = outletsList.find(o => o.id === selectedId || o._id === selectedId);
+                  if (found) {
+                    setOutlet(found);
+                    localStorage.setItem('selectedOutletId', selectedId);
+                  }
+                }}
+                className="bg-transparent border-none text-xs font-bold text-on-surface focus:outline-none cursor-pointer pr-1"
+              >
+                {outletsList.map((o) => (
+                  <option key={o.id || o._id} value={o.id || o._id} className="bg-white dark:bg-zinc-950 text-on-surface">
+                    {o.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Outlet status toggle slider */}
           {outlet && (
@@ -117,8 +144,10 @@ export default function OperationsCockpit() {
                 <input 
                   type="checkbox" 
                   className="sr-only peer" 
+                  disabled={user?.role === 'STAFF'}
                   checked={outlet.status === 'ACTIVE'}
                   onChange={async () => {
+                    if (user?.role === 'STAFF') return;
                     const newStatus = outlet.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
                     try {
                       await toggleOutletStatusApi(outlet.id || outlet._id, newStatus);
@@ -129,7 +158,7 @@ export default function OperationsCockpit() {
                     }
                   }}
                 />
-                <div className="w-9 h-5 bg-zinc-300 dark:bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-success-green"></div>
+                <div className={`w-9 h-5 bg-zinc-300 dark:bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-success-green ${user?.role === 'STAFF' ? 'opacity-50 cursor-not-allowed' : ''}`}></div>
               </label>
             </div>
           )}
@@ -161,7 +190,7 @@ export default function OperationsCockpit() {
       </div>
 
       {/* Primary Subpage Workspace wrapper */}
-      <div className="flex-1 overflow-y-auto min-h-0">
+      <div className="flex-1 overflow-y-auto min-h-0" key={outlet?.id || outlet?._id}>
         {activeTab === 'dine-in-orders' ? (
           <OrdersPage mode="DINE_IN" hideHeader={true} onNavigate={setActiveTab} />
         ) : (

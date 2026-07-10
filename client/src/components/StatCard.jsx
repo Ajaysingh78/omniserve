@@ -6,9 +6,20 @@ const iconColors = {
   amber: 'bg-amber-500/10 text-amber-650 dark:text-amber-400',
   rose: 'bg-error/10 text-error',
   blue: 'bg-blue-500/10 text-blue-650 dark:text-blue-400',
+  primary: 'bg-primary-container/10 text-primary-container dark:text-primary-fixed-dim',
+  warning: 'bg-amber-500/10 text-amber-650 dark:text-amber-400',
+  info: 'bg-blue-500/10 text-blue-650 dark:text-blue-400',
+  error: 'bg-rose-500/10 text-error',
 };
 
 export default function StatCard({ title, value, icon, trend, trendUp, color = 'indigo', onClick }) {
+  const renderIcon = () => {
+    if (!icon) return null;
+    if (React.isValidElement(icon)) return icon;
+    const IconComponent = icon;
+    return <IconComponent />;
+  };
+
   return (
     <div 
       onClick={onClick}
@@ -18,7 +29,7 @@ export default function StatCard({ title, value, icon, trend, trendUp, color = '
     >
       <div className="flex items-center justify-between">
         <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl shrink-0 ${iconColors[color] || iconColors.indigo}`}>
-          {icon}
+          {renderIcon()}
         </div>
         {trend && (
           <span 

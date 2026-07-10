@@ -1,11 +1,23 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getTablesApi, getDiningAreasApi, updateTablesLayoutApi, createDiningAreaApi, createTableApi, archiveDiningAreaApi, archiveTableApi } from '../../../api/models/operations.api';
+import { getTablesApi, getDiningAreasApi, updateTablesLayoutApi, createDiningAreaApi, createTableApi, archiveDiningAreaApi, archiveTableApi, updateTableApi, updateDiningAreaApi } from '../../../api/models/operations.api';
 import { useToast } from '../../../components/ui/Toast';
 import Button from '../../../components/ui/Button';
 import Spinner from '../../../components/ui/Spinner';
 import Modal from '../../../components/ui/Modal';
-import { HiOutlineSquares2X2, HiOutlineDevicePhoneMobile, HiArrowPath, HiPlus, HiTrash, HiOutlineQrCode, HiOutlineClipboardDocument } from 'react-icons/hi2';
+import { HiOutlineSquares2X2, HiOutlineDevicePhoneMobile, HiArrowPath, HiPlus, HiTrash, HiOutlineQrCode, HiOutlineClipboardDocument, HiPencil } from 'react-icons/hi2';
 import { QRCodeSVG } from 'qrcode.react';
+
+const getLayoutWithDefaults = (layout) => ({
+  x: 50,
+  y: 50,
+  width: 80,
+  height: 80,
+  rotation: 0,
+  shape: 'square',
+  zIndex: 10,
+  labelPosition: 'CENTER',
+  ...(layout || {})
+});
 
 export default function FloorDesigner() {
   const { addToast } = useToast();
@@ -25,9 +37,16 @@ export default function FloorDesigner() {
   // CRUD Modals state
   const [showAreaModal, setShowAreaModal] = useState(false);
   const [newAreaName, setNewAreaName] = useState('');
+  const [showRenameAreaModal, setShowRenameAreaModal] = useState(false);
+  const [renameAreaName, setRenameAreaName] = useState('');
   const [showTableModal, setShowTableModal] = useState(false);
   const [newTableData, setNewTableData] = useState({ tableNumber: '', seatCount: 4 });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Inline edit states for table properties
+  const [editTableNumber, setEditTableNumber] = useState('');
+  const [editSeatCount, setEditSeatCount] = useState(4);
+  const [isSavingProps, setIsSavingProps] = useState(false);
 
   const handleAddArea = async () => {
     if (!newAreaName.trim()) return addToast('Name is required', 'error');
@@ -41,6 +60,22 @@ export default function FloorDesigner() {
       if (res.data?.data?._id) setSelectedAreaId(res.data.data._id);
     } catch (e) {
       addToast(e.response?.data?.message || 'Failed to create floor', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleRenameArea = async () => {
+    if (!renameAreaName.trim()) return addToast('Name is required', 'error');
+    setIsSubmitting(true);
+    try {
+      await updateDiningAreaApi(selectedAreaId, { name: renameAreaName.trim() });
+      addToast('Floor renamed successfully', 'success');
+      setShowRenameAreaModal(false);
+      setRenameAreaName('');
+      await fetchData();
+    } catch (e) {
+      addToast(e.response?.data?.message || 'Failed to rename floor', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -68,26 +103,26 @@ export default function FloorDesigner() {
   };
 
   const handleDeleteArea = async () => {
-    if (!window.confirm('Are you sure you want to archive this floor?')) return;
+    if (!window.confirm('Are you sure you want to delete this floor?')) return;
     try {
       await archiveDiningAreaApi(selectedAreaId);
-      addToast('Floor archived', 'success');
+      addToast('Floor deleted successfully', 'success');
       setSelectedAreaId('');
       fetchData();
     } catch (e) {
-      addToast(e.response?.data?.message || 'Failed to archive floor', 'error');
+      addToast(e.response?.data?.message || 'Failed to delete floor', 'error');
     }
   };
 
   const handleDeleteTable = async () => {
-    if (!selectedTable || !window.confirm('Are you sure you want to archive this table?')) return;
+    if (!selectedTable || !window.confirm('Are you sure you want to delete this table?')) return;
     try {
       await archiveTableApi(selectedTable._id);
-      addToast('Table archived', 'success');
+      addToast('Table deleted successfully', 'success');
       setSelectedTable(null);
       fetchData();
     } catch (e) {
-      addToast(e.response?.data?.message || 'Failed to archive table', 'error');
+      addToast(e.response?.data?.message || 'Failed to delete table', 'error');
     }
   };
 
@@ -124,7 +159,7 @@ export default function FloorDesigner() {
     setHasDragged(false);
     setDragStartPos({ x: e.clientX, y: e.clientY });
 
-    const layout = table.layout || { x: 50, y: 50, width: 80, height: 80, rotation: 0, shape: 'square' };
+    const layout = getLayoutWithDefaults(table.layout);
     setDragOffset({
       x: e.clientX - layout.x,
       y: e.clientY - layout.y
@@ -180,7 +215,7 @@ export default function FloorDesigner() {
         return {
           ...t,
           layout: {
-            ...(t.layout || { x: 50, y: 50, width: 80, height: 80, rotation: 0, shape: 'square' }),
+            ...getLayoutWithDefaults(t.layout),
             [property]: value
           }
         };
@@ -195,7 +230,7 @@ export default function FloorDesigner() {
     try {
       const payload = currentAreaTables.map(t => ({
         tableId: t._id,
-        layout: t.layout || { x: 50, y: 50, width: 80, height: 80, rotation: 0, shape: 'square', zIndex: 10, labelPosition: 'CENTER' }
+        layout: getLayoutWithDefaults(t.layout)
       }));
       await updateTablesLayoutApi({ tables: payload });
       addToast('Floor layout saved successfully', 'success');
@@ -207,11 +242,22 @@ export default function FloorDesigner() {
     }
   };
 
+  const activeEditTable = tables.find(t => t._id === selectedTable?._id);
+
+  // Sync edit fields when selected table changes
+  useEffect(() => {
+    if (activeEditTable) {
+      setEditTableNumber(activeEditTable.tableNumber || '');
+      setEditSeatCount(activeEditTable.seatCount || 4);
+    } else {
+      setEditTableNumber('');
+      setEditSeatCount(4);
+    }
+  }, [activeEditTable?._id]);
+
   if (loading) {
     return <div className="flex items-center justify-center py-24"><Spinner size="lg" /></div>;
   }
-
-  const activeEditTable = tables.find(t => t._id === selectedTable?._id);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 animate-fade-in">
@@ -242,8 +288,28 @@ export default function FloorDesigner() {
           </div>
           <div className="flex items-center gap-2">
             {selectedAreaId && (
-              <Button size="sm" variant="danger" onClick={handleDeleteArea} className="!bg-red-500/10 !text-red-500 border-none hover:!bg-red-500/20">
-                <HiTrash className="w-4 h-4" />
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={() => {
+                  const currentArea = diningAreas.find(a => (a._id || a.id) === selectedAreaId);
+                  setRenameAreaName(currentArea?.name || '');
+                  setShowRenameAreaModal(true);
+                }} 
+                className="hover:bg-primary/5 text-xs"
+              >
+                <HiPencil className="w-4 h-4 mr-1" /> Rename Floor
+              </Button>
+            )}
+            {selectedAreaId && (
+              <Button 
+                size="sm" 
+                variant="danger" 
+                onClick={handleDeleteArea} 
+                className="!bg-red-500/10 !text-red-500 border-none hover:!bg-red-500/20"
+                title="Delete Floor"
+              >
+                <HiTrash className="w-4 h-4 mr-1" /> Delete Floor
               </Button>
             )}
             {selectedAreaId && (
@@ -268,7 +334,7 @@ export default function FloorDesigner() {
           <div className="absolute inset-0 bg-[linear-gradient(to_right,#f1f5f9_1px,transparent_1px),linear-gradient(to_bottom,#f1f5f9_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] [background-size:25px_25px] opacity-70" />
 
           {currentAreaTables.map((table) => {
-            const layout = table.layout || { x: 50, y: 50, width: 80, height: 80, rotation: 0, shape: 'square', zIndex: 10, labelPosition: 'CENTER' };
+            const layout = getLayoutWithDefaults(table.layout);
             const isRound = layout.shape === 'round';
             const isSelected = selectedTable?._id === table._id;
 
@@ -310,14 +376,60 @@ export default function FloorDesigner() {
 
         {activeEditTable ? (
           <div className="space-y-4">
+            {/* Table Name + Seat Count editing */}
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wide">Table Name / Number</label>
+                <input
+                  type="text"
+                  value={editTableNumber}
+                  onChange={(e) => setEditTableNumber(e.target.value)}
+                  className="w-full bg-surface-container dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-lg p-2 text-xs font-semibold text-on-surface dark:text-zinc-200"
+                  placeholder="e.g. T1, Bar-1"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wide">Seat Count</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={editSeatCount}
+                  onChange={(e) => setEditSeatCount(parseInt(e.target.value, 10) || 1)}
+                  className="w-full bg-surface-container dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-lg p-2 text-xs"
+                />
+              </div>
+              {(editTableNumber !== activeEditTable.tableNumber || editSeatCount !== (activeEditTable.seatCount || 4)) && (
+                <Button
+                  size="sm"
+                  variant="primary"
+                  className="w-full"
+                  isLoading={isSavingProps}
+                  onClick={async () => {
+                    if (!editTableNumber.trim()) return addToast('Table name is required', 'error');
+                    setIsSavingProps(true);
+                    try {
+                      await updateTableApi(activeEditTable._id, {
+                        tableNumber: editTableNumber.trim(),
+                        seatCount: editSeatCount,
+                      });
+                      addToast('Table updated', 'success');
+                      fetchData();
+                    } catch (e) {
+                      addToast(e.response?.data?.message || 'Failed to update table', 'error');
+                    } finally {
+                      setIsSavingProps(false);
+                    }
+                  }}
+                >
+                  Save Name & Seats
+                </Button>
+              )}
+            </div>
+
             <div className="bg-surface-container-low dark:bg-zinc-900/40 p-3.5 rounded-lg text-xs space-y-1">
               <div className="flex justify-between">
-                <span>Selected Table:</span>
-                <span className="font-bold text-primary dark:text-primary-fixed-dim">{activeEditTable.tableNumber}</span>
-              </div>
-              <div className="flex justify-between">
                 <span>Coordinates:</span>
-                <span className="font-semibold">{activeEditTable.layout?.x || 50}px, {activeEditTable.layout?.y || 50}px</span>
+                <span className="font-semibold">{getLayoutWithDefaults(activeEditTable.layout).x}px, {getLayoutWithDefaults(activeEditTable.layout).y}px</span>
               </div>
             </div>
 
@@ -347,7 +459,7 @@ export default function FloorDesigner() {
                 <label className="text-[11px] font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wide">Width (px)</label>
                 <input
                   type="number"
-                  value={activeEditTable.layout?.width || 80}
+                  value={getLayoutWithDefaults(activeEditTable.layout).width}
                   onChange={(e) => updateTableProperty(activeEditTable._id, 'width', parseInt(e.target.value, 10))}
                   className="w-full bg-surface-container dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-lg p-2 text-xs"
                 />
@@ -356,7 +468,7 @@ export default function FloorDesigner() {
                 <label className="text-[11px] font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wide">Height (px)</label>
                 <input
                   type="number"
-                  value={activeEditTable.layout?.height || 80}
+                  value={getLayoutWithDefaults(activeEditTable.layout).height}
                   onChange={(e) => updateTableProperty(activeEditTable._id, 'height', parseInt(e.target.value, 10))}
                   className="w-full bg-surface-container dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-lg p-2 text-xs"
                 />
@@ -367,13 +479,13 @@ export default function FloorDesigner() {
             <div className="space-y-1">
               <div className="flex justify-between text-[11px] font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wide">
                 <span>Rotation</span>
-                <span>{activeEditTable.layout?.rotation || 0}°</span>
+                <span>{getLayoutWithDefaults(activeEditTable.layout).rotation}°</span>
               </div>
               <input
                 type="range"
                 min="0"
                 max="360"
-                value={activeEditTable.layout?.rotation || 0}
+                value={getLayoutWithDefaults(activeEditTable.layout).rotation}
                 onChange={(e) => updateTableProperty(activeEditTable._id, 'rotation', parseInt(e.target.value, 10))}
                 className="w-full h-1 bg-surface-container rounded-lg appearance-none cursor-pointer"
               />
@@ -383,7 +495,7 @@ export default function FloorDesigner() {
             <div className="space-y-1.5">
               <label className="text-[11px] font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wide">Label Placement</label>
               <select
-                value={activeEditTable.layout?.labelPosition || 'CENTER'}
+                value={getLayoutWithDefaults(activeEditTable.layout).labelPosition}
                 onChange={(e) => updateTableProperty(activeEditTable._id, 'labelPosition', e.target.value)}
                 className="w-full bg-surface-container dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-lg p-2 text-xs text-on-background"
               >
@@ -398,7 +510,7 @@ export default function FloorDesigner() {
               <label className="text-[11px] font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wide">Z-Index Elevation</label>
               <input
                 type="number"
-                value={activeEditTable.layout?.zIndex || 10}
+                value={getLayoutWithDefaults(activeEditTable.layout).zIndex}
                 onChange={(e) => updateTableProperty(activeEditTable._id, 'zIndex', parseInt(e.target.value, 10))}
                 className="w-full bg-surface-container dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-lg p-2 text-xs"
               />
@@ -413,7 +525,8 @@ export default function FloorDesigner() {
                 </div>
                 <div className="flex flex-col items-center p-4 bg-white rounded-lg border border-border-base dark:border-zinc-800">
                   <QRCodeSVG 
-                    value={`${window.location.origin}/qr/${activeEditTable.qrToken}`} 
+                    id={`svg-${activeEditTable._id || activeEditTable.id}`}
+                    value={`${window.location.origin}/public/qr/${activeEditTable.qrToken}`} 
                     size={128} 
                     level="H" 
                     includeMargin={true}
@@ -424,7 +537,7 @@ export default function FloorDesigner() {
                       variant="outline" 
                       className="flex-1 text-[10px]"
                       onClick={() => {
-                        navigator.clipboard.writeText(`${window.location.origin}/qr/${activeEditTable.qrToken}`);
+                        navigator.clipboard.writeText(`${window.location.origin}/public/qr/${activeEditTable.qrToken}`);
                         addToast('URL copied to clipboard', 'success');
                       }}
                     >
@@ -435,7 +548,7 @@ export default function FloorDesigner() {
                       variant="primary" 
                       className="flex-1 text-[10px]"
                       onClick={() => {
-                        const svg = document.querySelector('.bg-white svg');
+                        const svg = document.getElementById(`svg-${activeEditTable._id || activeEditTable.id}`);
                         if (svg) {
                           const svgData = new XMLSerializer().serializeToString(svg);
                           const canvas = document.createElement("canvas");
@@ -451,7 +564,7 @@ export default function FloorDesigner() {
                             downloadLink.href = `${pngFile}`;
                             downloadLink.click();
                           };
-                          img.src = "data:image/svg+xml;base64," + btoa(svgData);
+                          img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgData);
                         }
                       }}
                     >
@@ -464,14 +577,26 @@ export default function FloorDesigner() {
 
             <div className="pt-4 border-t border-border-base dark:border-zinc-800">
               <Button size="sm" variant="danger" className="w-full" onClick={handleDeleteTable}>
-                <HiTrash className="w-4 h-4 mr-2" /> Archive Table
+                <HiTrash className="w-4 h-4 mr-2" /> Delete Table
               </Button>
             </div>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-12 text-on-surface-variant dark:text-zinc-550 border border-dashed border-border-base dark:border-zinc-800 rounded-xl text-xs text-center">
-            <span>No table selected.</span>
-            <span className="text-[10px] mt-0.5">Click a table on the blueprint to start editing properties.</span>
+          <div className="space-y-4">
+            <div className="flex flex-col items-center justify-center py-8 text-on-surface-variant dark:text-zinc-550 border border-dashed border-border-base dark:border-zinc-800 rounded-xl text-xs text-center p-4">
+              <span>No table selected.</span>
+              <span className="text-[10px] mt-0.5">Click a table on the blueprint to edit its properties.</span>
+            </div>
+            
+            <div className="bg-surface-subtle dark:bg-zinc-900/60 border border-border-base dark:border-zinc-850 p-4 rounded-xl text-[12px] space-y-2">
+              <h4 className="font-bold text-on-surface text-[11px] uppercase tracking-wider">Floor & Table Options:</h4>
+              <ul className="space-y-1.5 text-on-surface-variant dark:text-zinc-400 list-disc list-inside">
+                <li><span className="font-bold">Rename Floor:</span> Click <span className="underline">Rename Floor</span> at the top of the grid.</li>
+                <li><span className="font-bold">Delete Floor:</span> Click the trash icon button at the top of the grid.</li>
+                <li><span className="font-bold">Rename Table:</span> Select any table on the canvas, edit the name input, and click save.</li>
+                <li><span className="font-bold">Delete Table:</span> Select any table, then click <span className="underline text-red-500">Delete Table</span> at the bottom of the sidebar.</li>
+              </ul>
+            </div>
           </div>
         )}
       </div>
@@ -522,6 +647,26 @@ export default function FloorDesigner() {
           <div className="flex justify-end gap-2 pt-4">
             <Button variant="outline" onClick={() => setShowTableModal(false)}>Cancel</Button>
             <Button variant="primary" onClick={handleAddTable} isLoading={isSubmitting}>Create Table</Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Rename Floor Modal */}
+      <Modal isOpen={showRenameAreaModal} onClose={() => setShowRenameAreaModal(false)} title="Rename Floor">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">New Floor Name</label>
+            <input 
+              type="text" 
+              value={renameAreaName} 
+              onChange={e => setRenameAreaName(e.target.value)} 
+              className="w-full border rounded-lg p-2 bg-surface-container dark:bg-zinc-900 border-border-base dark:border-zinc-800"
+              placeholder="e.g. Ground Floor, Patio"
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button variant="outline" onClick={() => setShowRenameAreaModal(false)}>Cancel</Button>
+            <Button variant="primary" onClick={handleRenameArea} isLoading={isSubmitting}>Rename Floor</Button>
           </div>
         </div>
       </Modal>
