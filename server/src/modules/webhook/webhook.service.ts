@@ -1,6 +1,6 @@
 import { Types } from 'mongoose';
 import crypto from 'crypto';
-import WebhookLog, { IWebhookLog } from "../../models/webhookLog.model.js";
+import WebhookLog, { IWebhookLog } from "../../models/webhooklog.model.js";
 import Tenant from "../../models/tenant.model.js";
 import Outlet from "../../models/outlet.model.js";
 import Order from "../../models/order.model.js";

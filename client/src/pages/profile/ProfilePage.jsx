@@ -20,6 +20,7 @@ import Badge from '../../components/ui/Badge';
 import { useToast } from '../../components/ui/Toast';
 import useAuth from '../../hooks/useAuth';
 import { updateUserApi, getProfileContextApi } from '../../api/models/user.api';
+import { toggleOutletStatusApi } from '../../api/models/outlet.api';
 import { fetchCurrentUser } from '../../store/authSlice';
 import { ROLE_LABELS, ROLE_BADGE_VARIANT } from '../../utils/constants';
 
@@ -44,6 +45,32 @@ export default function ProfilePage() {
       console.error('Failed to load profile context', err);
     } finally {
       setContextLoading(false);
+    }
+  };
+
+  const handleToggleOutletStatus = async (outletId, currentStatus) => {
+    const newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+    try {
+      await toggleOutletStatusApi(outletId, newStatus);
+      addToast(`Outlet status updated to ${newStatus === 'ACTIVE' ? 'OPEN' : 'CLOSED'}`, 'success');
+      setProfileContext((prev) => {
+        if (!prev) return prev;
+        const updatedOutlets = (prev.hierarchy?.outlets || []).map((out) => {
+          if ((out._id || out.id) === outletId) {
+            return { ...out, status: newStatus };
+          }
+          return out;
+        });
+        return {
+          ...prev,
+          hierarchy: {
+            ...prev.hierarchy,
+            outlets: updatedOutlets,
+          },
+        };
+      });
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Failed to update outlet status', 'error');
     }
   };
 
@@ -571,38 +598,100 @@ export default function ProfilePage() {
                 </div>
               ) : profileContext ? (
                 <div className="space-y-4">
-                  {profileContext.tenant && (
+                  {/* User Section */}
+                  {profileContext.user && (
                     <div className="p-4 bg-surface-subtle dark:bg-zinc-900/40 border border-border-base dark:border-zinc-850 rounded-2xl">
-                      <span className="text-[10px] uppercase tracking-wider font-bold text-on-surface-variant/60 dark:text-zinc-500">Tenant Account</span>
-                      <h4 className="text-sm font-bold text-on-surface dark:text-zinc-200 mt-1">{profileContext.tenant.name}</h4>
-                      <p className="text-[11px] font-mono text-on-surface-variant/70 dark:text-zinc-500 mt-0.5">ID: {profileContext.tenant.id}</p>
+                      <span className="text-[10px] uppercase tracking-wider font-bold text-on-surface-variant/60 dark:text-zinc-500">Your Account Details</span>
+                      <div className="mt-2 space-y-1.5 text-xs text-on-surface dark:text-zinc-350">
+                        <div className="flex justify-between"><span className="text-on-surface-variant/70 dark:text-zinc-500">User ID:</span> <span className="font-mono">{profileContext.user.id}</span></div>
+                        <div className="flex justify-between"><span className="text-on-surface-variant/70 dark:text-zinc-500">Full Name:</span> <span className="font-semibold">{profileContext.user.firstName} {profileContext.user.lastName}</span></div>
+                        <div className="flex justify-between"><span className="text-on-surface-variant/70 dark:text-zinc-500">Email:</span> <span className="font-semibold">{profileContext.user.email}</span></div>
+                        <div className="flex justify-between"><span className="text-on-surface-variant/70 dark:text-zinc-500">Role:</span> <span className="font-bold text-primary">{ROLE_LABELS[profileContext.user.role] || profileContext.user.role}</span></div>
+                        <div className="flex justify-between"><span className="text-on-surface-variant/70 dark:text-zinc-500">Account Status:</span> <Badge variant={profileContext.user.status === 'ACTIVE' ? 'success' : 'neutral'}>{profileContext.user.status}</Badge></div>
+                      </div>
                     </div>
                   )}
 
-                  {profileContext.restaurants && profileContext.restaurants.length > 0 && (
+                  {/* Tenant Section */}
+                  {profileContext.hierarchy?.tenant && (
+                    <div className="p-4 bg-surface-subtle dark:bg-zinc-900/40 border border-border-base dark:border-zinc-850 rounded-2xl">
+                      <span className="text-[10px] uppercase tracking-wider font-bold text-on-surface-variant/60 dark:text-zinc-500">Tenant Account Details</span>
+                      <div className="mt-2 space-y-1.5 text-xs text-on-surface dark:text-zinc-350">
+                        <div className="flex justify-between"><span className="text-on-surface-variant/70 dark:text-zinc-550">Tenant ID:</span> <span className="font-mono">{profileContext.hierarchy.tenant._id || profileContext.hierarchy.tenant.id}</span></div>
+                        <div className="flex justify-between"><span className="text-on-surface-variant/70 dark:text-zinc-550">Company Name:</span> <span className="font-bold">{profileContext.hierarchy.tenant.name}</span></div>
+                        <div className="flex justify-between"><span className="text-on-surface-variant/70 dark:text-zinc-555">Tenant Slug:</span> <span className="font-mono">{profileContext.hierarchy.tenant.slug}</span></div>
+                        <div className="flex justify-between"><span className="text-on-surface-variant/70 dark:text-zinc-555">Status:</span> <Badge variant={profileContext.hierarchy.tenant.status === 'ACTIVE' ? 'success' : 'danger'}>{profileContext.hierarchy.tenant.status}</Badge></div>
+                        <div className="flex justify-between"><span className="text-on-surface-variant/70 dark:text-zinc-555">Subscription Tier:</span> <span className="font-extrabold text-indigo-650 dark:text-indigo-400">{profileContext.hierarchy.tenant.subscriptionPlan}</span></div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Restaurants Section */}
+                  {profileContext.hierarchy?.restaurants && profileContext.hierarchy.restaurants.length > 0 && (
                     <div className="p-4 bg-surface-subtle dark:bg-zinc-900/40 border border-border-base dark:border-zinc-850 rounded-2xl">
                       <span className="text-[10px] uppercase tracking-wider font-bold text-on-surface-variant/60 dark:text-zinc-500">Restaurants Scope</span>
-                      <div className="space-y-2 mt-2">
-                        {profileContext.restaurants.map((rest) => (
-                          <div key={rest.id} className="border-l-2 border-primary pl-3 py-0.5">
-                            <h5 className="text-xs font-bold text-on-surface dark:text-zinc-300">{rest.name}</h5>
-                            <p className="text-[10px] font-mono text-on-surface-variant/70 dark:text-zinc-500">ID: {rest.id}</p>
+                      <div className="space-y-4 mt-2">
+                        {profileContext.hierarchy.restaurants.map((rest) => (
+                          <div key={rest._id || rest.id} className="border-l-2 border-primary pl-3 space-y-1 text-xs text-on-surface dark:text-zinc-350">
+                            <div className="flex justify-between"><span className="text-on-surface-variant/70 dark:text-zinc-550">Restaurant Name:</span> <span className="font-bold text-headline-sm">{rest.name}</span></div>
+                            <div className="flex justify-between"><span className="text-on-surface-variant/70 dark:text-zinc-550">Restaurant ID:</span> <span className="font-mono">{rest._id || rest.id}</span></div>
+                            {rest.brandName && <div className="flex justify-between"><span className="text-on-surface-variant/70 dark:text-zinc-550">Brand Name:</span> <span>{rest.brandName}</span></div>}
+                            {rest.description && <div className="flex flex-col mt-0.5"><span className="text-on-surface-variant/70 dark:text-zinc-550">Description:</span> <span className="italic mt-0.5 text-on-surface-variant dark:text-zinc-400">{rest.description}</span></div>}
+                            <div className="flex justify-between"><span className="text-on-surface-variant/70 dark:text-zinc-550">Status:</span> <Badge variant={rest.status === 'ACTIVE' ? 'success' : 'danger'}>{rest.status}</Badge></div>
                           </div>
                         ))}
                       </div>
                     </div>
                   )}
 
-                  {profileContext.outlets && profileContext.outlets.length > 0 && (
+                  {/* Outlets Section */}
+                  {profileContext.hierarchy?.outlets && profileContext.hierarchy.outlets.length > 0 && (
                     <div className="p-4 bg-surface-subtle dark:bg-zinc-900/40 border border-border-base dark:border-zinc-850 rounded-2xl">
                       <span className="text-[10px] uppercase tracking-wider font-bold text-on-surface-variant/60 dark:text-zinc-500">Outlets Scope</span>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
-                        {profileContext.outlets.map((out) => (
-                          <div key={out.id} className="bg-white dark:bg-zinc-950 p-3 rounded-xl border border-border-base/60 dark:border-zinc-900/60 shadow-2xs">
-                            <h5 className="text-xs font-bold text-on-surface dark:text-zinc-300">{out.name}</h5>
-                            <p className="text-[10px] font-mono text-on-surface-variant/70 dark:text-zinc-550 mt-0.5">ID: {out.id}</p>
-                          </div>
-                        ))}
+                        {profileContext.hierarchy.outlets.map((out) => {
+                          const outletId = out._id || out.id;
+                          const isOpen = out.status === 'ACTIVE';
+                          const canToggle = ['SUPER_ADMIN', 'RESTAURANT_OWNER', 'OUTLET_MANAGER'].includes(user?.role);
+                          return (
+                            <div key={outletId} className="bg-white dark:bg-zinc-950 p-4 rounded-xl border border-border-base/60 dark:border-zinc-900/60 shadow-2xs space-y-2 flex flex-col justify-between">
+                              <div className="space-y-1.5 text-xs text-on-surface dark:text-zinc-350">
+                                <h5 className="text-[13px] font-bold text-on-surface dark:text-zinc-200">{out.name}</h5>
+                                <div className="flex justify-between"><span className="text-on-surface-variant/70 dark:text-zinc-550">Outlet ID:</span> <span className="font-mono">{outletId}</span></div>
+                                {out.slug && <div className="flex justify-between"><span className="text-on-surface-variant/70 dark:text-zinc-555">Slug:</span> <span className="font-mono">{out.slug}</span></div>}
+                                {out.phone && <div className="flex justify-between"><span className="text-on-surface-variant/70 dark:text-zinc-555">Phone:</span> <span>{out.phone}</span></div>}
+                                {out.email && <div className="flex justify-between"><span className="text-on-surface-variant/70 dark:text-zinc-555">Email:</span> <span>{out.email}</span></div>}
+                                {out.address && (
+                                  <div className="flex flex-col mt-0.5">
+                                    <span className="text-on-surface-variant/70 dark:text-zinc-555">Address:</span>
+                                    <span className="text-[11px] text-on-surface-variant dark:text-zinc-400 mt-0.5 leading-tight">
+                                      {out.address}, {out.city}, {out.state} - {out.pincode}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="border-t border-border-base/40 dark:border-zinc-900/60 pt-2 flex items-center justify-between">
+                                <span className="text-xs font-semibold text-on-surface-variant dark:text-zinc-450">Outlet Status:</span>
+                                <div className="flex items-center gap-2">
+                                  <span className={`text-[11px] font-bold ${isOpen ? 'text-success-green' : 'text-zinc-500'}`}>
+                                    {isOpen ? 'OPEN' : 'CLOSED'}
+                                  </span>
+                                  {canToggle && (
+                                    <label className="relative inline-flex items-center cursor-pointer select-none">
+                                      <input 
+                                        type="checkbox" 
+                                        className="sr-only peer" 
+                                        checked={isOpen}
+                                        onChange={() => handleToggleOutletStatus(outletId, out.status)}
+                                      />
+                                      <div className="w-8 h-4.5 bg-zinc-300 dark:bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-success-green"></div>
+                                    </label>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
