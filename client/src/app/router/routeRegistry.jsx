@@ -152,7 +152,7 @@ export const publicWebsiteRoutes = [
 ];
 
 export function getPageTitle(pathname) {
-  return dashboardRoutes.find((route) => route.path === pathname)?.title || 'FoodMesh';
+  return dashboardRoutes.find((route) => route.path === pathname)?.title || 'OmniServe';
 }
 
 export function getSidebarSections(userRole) {

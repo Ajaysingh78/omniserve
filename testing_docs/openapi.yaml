@@ -1,14 +1,14 @@
 openapi: 3.0.3
 info:
-  title: FoodMesh Restaurant Operations Platform API
-  description: Complete production-ready REST API reference for the FoodMesh SaaS platform, managing auth, multi-tenant restaurants, location outlets, inventory, reservations, website checkout, Swiggy/Zomato webhook ingestion, billing, and dining operations cockpit.
+  title: OmniServe Restaurant Operations Platform API
+  description: Complete production-ready REST API reference for the OmniServe SaaS platform, managing auth, multi-tenant restaurants, location outlets, inventory, reservations, website checkout, Swiggy/Zomato webhook ingestion, billing, and dining operations cockpit.
   version: 1.0.0
 servers:
   - url: http://localhost:5000/api/v1
     description: Local Development Server
-  - url: https://staging.foodmesh.app/api/v1
+  - url: https://staging.omniserve.app/api/v1
     description: Staging Environment
-  - url: https://api.foodmesh.app/api/v1
+  - url: https://api.omniserve.app/api/v1
     description: Production Environment
 
 security:
