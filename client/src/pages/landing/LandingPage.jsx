@@ -116,7 +116,7 @@ export default function LandingPage() {
   return (
     <div className="landing-page bg-background text-on-surface font-body-lg overflow-x-hidden selection:bg-secondary-container selection:text-on-secondary-container">
       {/* TopNavBar */}
-      <nav className="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-lg border-b border-white/40 shadow-xs transition-all duration-500">
+      <nav className="fixed top-0 w-full z-50 bg-purple-50/70 backdrop-blur-lg border-b border-purple-200/40 shadow-xs transition-all duration-500">
         <div className="flex justify-between items-center h-20 px-margin-desktop max-w-container-max mx-auto">
           <div className="font-headline-lg text-headline-lg font-bold text-on-surface tracking-tight">OmniServe</div>
           <div className="hidden md:flex items-center space-x-10">
@@ -409,7 +409,7 @@ export default function LandingPage() {
       {/* Why OmniServe */}
       <section className="py-section-gap bg-surface-container">
         <div className="max-w-container-max mx-auto px-margin-desktop grid grid-cols-1 md:grid-cols-2 gap-12 reveal">
-          <div className="bg-white p-12 rounded-[2.5rem] shadow-xs">
+          <div className="bg-purple-50 p-12 rounded-[2.5rem] shadow-xs">
             <h3 className="font-headline-lg text-headline-lg mb-8 text-on-surface/40">Traditional System</h3>
             <ul className="space-y-6">
               <li className="flex items-start space-x-4">
