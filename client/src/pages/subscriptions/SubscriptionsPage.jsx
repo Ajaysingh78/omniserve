@@ -21,7 +21,8 @@ import {
   deletePlanApi,
   listAllSubscriptionsApi,
   listAllInvoicesApi,
-  getSubscriptionAnalyticsApi
+  getSubscriptionAnalyticsApi,
+  validateSubscriptionCouponApi
 } from '../../api/models/subscription.api';
 import {
   HiOutlineShieldCheck,
@@ -110,6 +111,13 @@ export default function SubscriptionsPage() {
   const [cardCvv, setCardCvv] = useState('');
   const [cardName, setCardName] = useState('');
   const [paymentProcessing, setPaymentProcessing] = useState(false);
+
+  // Coupon codes integration states
+  const [couponCode, setCouponCode] = useState('');
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponError, setCouponError] = useState(null);
 
   // --- Super Admin States ---
   const [analytics, setAnalytics] = useState(null);
@@ -209,13 +217,45 @@ export default function SubscriptionsPage() {
   };
 
   const handleRenewManual = async () => {
+    const couponCodeInput = window.prompt("Enter coupon code for discount (optional):");
     try {
-      await renewSubscriptionApi();
+      await renewSubscriptionApi(couponCodeInput ? { couponCode: couponCodeInput.trim().toUpperCase() } : {});
       addToast('Subscription manual renewal processed successfully', 'success');
       fetchData();
-    } catch {
-      addToast('Failed to process renewal', 'error');
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Failed to process renewal', 'error');
     }
+  };
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) {
+      setCouponError('Please enter a coupon code');
+      return;
+    }
+    setValidatingCoupon(true);
+    setCouponError(null);
+    try {
+      const basePrice = billingCycleToggle === 'MONTHLY' ? selectedPlan?.monthlyPrice : selectedPlan?.yearlyPrice;
+      const res = await validateSubscriptionCouponApi(couponCode.trim().toUpperCase(), basePrice);
+      if (res.data?.data?.isValid) {
+        setAppliedCoupon(res.data.data.code);
+        setCouponDiscount(res.data.data.discount);
+        addToast('Coupon applied successfully!', 'success');
+      } else {
+        setCouponError(res.data?.data?.reason || 'Invalid coupon code');
+      }
+    } catch (err) {
+      setCouponError(err.response?.data?.message || 'Failed to validate coupon');
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setCouponCode('');
+    setAppliedCoupon(null);
+    setCouponDiscount(0);
+    setCouponError(null);
   };
 
   const triggerUpgrade = (plan) => {
@@ -227,6 +267,11 @@ export default function SubscriptionsPage() {
     setCardExpiry('');
     setCardCvv('');
     setCardName('');
+    // Reset coupon inputs
+    setCouponCode('');
+    setCouponDiscount(0);
+    setAppliedCoupon(null);
+    setCouponError(null);
   };
 
   const handleProcessUpgrade = async () => {
@@ -244,6 +289,7 @@ export default function SubscriptionsPage() {
         planId: selectedPlan._id,
         billingCycle: billingCycleToggle,
         paymentProvider,
+        couponCode: appliedCoupon || undefined,
       });
       addToast(`Payment Succeeded! Successfully subscribed to ${selectedPlan.name}`, 'success');
       setPaymentModalOpen(false);
@@ -690,23 +736,64 @@ export default function SubscriptionsPage() {
                 </div>
               </div>
 
-              {/* Financials details */}
-              <div className="p-4 bg-zinc-50 dark:bg-zinc-900/50 border border-border-base dark:border-zinc-900 rounded-xl space-y-2.5 text-xs font-semibold">
-                <h5 className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Billing Summary</h5>
-                
-                <div className="flex justify-between">
-                  <span className="text-zinc-500">Base Price:</span>
-                  <span className="text-on-background">₹{(billingCycleToggle === 'MONTHLY' ? selectedPlan?.monthlyPrice : selectedPlan?.yearlyPrice)?.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-zinc-500">GST (18%):</span>
-                  <span className="text-on-background">₹{((billingCycleToggle === 'MONTHLY' ? selectedPlan?.monthlyPrice : selectedPlan?.yearlyPrice) * 0.18).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-                </div>
-                <div className="flex justify-between border-t border-zinc-150 dark:border-zinc-900 pt-2.5 text-sm font-black text-indigo-500">
-                  <span>Total Payable:</span>
-                  <span>₹{((billingCycleToggle === 'MONTHLY' ? selectedPlan?.monthlyPrice : selectedPlan?.yearlyPrice) * 1.18).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-                </div>
+              {/* Promo Coupon Entry */}
+              <div className="p-4 bg-zinc-50 dark:bg-zinc-900/50 border border-border-base dark:border-zinc-900 rounded-xl space-y-2">
+                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest block">Promo Coupon</label>
+                {appliedCoupon ? (
+                  <div className="flex justify-between items-center bg-green-500/10 border border-green-500/35 rounded-lg px-3 py-2 text-xs font-bold text-green-600 dark:text-green-400">
+                    <span>Voucher Applied: {appliedCoupon}</span>
+                    <button type="button" onClick={handleRemoveCoupon} className="text-xs font-extrabold underline cursor-pointer text-red-500 hover:text-red-700 bg-transparent border-none">Remove</button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="e.g. SOFTWARE50"
+                      className="flex-1 px-3 py-2 bg-white dark:bg-zinc-900 border border-border-base dark:border-zinc-800 rounded-lg text-xs outline-none focus:border-indigo-500 font-mono uppercase text-on-background"
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                    />
+                    <Button variant="secondary" size="sm" onClick={handleApplyCoupon} loading={validatingCoupon} className="text-xs font-bold py-1 px-3">
+                      Apply
+                    </Button>
+                  </div>
+                )}
+                {couponError && <p className="text-[10px] text-red-500 font-semibold">{couponError}</p>}
               </div>
+
+              {/* Financials details */}
+              {(() => {
+                const basePrice = billingCycleToggle === 'MONTHLY' ? selectedPlan?.monthlyPrice : selectedPlan?.yearlyPrice;
+                const netPrice = Math.max(0, basePrice - couponDiscount);
+                const gst = Number((netPrice * 0.18).toFixed(2));
+                const totalPayable = netPrice + gst;
+                return (
+                  <div className="p-4 bg-zinc-50 dark:bg-zinc-900/50 border border-border-base dark:border-zinc-900 rounded-xl space-y-2.5 text-xs font-semibold">
+                    <h5 className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Billing Summary</h5>
+                    
+                    <div className="flex justify-between">
+                      <span className="text-zinc-500">Base Price:</span>
+                      <span className="text-on-background">₹{basePrice?.toLocaleString()}</span>
+                    </div>
+
+                    {appliedCoupon && (
+                      <div className="flex justify-between text-green-600 dark:text-green-400 font-bold">
+                        <span>Coupon Discount ({appliedCoupon}):</span>
+                        <span>-₹{couponDiscount?.toLocaleString()}</span>
+                      </div>
+                    )}
+
+                    <div className="flex justify-between">
+                      <span className="text-zinc-500">GST (18%):</span>
+                      <span className="text-on-background">₹{gst.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="flex justify-between border-t border-zinc-150 dark:border-zinc-900 pt-2.5 text-sm font-black text-indigo-500">
+                      <span>Total Payable:</span>
+                      <span>₹{totalPayable.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Footer buttons */}
               <div className="pt-4 border-t border-border-base dark:border-zinc-900 flex justify-end gap-2">
@@ -724,7 +811,14 @@ export default function SubscriptionsPage() {
               {/* Plan Total Sticky Header */}
               <div className="p-3 bg-zinc-50 dark:bg-zinc-900/30 border border-zinc-150 dark:border-zinc-900 rounded-xl flex justify-between items-center text-xs font-bold">
                 <span className="text-zinc-500">Amount to pay:</span>
-                <span className="text-indigo-500 text-sm font-black">₹{((billingCycleToggle === 'MONTHLY' ? selectedPlan?.monthlyPrice : selectedPlan?.yearlyPrice) * 1.18).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                <span className="text-indigo-500 text-sm font-black">
+                  {(() => {
+                    const basePrice = billingCycleToggle === 'MONTHLY' ? selectedPlan?.monthlyPrice : selectedPlan?.yearlyPrice;
+                    const netPrice = Math.max(0, basePrice - couponDiscount);
+                    const gst = Number((netPrice * 0.18).toFixed(2));
+                    return `₹${(netPrice + gst).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+                  })()}
+                </span>
               </div>
 
               <div className="space-y-2.5">

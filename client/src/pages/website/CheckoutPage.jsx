@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { getCartApi, checkoutCartApi } from "../../api/models/public.api";
-import { validateCouponApi } from "../../api/models/coupon.api";
 import Spinner from "../../components/ui/Spinner";
 import Button from "../../components/ui/Button";
 import Card from "../../components/ui/Card";
@@ -97,29 +96,9 @@ export default function CheckoutPage() {
 
   const handleApplyCoupon = async (e) => {
     e?.preventDefault();
-    if (!couponInput.trim()) return;
-    setValidatingCoupon(true);
-    setCouponError(null);
-    setCouponSuccess(null);
-    try {
-      const res = await validateCouponApi(outletSlug, couponInput.trim(), subtotal);
-      if (res.data.data.isValid) {
-        setAppliedCoupon(res.data.data.code);
-        setCouponDiscount(res.data.data.discount);
-        setCouponSuccess(`Coupon "${res.data.data.code}" applied! You saved ₹${res.data.data.discount}`);
-        setCouponInput("");
-      } else {
-        setCouponError(res.data.data.reason || "Invalid coupon code");
-        setAppliedCoupon(null);
-        setCouponDiscount(0);
-      }
-    } catch (err) {
-      setCouponError(err.response?.data?.message || "Failed to validate coupon");
-      setAppliedCoupon(null);
-      setCouponDiscount(0);
-    } finally {
-      setValidatingCoupon(false);
-    }
+    setCouponError("Promo coupons are not supported for storefront orders.");
+    setAppliedCoupon(null);
+    setCouponDiscount(0);
   };
 
   const handleRemoveCoupon = () => {

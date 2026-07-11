@@ -114,7 +114,7 @@ export const dashboardRoutes = [
   
   // Menu Management Unified Workspace
   { path: '/menu-management', title: 'Menu Management', component: routeComponents.MenuManagementPage, roles: [SUPER_ADMIN, RESTAURANT_OWNER, OUTLET_MANAGER], nav: { section: 'Management', label: 'Menu Management', icon: HiOutlineSquares2X2 } },
-  { path: '/coupons', title: 'Promo Coupons', component: routeComponents.CouponsPage, roles: [SUPER_ADMIN, RESTAURANT_OWNER], nav: { section: 'Management', label: 'Promo Coupons', icon: HiOutlineTag } },
+  { path: '/coupons', title: 'Subscription Coupons', component: routeComponents.CouponsPage, roles: [SYSTEM_ADMIN], nav: { section: 'System Admin', label: 'Subscription Coupons', icon: HiOutlineTag } },
   
   // Standalone paths (no longer in sidebar, but still routable)
   { path: '/categories', title: 'Categories', component: routeComponents.CategoriesPage, roles: [SUPER_ADMIN, RESTAURANT_OWNER, OUTLET_MANAGER] },

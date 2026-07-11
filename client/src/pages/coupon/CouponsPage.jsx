@@ -7,25 +7,22 @@ import Select from '../../components/ui/Select';
 import Badge from '../../components/ui/Badge';
 import PageHeader from '../../components/ui/PageHeader';
 import { useToast } from '../../components/ui/Toast';
-import { HiPlus, HiOutlineTag, HiOutlineCalendar, HiOutlineCurrencyRupee, HiOutlineCheckCircle, HiOutlineXCircle } from 'react-icons/hi2';
-import { listOutletsApi } from '../../api/models/outlet.api';
+import { HiPlus, HiOutlineTag, HiOutlineCheckCircle, HiOutlineXCircle } from 'react-icons/hi2';
 import { listCouponsApi, createCouponApi, updateCouponApi, deleteCouponApi } from '../../api/models/coupon.api';
-import { getEntityId, getList, getRefId } from '../../utils/apiData';
+import { getEntityId, getList } from '../../utils/apiData';
 
 const emptyForm = {
   code: '',
   discountType: 'PERCENTAGE',
   discountValue: '',
-  minOrderAmount: '',
+  minAmount: '',
   maxDiscountAmount: '',
   expirationDate: '',
-  outletId: '',
   isActive: true,
 };
 
 export default function CouponsPage() {
   const [data, setData] = useState([]);
-  const [outlets, setOutlets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [modal, setModal] = useState({ open: false, mode: 'create', item: null });
@@ -35,12 +32,8 @@ export default function CouponsPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [couponsResponse, outletsResponse] = await Promise.all([
-        listCouponsApi(),
-        listOutletsApi(),
-      ]);
-      setData(getList(couponsResponse, 'coupons'));
-      setOutlets(getList(outletsResponse, 'outlets'));
+      const couponsResponse = await listCouponsApi();
+      setData(getList(couponsResponse, 'coupons') || couponsResponse?.data || []);
     } catch {
       addToast('Failed to load coupons data', 'error');
     } finally {
@@ -52,13 +45,6 @@ export default function CouponsPage() {
     fetchData();
   }, []);
 
-  const getOutletName = (outletId) => {
-    const id = getRefId(outletId);
-    if (!id) return 'All Outlets';
-    const found = outlets.find((o) => getEntityId(o) === id);
-    return found ? found.name : 'Unknown Outlet';
-  };
-
   const openCreate = () => {
     setForm({ ...emptyForm });
     setModal({ open: true, mode: 'create', item: null });
@@ -69,10 +55,9 @@ export default function CouponsPage() {
       code: item.code || '',
       discountType: item.discountType || 'PERCENTAGE',
       discountValue: item.discountValue ?? '',
-      minOrderAmount: item.minOrderAmount ?? '',
+      minAmount: item.minAmount ?? item.minOrderAmount ?? '',
       maxDiscountAmount: item.maxDiscountAmount ?? '',
       expirationDate: item.expirationDate ? new Date(item.expirationDate).toISOString().substring(0, 10) : '',
-      outletId: getRefId(item.outletId) || '',
       isActive: item.isActive !== false,
     });
     setModal({ open: true, mode: 'edit', item });
@@ -90,10 +75,9 @@ export default function CouponsPage() {
         code: form.code.trim().toUpperCase(),
         discountType: form.discountType,
         discountValue: Number(form.discountValue),
-        minOrderAmount: Number(form.minOrderAmount || 0),
+        minAmount: Number(form.minAmount || 0),
         maxDiscountAmount: form.discountType === 'PERCENTAGE' && form.maxDiscountAmount ? Number(form.maxDiscountAmount) : null,
         expirationDate: form.expirationDate ? new Date(form.expirationDate) : null,
-        outletId: form.outletId || null,
         isActive: form.isActive,
       };
 
@@ -164,14 +148,9 @@ export default function CouponsPage() {
       ),
     },
     {
-      key: 'minOrderAmount',
-      label: 'Min Order',
-      render: (r) => <span className="font-semibold text-zinc-550 dark:text-zinc-400">₹{r.minOrderAmount}</span>,
-    },
-    {
-      key: 'scope',
-      label: 'Applicable Outlets',
-      render: (r) => <span className="font-semibold text-zinc-550 dark:text-zinc-400">{getOutletName(r.outletId)}</span>,
+      key: 'minAmount',
+      label: 'Min Subscription Price',
+      render: (r) => <span className="font-semibold text-zinc-550 dark:text-zinc-400">₹{r.minAmount ?? r.minOrderAmount ?? 0}</span>,
     },
     {
       key: 'expirationDate',
@@ -188,7 +167,7 @@ export default function CouponsPage() {
       render: (r) => (
         <button
           onClick={() => handleToggleStatus(r)}
-          className="flex items-center gap-1 cursor-pointer select-none focus:outline-none"
+          className="flex items-center gap-1 cursor-pointer select-none focus:outline-none bg-transparent border-none text-left p-0"
           title="Click to toggle status"
         >
           {r.isActive ? (
@@ -214,9 +193,9 @@ export default function CouponsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        section="Management"
-        title="Promo Coupons"
-        description="Generate discount promo codes, set flat/percentage offers, define minimum spending limits, and track active validity periods."
+        section="System Admin"
+        title="Subscription Coupons"
+        description="Generate software subscription discount coupons, define flat or percentage values, and establish minimum purchase amounts."
         actions={
           <Button onClick={openCreate} className="flex items-center gap-1.5 font-bold">
             <HiPlus /> Add Coupon
@@ -229,24 +208,24 @@ export default function CouponsPage() {
           columns={columns}
           data={data}
           loading={loading}
-          emptyMessage="No promotional coupons created yet. Click 'Add Coupon' to create your first discount code."
+          emptyMessage="No subscription coupons created yet. Click 'Add Coupon' to create your first discount code."
         />
       </div>
 
       <Modal
         isOpen={modal.open}
         onClose={submitting ? () => {} : closeModal}
-        title={modal.mode === 'create' ? 'Create New Promo Coupon' : 'Edit Coupon details'}
+        title={modal.mode === 'create' ? 'Create Subscription Coupon' : 'Edit Coupon details'}
       >
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
               id="c-code"
-              label="Promo Code"
+              label="Coupon Code"
               required
               value={form.code}
               onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
-              placeholder="e.g. WELCOME100"
+              placeholder="e.g. SOFTWARE50"
             />
             <Select
               id="c-type"
@@ -272,13 +251,13 @@ export default function CouponsPage() {
               placeholder={form.discountType === 'PERCENTAGE' ? 'e.g. 10' : 'e.g. 100'}
             />
             <Input
-              id="c-min-order"
-              label="Minimum Order Subtotal (₹)"
+              id="c-min-amt"
+              label="Minimum Subscription Amount (₹)"
               type="number"
               min="0"
-              value={form.minOrderAmount}
-              onChange={(e) => setForm({ ...form, minOrderAmount: e.target.value })}
-              placeholder="e.g. 299"
+              value={form.minAmount}
+              onChange={(e) => setForm({ ...form, minAmount: e.target.value })}
+              placeholder="e.g. 2999"
             />
           </div>
 
@@ -291,7 +270,7 @@ export default function CouponsPage() {
                 min="0"
                 value={form.maxDiscountAmount}
                 onChange={(e) => setForm({ ...form, maxDiscountAmount: e.target.value })}
-                placeholder="e.g. 150"
+                placeholder="e.g. 1500"
               />
             )}
             <Input
@@ -303,31 +282,17 @@ export default function CouponsPage() {
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Select
-              id="c-outlet"
-              label="Outlet Scoping"
-              value={form.outletId}
-              onChange={(e) => setForm({ ...form, outletId: e.target.value })}
-            >
-              <option value="">Valid at All Outlets</option>
-              {outlets.map((o) => (
-                <option key={getEntityId(o)} value={getEntityId(o)}>{o.name}</option>
-              ))}
-            </Select>
-
-            <div className="flex items-center gap-2 mt-7">
-              <input
-                id="c-active"
-                type="checkbox"
-                checked={form.isActive}
-                onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
-                className="checkbox checkbox-primary rounded border-border-base text-primary accent-primary"
-              />
-              <label htmlFor="c-active" className="text-xs font-semibold text-on-surface-variant dark:text-zinc-350 cursor-pointer select-none">
-                Mark as Active immediately
-              </label>
-            </div>
+          <div className="flex items-center gap-2 py-2">
+            <input
+              id="c-active"
+              type="checkbox"
+              checked={form.isActive}
+              onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
+              className="checkbox checkbox-primary rounded border-border-base text-primary accent-primary cursor-pointer"
+            />
+            <label htmlFor="c-active" className="text-xs font-semibold text-on-surface-variant dark:text-zinc-350 cursor-pointer select-none">
+              Mark as Active immediately
+            </label>
           </div>
 
           <div className="flex justify-end gap-2 pt-4 border-t border-border-base dark:border-zinc-850">
