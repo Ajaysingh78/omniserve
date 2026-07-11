@@ -173,7 +173,7 @@ export default function LandingPage() {
         </div>
         <div className="max-w-container-max mx-auto px-margin-desktop reveal">
           <div className="glass-card p-4 md:p-8 rounded-[2.5rem] relative overflow-hidden bg-white/40">
-            <img alt="High-fidelity 3D ecosystem diagram" className="w-full h-auto rounded-3xl shadow-lg" src="/images/landingpage/ecosystem.png" />
+            <img alt="High-fidelity 3D ecosystem diagram" className="w-full h-auto rounded-3xl shadow-lg" src="/images/landingpage/ecosystem.jpg" />
             <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
               <div>
                 <h3 className="font-headline-lg text-headline-lg mb-4">Integrations Control Center</h3>
