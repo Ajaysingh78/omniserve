@@ -107,10 +107,10 @@ export default function LandingPage() {
   }, []);
 
   const teamMembers = [
-    { name: 'Yusuf', image: '/images/landingpage/yusuf.png' },
-    { name: 'Samir', image: '/images/landingpage/samir.jpg' },
-    { name: 'Nitish', image: '/images/landingpage/nitish.jpg' },
-    { name: 'Ajay', image: '/images/landingpage/ajay.jpg' }
+    { name: 'Md Yusuf', image: '/images/landingpage/yusuf.png' },
+    { name: 'Samir Kumar Singh', image: '/images/landingpage/samir.jpg' },
+    { name: 'Nitish Kumar', image: '/images/landingpage/nitish.jpg' },
+    { name: 'Ajay Rathore', image: '/images/landingpage/ajay.jpg' }
   ];
 
   return (
@@ -136,8 +136,8 @@ export default function LandingPage() {
         <div className="max-w-container-max mx-auto px-margin-desktop grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <div className="reveal">
             <div className="inline-flex items-center space-x-2 bg-[#fc8a63]/10 px-4 py-1.5 rounded-full mb-8">
-              <span className="w-2 h-2 rounded-full bg-[#fc8a63] animate-pulse"></span>
-              <span className="text-[#fc8a63] font-semibold text-label-sm uppercase tracking-widest">Enterprise Ready</span>
+              <span className="w-2 h-2 rounded-full bg-[#014c05] animate-pulse"></span>
+              <span className="text-[#159309] font-semibold text-label-sm uppercase tracking-widest">Enterprise Ready</span>
             </div>
             <h1 className="font-display-lg text-display-lg leading-[1.1] mb-8 text-on-surface">
               One Platform.<br />
@@ -160,23 +160,18 @@ export default function LandingPage() {
           </div>
           <div className="relative reveal delay-200">
             <div className="absolute -inset-10 bg-secondary-container/20 blur-[100px] rounded-full z-0"></div>
-            <img src="/images/landingpage/hero.png" className="w-full h-auto rounded-3xl relative z-10 shadow-2xl animate-float" alt="OmniServe Platform Visualization" />
+            <img src="/images/landingpage/hero.jpg" className="w-full max-h-[480px] object-cover rounded-3xl relative z-10 shadow-2xl animate-float" alt="OmniServe Platform Visualization" />
           </div>
         </div>
       </section>
 
-      {/* Restaurant Ecosystem */}
+      {/* Integrations Control Center */}
       <section id="solutions" className="py-section-gap bg-surface-container-low">
-        <div className="max-w-container-max mx-auto px-margin-desktop text-center mb-20 reveal">
-          <h2 className="font-headline-xl text-headline-xl mb-6">The Unified Restaurant Ecosystem</h2>
-          <p className="text-on-surface max-w-2xl mx-auto">Connecting every touchpoint from QR scans to inventory logs in real-time through OmniServe.</p>
-        </div>
         <div className="max-w-container-max mx-auto px-margin-desktop reveal">
           <div className="glass-card p-4 md:p-8 rounded-[2.5rem] relative overflow-hidden bg-white/40">
-            <img alt="High-fidelity 3D ecosystem diagram" className="w-full h-auto rounded-3xl shadow-lg" src="/images/landingpage/ecosystem.jpg" />
-            <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
               <div>
-                <h3 className="font-headline-lg text-headline-lg mb-4">Integrations Control Center</h3>
+                <h2 className="font-headline-xl text-headline-xl mb-4">Integrations Control Center</h2>
                 <p className="text-on-surface mb-6">OmniServe acts as the central intelligence for your entire stack. Monitor sync health, manage circuit breakers, and ensure data integrity across Swiggy, Zomato, and your direct channels from a single 'Live Look' interface.</p>
               </div>
               <div className="relative group">
@@ -567,7 +562,7 @@ export default function LandingPage() {
                     </div>
                     <div>
                       <p className="text-sm  font-bold uppercase tracking-wider">Email Us</p>
-                      <a className="text-lg font-bold hover:text-brand-accent transition-colors" href="mailto:hello@omniserve.com">hello@omniserve.com</a>
+                      <a className="text-lg font-bold hover:text-brand-accent transition-colors" href="mailto:yusuf.rgpv@gmail.com">yusuf.rgpv@gmail.com</a>
                     </div>
                   </div>
                   <div className="flex items-center space-x-6">
@@ -576,7 +571,7 @@ export default function LandingPage() {
                     </div>
                     <div>
                       <p className="text-sm  font-bold uppercase tracking-wider">Call Us</p>
-                      <a className="text-lg font-bold hover:text-brand-accent transition-colors" href="tel:+18006664778">+1 800-OMNI-SRV</a>
+                      <a className="text-lg font-bold hover:text-brand-accent transition-colors" href="tel:+919939608743">+91 99396 08743</a>
                     </div>
                   </div>
                 </div>
