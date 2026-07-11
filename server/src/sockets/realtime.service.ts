@@ -1,8 +1,10 @@
 import { Server as SocketIOServer, Socket } from "socket.io";
+import { createAdapter } from "@socket.io/redis-adapter";
 import http from "http";
 import { AuthService } from "../modules/auth/auth.service.js";
 import { TokenBlacklistService } from "../modules/auth/tokenblacklist.service.js";
 import { RealtimeEvent } from "../types/socket-events.js";
+import connectRedis from "../config/redis.js";
 
 export class RealtimeService {
   private static io: SocketIOServer | null = null;
@@ -16,6 +18,21 @@ export class RealtimeService {
         methods: ["GET", "POST"],
         credentials: true
       }
+    });
+
+    // Configure Redis Adapter for horizontal scaling
+    connectRedis().then((pubClient) => {
+      if (pubClient && pubClient.isOpen) {
+        const subClient = pubClient.duplicate();
+        subClient.connect().then(() => {
+          this.io?.adapter(createAdapter(pubClient, subClient));
+          console.log("[RealtimeService] Socket.IO Redis Adapter configured successfully.");
+        }).catch((err) => {
+          console.error("[RealtimeService] Failed to connect Redis subClient for adapter:", err);
+        });
+      }
+    }).catch((err) => {
+      console.warn("[RealtimeService] Failed to configure Redis Adapter (running in standalone mode):", err.message);
     });
 
     // Authentication middleware

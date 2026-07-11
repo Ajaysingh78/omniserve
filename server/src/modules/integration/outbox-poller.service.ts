@@ -63,10 +63,27 @@ export class OutboxPollerService {
         .limit(10); // Batch size 10
 
       for (const event of events) {
-        // Double-check status is still pending/failed (prevent race conditions)
-        const freshEvent = await IntegrationEventQueue.findById(event._id);
-        if (freshEvent && (freshEvent.status === "PENDING" || freshEvent.status === "FAILED")) {
-          await SyncEngineService.processEvent(freshEvent, this.nodeId);
+        // Atomically claim the event so no other node handles it concurrently
+        const claimedEvent = await IntegrationEventQueue.findOneAndUpdate(
+          {
+            _id: event._id,
+            status: event.status, // Ensure status has not changed in the database
+            ...(event.status === "FAILED" ? { nextRetryAt: event.nextRetryAt } : {})
+          },
+          {
+            $set: {
+              status: "PROCESSING",
+              processingNodeId: this.nodeId,
+              processingStartedAt: now,
+              startedAt: now
+            }
+          },
+          { new: true }
+        );
+
+        if (claimedEvent) {
+          // Process the claimed event
+          await SyncEngineService.processEvent(claimedEvent, this.nodeId);
         }
       }
     } catch (error: any) {

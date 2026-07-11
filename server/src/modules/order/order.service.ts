@@ -387,8 +387,7 @@ export class OrderService {
         // 1. Fetch all items in the order
         const items = await OrderItem.find({ orderId: order._id, isDeleted: false }).session(session);
 
-        // 2. Pre-validate stock for all items
-        const stockUpdates: Array<{ inventory: any; newQty: number; isLowStock: boolean }> = [];
+        // 2. Pre-validate and deduct stock atomically
         for (const item of items) {
           let inventory: any = await Inventory.findOne({
             menuItemId: item.menuItemId,
@@ -409,26 +408,33 @@ export class OrderService {
             inventory = newInventory;
           }
 
-          if (inventory.quantity < item.quantity) {
+          // Atomically decrement stock quantity if it's greater than or equal to requested amount
+          const updatedInventory = await Inventory.findOneAndUpdate(
+            {
+              _id: inventory._id,
+              quantity: { $gte: item.quantity },
+              isDeleted: false
+            },
+            {
+              $inc: { quantity: -item.quantity },
+              $set: { updatedBy: userId ? new Types.ObjectId(userId) : null }
+            },
+            { new: true, session }
+          );
+
+          if (!updatedInventory) {
             throw new Error(`Insufficient inventory for item: ${item.name}. Available: ${inventory.quantity}, Requested: ${item.quantity}`);
           }
 
-          const newQty = inventory.quantity - item.quantity;
-          const isLowStock = newQty <= inventory.threshold;
-          stockUpdates.push({ inventory, newQty, isLowStock });
-        }
-
-        // 3. Deduct stock for all items
-        for (const update of stockUpdates) {
-          await Inventory.updateOne(
-            { _id: update.inventory._id },
-            {
-              quantity: update.newQty,
-              isLowStock: update.isLowStock,
-              updatedBy: userId ? new Types.ObjectId(userId) : null,
-            },
-            { session }
-          );
+          // Dynamically recompute low stock status flag
+          const isLowStock = updatedInventory.quantity <= updatedInventory.threshold;
+          if (isLowStock !== updatedInventory.isLowStock) {
+            await Inventory.updateOne(
+              { _id: updatedInventory._id },
+              { $set: { isLowStock } },
+              { session }
+            );
+          }
         }
       } else if (newStatus === OrderStatus.PREPARING) {
         updateFields.preparedAt = new Date();
