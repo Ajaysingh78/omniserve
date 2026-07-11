@@ -9,7 +9,9 @@ export const upgradeSubscriptionApi = (data) => api.post('/subscriptions/upgrade
 export const downgradeSubscriptionApi = (data) => api.post('/subscriptions/downgrade', data);
 export const cancelSubscriptionApi = () => api.post('/subscriptions/cancel');
 export const resumeSubscriptionApi = () => api.post('/subscriptions/resume');
-export const renewSubscriptionApi = () => api.post('/subscriptions/renew');
+export const renewSubscriptionApi = (data) => api.post('/subscriptions/renew', data);
+export const validateSubscriptionCouponApi = (code, subtotal) => 
+  api.post('/subscriptions/validate-coupon', { code, subtotal });
 
 // --- Super Admin Control Panel APIs ---
 export const listPlansApi = () => api.get('/subscriptions/plans');

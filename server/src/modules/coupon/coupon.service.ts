@@ -3,35 +3,20 @@ import Coupon, { ICoupon } from "../../models/coupon.model.js";
 
 export class CouponService {
   /**
-   * Validate a coupon code and calculate the discount amount
+   * Validate a coupon code and calculate the discount amount for a system subscription
    */
-  static async validateCoupon(
-    tenantId: string,
-    outletId: string | null,
+  static async validateSubscriptionCoupon(
     code: string,
     subtotal: number
   ): Promise<{ isValid: boolean; discount: number; reason?: string; coupon?: ICoupon }> {
     const formattedCode = code.trim().toUpperCase();
 
-    // Query active coupon matching code under tenant
-    const query: any = {
-      tenantId: new Types.ObjectId(tenantId),
+    // Query active coupon matching code globally
+    const coupon = await Coupon.findOne({
       code: formattedCode,
       isActive: true,
       isDeleted: false,
-    };
-
-    // If outletId is specified, check coupon valid for either this specific outlet OR valid globally (outletId is null)
-    if (outletId) {
-      query.$or = [
-        { outletId: new Types.ObjectId(outletId) },
-        { outletId: null }
-      ];
-    } else {
-      query.outletId = null;
-    }
-
-    const coupon = await Coupon.findOne(query);
+    });
 
     if (!coupon) {
       return { isValid: false, discount: 0, reason: "Invalid coupon code" };
@@ -42,12 +27,13 @@ export class CouponService {
       return { isValid: false, discount: 0, reason: "Coupon has expired" };
     }
 
-    // Check minimum order amount requirement
-    if (subtotal < coupon.minOrderAmount) {
+    // Check minimum subscription subtotal requirement
+    const minAmt = coupon.minAmount || 0;
+    if (subtotal < minAmt) {
       return {
         isValid: false,
         discount: 0,
-        reason: `Minimum order amount of ₹${coupon.minOrderAmount} is required for this coupon`,
+        reason: `Minimum subscription amount of ₹${minAmt} is required for this coupon`,
       };
     }
 
@@ -71,39 +57,41 @@ export class CouponService {
   }
 
   /**
-   * Create a new coupon
+   * Validate coupon code method signature retained for backwards compatibility or safe checks (delegates to validateSubscriptionCoupon)
+   */
+  static async validateCoupon(
+    tenantId: string,
+    outletId: string | null,
+    code: string,
+    subtotal: number
+  ): Promise<{ isValid: boolean; discount: number; reason?: string; coupon?: ICoupon }> {
+    return this.validateSubscriptionCoupon(code, subtotal);
+  }
+
+  /**
+   * Create a new coupon (Global - System Admin)
    */
   static async createCoupon(
-    tenantId: string,
     data: any,
     userId?: string
   ): Promise<ICoupon> {
     const formattedCode = data.code.trim().toUpperCase();
 
-    // Check code conflict
-    const conflictQuery: any = {
-      tenantId: new Types.ObjectId(tenantId),
+    // Check global code conflict for non-deleted coupons
+    const existing = await Coupon.findOne({
       code: formattedCode,
       isDeleted: false,
-    };
-    if (data.outletId) {
-      conflictQuery.outletId = new Types.ObjectId(data.outletId);
-    } else {
-      conflictQuery.outletId = null;
-    }
+    });
 
-    const existing = await Coupon.findOne(conflictQuery);
     if (existing) {
-      throw new Error(`A coupon with code "${formattedCode}" already exists for this scope`);
+      throw new Error(`A coupon with code "${formattedCode}" already exists`);
     }
 
     const coupon = new Coupon({
-      tenantId: new Types.ObjectId(tenantId),
-      outletId: data.outletId ? new Types.ObjectId(data.outletId) : null,
       code: formattedCode,
       discountType: data.discountType,
       discountValue: Number(data.discountValue),
-      minOrderAmount: Number(data.minOrderAmount || 0),
+      minAmount: Number(data.minAmount || 0),
       maxDiscountAmount: data.maxDiscountAmount ? Number(data.maxDiscountAmount) : null,
       expirationDate: data.expirationDate ? new Date(data.expirationDate) : null,
       isActive: data.isActive !== undefined ? data.isActive : true,
@@ -115,23 +103,15 @@ export class CouponService {
   }
 
   /**
-   * List coupons scoped to tenant and optionally outlet
+   * List coupons globally (Global - System Admin)
    */
   static async getCoupons(
-    tenantId: string,
-    filters: { outletId?: string | undefined; isActive?: boolean | undefined } = {}
+    filters: { isActive?: boolean | undefined } = {}
   ): Promise<ICoupon[]> {
     const query: any = {
-      tenantId: new Types.ObjectId(tenantId),
       isDeleted: false,
     };
 
-    if (filters.outletId) {
-      query.$or = [
-        { outletId: new Types.ObjectId(filters.outletId) },
-        { outletId: null }
-      ];
-    }
     if (filters.isActive !== undefined) {
       query.isActive = filters.isActive;
     }
@@ -143,28 +123,24 @@ export class CouponService {
    * Get coupon details by ID
    */
   static async getCouponById(
-    couponId: string,
-    tenantId: string
+    couponId: string
   ): Promise<ICoupon | null> {
     return await Coupon.findOne({
       _id: new Types.ObjectId(couponId),
-      tenantId: new Types.ObjectId(tenantId),
       isDeleted: false,
     });
   }
 
   /**
-   * Update an existing coupon
+   * Update an existing coupon (Global - System Admin)
    */
   static async updateCoupon(
-    tenantId: string,
     couponId: string,
     data: any,
     userId?: string
   ): Promise<ICoupon | null> {
     const coupon = await Coupon.findOne({
       _id: new Types.ObjectId(couponId),
-      tenantId: new Types.ObjectId(tenantId),
       isDeleted: false,
     });
 
@@ -172,40 +148,27 @@ export class CouponService {
 
     if (data.code) {
       const formattedCode = data.code.trim().toUpperCase();
-      // Check code conflict if code is changing
       if (formattedCode !== coupon.code) {
-        const conflictQuery: any = {
-          tenantId: new Types.ObjectId(tenantId),
+        const existing = await Coupon.findOne({
           code: formattedCode,
           isDeleted: false,
           _id: { $ne: coupon._id },
-        };
-        const targetOutletId = data.outletId !== undefined ? data.outletId : coupon.outletId;
-        if (targetOutletId) {
-          conflictQuery.outletId = new Types.ObjectId(targetOutletId);
-        } else {
-          conflictQuery.outletId = null;
-        }
-
-        const existing = await Coupon.findOne(conflictQuery);
+        });
         if (existing) {
-          throw new Error(`A coupon with code "${formattedCode}" already exists for this scope`);
+          throw new Error(`A coupon with code "${formattedCode}" already exists`);
         }
         coupon.code = formattedCode;
       }
     }
 
-    if (data.outletId !== undefined) {
-      coupon.outletId = data.outletId ? new Types.ObjectId(data.outletId) : null;
-    }
     if (data.discountType !== undefined) {
       coupon.discountType = data.discountType;
     }
     if (data.discountValue !== undefined) {
       coupon.discountValue = Number(data.discountValue);
     }
-    if (data.minOrderAmount !== undefined) {
-      coupon.minOrderAmount = Number(data.minOrderAmount);
+    if (data.minAmount !== undefined) {
+      coupon.minAmount = Number(data.minAmount);
     }
     if (data.maxDiscountAmount !== undefined) {
       coupon.maxDiscountAmount = data.maxDiscountAmount ? Number(data.maxDiscountAmount) : null;
@@ -224,16 +187,14 @@ export class CouponService {
   }
 
   /**
-   * Soft-delete a coupon
+   * Soft-delete a coupon (Global - System Admin)
    */
   static async deleteCoupon(
     couponId: string,
-    tenantId: string,
     userId?: string
   ): Promise<ICoupon | null> {
     const coupon = await Coupon.findOne({
       _id: new Types.ObjectId(couponId),
-      tenantId: new Types.ObjectId(tenantId),
       isDeleted: false,
     });
 

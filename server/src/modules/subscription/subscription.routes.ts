@@ -36,5 +36,6 @@ router.post("/downgrade", verifyToken, isRestaurantOwner, RestaurantSubscription
 router.post("/cancel", verifyToken, isRestaurantOwner, RestaurantSubscriptionController.cancel);
 router.post("/resume", verifyToken, isRestaurantOwner, RestaurantSubscriptionController.resume);
 router.post("/renew", verifyToken, isRestaurantOwner, RestaurantSubscriptionController.renew);
+router.post("/validate-coupon", verifyToken, isRestaurantOwner, RestaurantSubscriptionController.validateSubscriptionCoupon);
 
 export default router;
