@@ -194,7 +194,11 @@ body {
 .landing-page {
   font-family: 'Inter', sans-serif;
   background-color: #FAF8FF !important;
-  color: #1c1b1b;
+  color: #000000 !important;
+  --on-surface: #000000 !important;
+  --color-on-surface: #000000 !important;
+  --on-background: #000000 !important;
+  --color-on-background: #000000 !important;
 
   /* Redefine surface containers as UrbanPiper style light slate/lavender */
   --surface-container-low: #f3f5f8;
