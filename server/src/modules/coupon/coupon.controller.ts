@@ -1,21 +1,24 @@
 import { Request, Response } from "express";
-import { Types } from "mongoose";
 import { CouponService } from "./coupon.service.js";
 import { ApiResponseHandler } from "../../utils/apiResponse.js";
 
 export class CouponController {
   /**
-   * Create a new Coupon
+   * Create a new Coupon (System Admin Only)
    * POST /coupons
    */
   static async createCoupon(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.user?.tenantId) {
-        ApiResponseHandler.unauthorized(res, "User not authenticated or tenantId not found");
-        return;
-      }
-
-      const { code, discountType, discountValue, outletId, minOrderAmount, maxDiscountAmount, expirationDate, isActive } = req.body;
+      const {
+        code,
+        discountType,
+        discountValue,
+        minAmount,
+        minOrderAmount,
+        maxDiscountAmount,
+        expirationDate,
+        isActive,
+      } = req.body;
 
       if (!code || !discountType || discountValue === undefined) {
         ApiResponseHandler.badRequest(res, "code, discountType, and discountValue are required");
@@ -32,24 +35,19 @@ export class CouponController {
         return;
       }
 
-      if (outletId && !Types.ObjectId.isValid(outletId)) {
-        ApiResponseHandler.badRequest(res, "Invalid outletId format");
-        return;
-      }
+      const resolvedMinAmount = minAmount !== undefined ? minAmount : minOrderAmount;
 
       const coupon = await CouponService.createCoupon(
-        req.user.tenantId,
         {
           code,
           discountType,
           discountValue,
-          outletId,
-          minOrderAmount,
+          minAmount: resolvedMinAmount,
           maxDiscountAmount,
           expirationDate,
           isActive,
         },
-        req.user.userId
+        req.user?.userId
       );
 
       ApiResponseHandler.success(res, 201, "Coupon created successfully", coupon);
@@ -59,20 +57,14 @@ export class CouponController {
   }
 
   /**
-   * List coupons
+   * List coupons (System Admin Only)
    * GET /coupons
    */
   static async listCoupons(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.user?.tenantId) {
-        ApiResponseHandler.unauthorized(res, "User not authenticated or tenantId not found");
-        return;
-      }
-
-      const outletId = req.query.outletId as string | undefined;
       const isActive = req.query.isActive !== undefined ? req.query.isActive === "true" : undefined;
 
-      const coupons = await CouponService.getCoupons(req.user.tenantId, { outletId, isActive });
+      const coupons = await CouponService.getCoupons({ isActive });
       ApiResponseHandler.success(res, 200, "Coupons retrieved successfully", coupons);
     } catch (error: any) {
       ApiResponseHandler.badRequest(res, error.message || "Failed to list coupons");
@@ -80,17 +72,12 @@ export class CouponController {
   }
 
   /**
-   * Get coupon details
+   * Get coupon details (System Admin Only)
    * GET /coupons/:id
    */
   static async getCouponById(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.user?.tenantId) {
-        ApiResponseHandler.unauthorized(res, "User not authenticated or tenantId not found");
-        return;
-      }
-
-      const coupon = await CouponService.getCouponById(req.params.id as string, req.user.tenantId as string);
+      const coupon = await CouponService.getCouponById(req.params.id as string);
       if (!coupon) {
         ApiResponseHandler.notFound(res, "Coupon not found");
         return;
@@ -103,21 +90,23 @@ export class CouponController {
   }
 
   /**
-   * Update coupon details
+   * Update coupon details (System Admin Only)
    * PUT /coupons/:id
    */
   static async updateCoupon(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.user?.tenantId) {
-        ApiResponseHandler.unauthorized(res, "User not authenticated or tenantId not found");
-        return;
+      const { minAmount, minOrderAmount } = req.body;
+      const data = { ...req.body };
+      if (minAmount !== undefined) {
+        data.minAmount = minAmount;
+      } else if (minOrderAmount !== undefined) {
+        data.minAmount = minOrderAmount;
       }
 
       const coupon = await CouponService.updateCoupon(
-        req.user.tenantId as string,
         req.params.id as string,
-        req.body,
-        req.user.userId as string
+        data,
+        req.user?.userId as string
       );
 
       if (!coupon) {
@@ -132,17 +121,15 @@ export class CouponController {
   }
 
   /**
-   * Delete a coupon
+   * Delete a coupon (System Admin Only)
    * DELETE /coupons/:id
    */
   static async deleteCoupon(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.user?.tenantId) {
-        ApiResponseHandler.unauthorized(res, "User not authenticated or tenantId not found");
-        return;
-      }
-
-      const coupon = await CouponService.deleteCoupon(req.params.id as string, req.user.tenantId as string, req.user.userId as string);
+      const coupon = await CouponService.deleteCoupon(
+        req.params.id as string,
+        req.user?.userId as string
+      );
       if (!coupon) {
         ApiResponseHandler.notFound(res, "Coupon not found");
         return;

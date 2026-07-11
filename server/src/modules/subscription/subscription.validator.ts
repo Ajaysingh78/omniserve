@@ -42,6 +42,7 @@ export const subscribeSchema = z.object({
   planId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid Mongo ObjectId"),
   billingCycle: z.nativeEnum(BillingCycle).default(BillingCycle.MONTHLY),
   paymentProvider: z.nativeEnum(PaymentProvider).default(PaymentProvider.MANUAL),
+  couponCode: z.string().optional(),
 });
 
 export const processPaymentSchema = z.object({

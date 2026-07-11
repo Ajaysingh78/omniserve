@@ -1,12 +1,10 @@
 import mongoose, { Document, Model, Schema, Types } from "mongoose";
 
 export interface ICoupon extends Document {
-  tenantId: Types.ObjectId;
-  outletId?: Types.ObjectId | null;
   code: string;
   discountType: "PERCENTAGE" | "FLAT";
   discountValue: number;
-  minOrderAmount: number;
+  minAmount: number;
   maxDiscountAmount?: number | null;
   expirationDate?: Date | null;
   isActive: boolean;
@@ -19,16 +17,6 @@ export interface ICoupon extends Document {
 
 const couponSchema = new Schema<ICoupon>(
   {
-    tenantId: {
-      type: Schema.Types.ObjectId,
-      ref: "Tenant",
-      required: [true, "Tenant is required"],
-    },
-    outletId: {
-      type: Schema.Types.ObjectId,
-      ref: "Outlet",
-      default: null,
-    },
     code: {
       type: String,
       required: [true, "Coupon code is required"],
@@ -49,10 +37,10 @@ const couponSchema = new Schema<ICoupon>(
       required: [true, "Discount value is required"],
       min: [0, "Discount value cannot be negative"],
     },
-    minOrderAmount: {
+    minAmount: {
       type: Number,
       default: 0,
-      min: [0, "Minimum order amount cannot be negative"],
+      min: [0, "Minimum amount cannot be negative"],
     },
     maxDiscountAmount: {
       type: Number,
@@ -88,8 +76,7 @@ const couponSchema = new Schema<ICoupon>(
   }
 );
 
-couponSchema.index({ tenantId: 1 });
-couponSchema.index({ tenantId: 1, code: 1 }, { unique: true, partialFilterExpression: { isDeleted: false } });
+couponSchema.index({ code: 1 }, { unique: true, partialFilterExpression: { isDeleted: false } });
 couponSchema.index({ isDeleted: 1 });
 
 couponSchema.pre("find", function () {

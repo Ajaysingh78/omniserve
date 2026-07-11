@@ -951,46 +951,7 @@ export class PublicController {
    * Validates a coupon code and calculates discount for an outlet
    */
   static async validateCoupon(req: Request, res: Response): Promise<void> {
-    try {
-      const { outletSlug } = req.params;
-      const code = req.query.code as string;
-      const subtotal = Number(req.query.subtotal);
-
-      if (!code || isNaN(subtotal)) {
-        ApiResponseHandler.badRequest(res, "Coupon code and valid subtotal are required");
-        return;
-      }
-
-      const outlet = await Outlet.findOne({ slug: outletSlug, isDeleted: false });
-      if (!outlet) {
-        ApiResponseHandler.notFound(res, "Outlet not found");
-        return;
-      }
-
-      const result = await CouponService.validateCoupon(
-        outlet.tenantId.toString(),
-        outlet._id.toString(),
-        code,
-        subtotal
-      );
-
-      if (!result.isValid) {
-        ApiResponseHandler.success(res, 200, result.reason || "Invalid coupon", {
-          isValid: false,
-          discount: 0,
-          reason: result.reason,
-        });
-        return;
-      }
-
-      ApiResponseHandler.success(res, 200, "Coupon validated successfully", {
-        isValid: true,
-        discount: result.discount,
-        code: result.coupon?.code,
-      });
-    } catch (error: any) {
-      ApiResponseHandler.badRequest(res, error.message || "Failed to validate coupon");
-    }
+    ApiResponseHandler.badRequest(res, "Order checkout coupons are no longer supported");
   }
 
   /**
@@ -1105,17 +1066,8 @@ export class PublicController {
       
       let discount = 0;
       if (couponCode) {
-        const result = await CouponService.validateCoupon(
-          cart.tenantId.toString(),
-          cart.outletId.toString(),
-          couponCode,
-          subtotal
-        );
-        if (!result.isValid) {
-          ApiResponseHandler.badRequest(res, result.reason || "Invalid coupon code");
-          return;
-        }
-        discount = result.discount;
+        ApiResponseHandler.badRequest(res, "Coupons are not supported for order checkout");
+        return;
       }
       
       const totalAmount = subtotal + tax + deliveryFee - discount;
