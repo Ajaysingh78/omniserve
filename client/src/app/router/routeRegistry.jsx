@@ -56,6 +56,7 @@ export const routeComponents = {
   AuditLogsPage: createLazyPage(() => import('../../pages/audit/AuditLogsPage')),
   WebhookLogsPage: createLazyPage(() => import('../../pages/audit/WebhookLogs')),
   UsersPage: createLazyPage(() => import('../../pages/users/UsersPage')),
+  CouponsPage: createLazyPage(() => import('../../pages/coupon/CouponsPage')),
   ProfilePage: createLazyPage(() => import('../../pages/profile/ProfilePage')),
   IntegrationsDashboardPage: createLazyPage(() => import('../../pages/integrations/IntegrationsDashboard')),
   MappingReviewPage: createLazyPage(() => import('../../pages/integrations/MappingReview')),
@@ -113,6 +114,7 @@ export const dashboardRoutes = [
   
   // Menu Management Unified Workspace
   { path: '/menu-management', title: 'Menu Management', component: routeComponents.MenuManagementPage, roles: [SUPER_ADMIN, RESTAURANT_OWNER, OUTLET_MANAGER], nav: { section: 'Management', label: 'Menu Management', icon: HiOutlineSquares2X2 } },
+  { path: '/coupons', title: 'Subscription Coupons', component: routeComponents.CouponsPage, roles: [SYSTEM_ADMIN], nav: { section: 'System Admin', label: 'Subscription Coupons', icon: HiOutlineTag } },
   
   // Standalone paths (no longer in sidebar, but still routable)
   { path: '/categories', title: 'Categories', component: routeComponents.CategoriesPage, roles: [SUPER_ADMIN, RESTAURANT_OWNER, OUTLET_MANAGER] },
@@ -152,7 +154,7 @@ export const publicWebsiteRoutes = [
 ];
 
 export function getPageTitle(pathname) {
-  return dashboardRoutes.find((route) => route.path === pathname)?.title || 'FoodMesh';
+  return dashboardRoutes.find((route) => route.path === pathname)?.title || 'OmniServe';
 }
 
 export function getSidebarSections(userRole) {

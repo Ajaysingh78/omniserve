@@ -29,6 +29,7 @@ import { BillingService } from "../order/billing.service.js";
 import { WaiterTaskService } from "../order/waiter-task.service.js";
 import Payment from "../../models/payment.model.js";
 import { PaymentMethod, PaymentStatus } from "../../models/enums.js";
+import { CouponService } from "../coupon/coupon.service.js";
 
 
 export class PublicController {
@@ -946,12 +947,20 @@ export class PublicController {
   }
 
   /**
+   * GET /api/public/o/:outletSlug/coupons/validate
+   * Validates a coupon code and calculates discount for an outlet
+   */
+  static async validateCoupon(req: Request, res: Response): Promise<void> {
+    ApiResponseHandler.badRequest(res, "Order checkout coupons are no longer supported");
+  }
+
+  /**
    * POST /api/public/checkout
    * Checkout endpoint converting cart to CanonicalOrder, executing ingestion, and creating timeline/checkout session
    */
   static async checkoutCart(req: Request, res: Response): Promise<void> {
     try {
-      const { cartId, customer, fulfillment, payment } = req.body;
+      const { cartId, customer, fulfillment, payment, couponCode } = req.body;
 
       if (!cartId || !customer || !customer.name || !customer.phone) {
         ApiResponseHandler.badRequest(res, "cartId, customer name, and phone are required");
@@ -1054,7 +1063,13 @@ export class PublicController {
 
       const tax = Number((subtotal * 0.05).toFixed(2)); // 5% mock tax
       const deliveryFee = fulfillment?.type === "DELIVERY" ? 50 : 0;
-      const discount = 0; // promotions handled in Phase 8C
+      
+      let discount = 0;
+      if (couponCode) {
+        ApiResponseHandler.badRequest(res, "Coupons are not supported for order checkout");
+        return;
+      }
+      
       const totalAmount = subtotal + tax + deliveryFee - discount;
 
       // 3. Resolve Delivery address if applicable
@@ -1072,6 +1087,7 @@ export class PublicController {
       const rawPayload = {
         orderId: generatedOrderId,
         outletId: cart.outletId.toString(),
+        couponCode: couponCode || undefined,
         customer: {
           name: customer.name,
           phone: customer.phone,

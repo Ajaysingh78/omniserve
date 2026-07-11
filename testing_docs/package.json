@@ -1,5 +1,5 @@
 {
-  "name": "foodmesh-root",
+  "name": "omniserve-root",
   "private": true,
   "type": "module",
   "workspaces": [

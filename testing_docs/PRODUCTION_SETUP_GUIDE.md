@@ -1,6 +1,6 @@
 # Production Setup & Bootstrapping Guide
 
-This guide explains how to bootstrap a fresh deployment of the **FoodMesh Platform** using only API calls.
+This guide explains how to bootstrap a fresh deployment of the **OmniServe Platform** using only API calls.
 
 ---
 

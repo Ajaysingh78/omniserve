@@ -14,6 +14,7 @@ import { PaymentGateway } from "../payment/payment-gateway.interface.js";
 import RestaurantSubscriptionModel, { IRestaurantSubscriptionDocument } from "../../models/subscription.model.js";
 import SubscriptionPlanModel, { ISubscriptionPlanDocument } from "../../models/subscriptionPlan.model.js";
 import Restaurant from "../../models/restaurant.model.js";
+import { CouponService } from "../coupon/coupon.service.js";
 
 export class SubscriptionService {
   private static getGateway(provider: PaymentProvider): PaymentGateway {
@@ -229,6 +230,7 @@ export class SubscriptionService {
     planId: string | Types.ObjectId,
     billingCycle: BillingCycle,
     provider: PaymentProvider,
+    couponCode?: string,
     userId?: string | Types.ObjectId
   ): Promise<IRestaurantSubscriptionDocument> {
     const subscription = await this.getOrCreateSubscription(tenantId, userId);
@@ -252,8 +254,17 @@ export class SubscriptionService {
 
     // 2. Compute pricing
     const amount = billingCycle === BillingCycle.MONTHLY ? newPlan.monthlyPrice : newPlan.yearlyPrice;
-    const tax = Number((amount * 0.18).toFixed(2)); // 18% GST mock tax
-    const total = amount + tax;
+    let discount = 0;
+    if (couponCode) {
+      const validation = await CouponService.validateSubscriptionCoupon(couponCode, amount);
+      if (!validation.isValid) {
+        throw new Error(validation.reason || "Invalid coupon code");
+      }
+      discount = validation.discount;
+    }
+    const amountAfterDiscount = Math.max(0, amount - discount);
+    const tax = Number((amountAfterDiscount * 0.18).toFixed(2)); // 18% GST mock tax
+    const total = Number((amountAfterDiscount + tax).toFixed(2));
 
     // 3. Request subscription creation in Gateway
     const { paymentSubscriptionId, invoiceUrl } = await gateway.createSubscription(
@@ -309,7 +320,7 @@ export class SubscriptionService {
       amount,
       currency: newPlan.currency,
       tax,
-      discount: 0,
+      discount,
       total,
       status: InvoiceStatus.PAID,
       paymentMethod: provider.toUpperCase(),
@@ -367,6 +378,7 @@ export class SubscriptionService {
    */
   static async renewSubscription(
     tenantId: string | Types.ObjectId,
+    couponCode?: string,
     userId?: string | Types.ObjectId
   ): Promise<IRestaurantSubscriptionDocument> {
     const subscription = await this.getOrCreateSubscription(tenantId, userId);
@@ -383,8 +395,17 @@ export class SubscriptionService {
     }
 
     const amount = subscription.billingCycle === BillingCycle.MONTHLY ? plan.monthlyPrice : plan.yearlyPrice;
-    const tax = Number((amount * 0.18).toFixed(2));
-    const total = amount + tax;
+    let discount = 0;
+    if (couponCode) {
+      const validation = await CouponService.validateSubscriptionCoupon(couponCode, amount);
+      if (!validation.isValid) {
+        throw new Error(validation.reason || "Invalid coupon code");
+      }
+      discount = validation.discount;
+    }
+    const amountAfterDiscount = Math.max(0, amount - discount);
+    const tax = Number((amountAfterDiscount * 0.18).toFixed(2));
+    const total = Number((amountAfterDiscount + tax).toFixed(2));
 
     const updated = await SubscriptionRepository.updateSubscription(subscription._id, {
       status: SubscriptionStatus.ACTIVE,
@@ -402,7 +423,7 @@ export class SubscriptionService {
       amount,
       currency: plan.currency,
       tax,
-      discount: 0,
+      discount,
       total,
       status: InvoiceStatus.PAID,
       paymentMethod: subscription.paymentProvider.toUpperCase(),
