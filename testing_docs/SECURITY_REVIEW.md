@@ -1,6 +1,6 @@
 # Production Security Review
 
-This document provides a security audit and architectural validation of the **FoodMesh Platform** defenses.
+This document provides a security audit and architectural validation of the **OmniServe Platform** defenses.
 
 ---
 

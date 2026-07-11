@@ -1,6 +1,6 @@
 # API Reference Documentation
 
-This document provides a comprehensive API specification for the core business domains of the **FoodMesh Platform**.
+This document provides a comprehensive API specification for the core business domains of the **OmniServe Platform**.
 
 ---
 

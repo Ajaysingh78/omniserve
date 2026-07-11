@@ -60,7 +60,7 @@ export default function AuthLayout() {
               restaurant
             </span>
             <h1 className="font-hanken text-[32px] font-bold text-primary tracking-tight">
-              FoodMesh
+              OmniServe
             </h1>
           </div>
           <p className="font-sans text-body-md text-on-surface-variant dark:text-zinc-400">

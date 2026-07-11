@@ -1,6 +1,6 @@
 # Database Schema Documentation
 
-This document describes the Mongoose models, data relationships, and indexes defined in the **FoodMesh Platform**.
+This document describes the Mongoose models, data relationships, and indexes defined in the **OmniServe Platform**.
 
 ---
 

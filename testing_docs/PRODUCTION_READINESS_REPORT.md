@@ -1,6 +1,6 @@
 # Production Readiness Report
 
-This report summarizes the operational readiness and code audit metrics for the deployment of the **FoodMesh Platform**.
+This report summarizes the operational readiness and code audit metrics for the deployment of the **OmniServe Platform**.
 
 ---
 

@@ -1,13 +1,13 @@
 # Architecture Documentation
 
-This document describes the design patterns, data flows, and system architecture of the **FoodMesh Platform**.
+This document describes the design patterns, data flows, and system architecture of the **OmniServe Platform**.
 
 ---
 
 ## 1. Project Directory Structure
 
 ```
-FoodMesh
+OmniServe
 ├── client/                 # React SPA Administration Panel
 │   ├── src/
 │   │   ├── api/            # API Service Layer client helpers
