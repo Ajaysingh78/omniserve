@@ -365,7 +365,7 @@ export default function LandingPage() {
             </ul>
           </div>
           <div className="lg:col-span-7 reveal delay-200">
-            <img alt="OmniServe Staff Management Interface" className="w-full h-auto rounded-[2rem] shadow-2xl border border-outline-variant" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDkgT7kHTZQV_WbXww18wXqFOgl0y6h1d1gkF0MmX3j-M_7-8oT0Mi04OcPAkoRMgUZ0rTowKRJjfd5G1unYs4KnnRM329hlQ2nf5Jzt-h6TiAqwejMz6CyGs-Dqeeq9oF94j4966bm2HfBUdfJsxyujWTg8CauXfibhO4dOomCab5-IYy4Ay2vogJISlZ3Mq3EgZoKcsM_DUQe4xDdj_bdY3kyzVST0cuvv6XzWS9J0jmn8VB7CB_TIshMzx_4p7zYfg" />
+            <img alt="OmniServe Staff Management Interface" className="w-full h-auto rounded-[2rem] shadow-2xl border border-outline-variant" src="/images/landingpage/staff.png" />
           </div>
         </div>
       </section>
