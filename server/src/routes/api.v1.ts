@@ -28,6 +28,7 @@ import reservationRouter from "../modules/order/reservation.routes.js";
 import diningAnalyticsRouter from "../modules/analytics/dining-analytics.routes.js";
 import systemAdminRoutes from "../modules/systemAdmin/systemAdmin.routes.js";
 import healthRoutes from "../modules/health/health.routes.js";
+import ragRoutes from "../modules/rag/routes/rag.routes.js";
 
 const router = Router();
 
@@ -59,5 +60,6 @@ router.use("/billing", billingRouter);
 router.use("/shifts", shiftRouter);
 router.use("/reservations", reservationRouter);
 router.use("/dining-analytics", diningAnalyticsRouter);
+router.use("/rag", ragRoutes);
 
 export default router;

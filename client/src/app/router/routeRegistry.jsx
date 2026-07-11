@@ -17,6 +17,7 @@ import {
   HiOutlineSquares2X2,
   HiOutlineQueueList,
   HiOutlineShieldCheck,
+  HiOutlineChatBubbleLeftRight,
 } from 'react-icons/hi2';
 import { USER_ROLES } from '../../utils/constants';
 
@@ -77,6 +78,7 @@ export const routeComponents = {
   AcceptSystemAdminInvite: createLazyPage(() => import('../../pages/systemAdmin/AcceptSystemAdminInvite')),
   FloorManagementPage: createLazyPage(() => import('../../pages/operations/FloorManagement')),
   MenuManagementPage: createLazyPage(() => import('../../pages/menu/MenuManagement')),
+  CopilotPage: createLazyPage(() => import('../../pages/copilot/CopilotPage')),
 };
 
 export const NAV_PERMISSIONS = {
@@ -100,6 +102,7 @@ export const authRoutes = [
 
 export const dashboardRoutes = [
   { path: '/dashboard', title: 'Dashboard', component: routeComponents.DashboardPage, roles: 'all', nav: { section: 'Main', label: 'Dashboard', icon: HiOutlineHome } },
+  { path: '/copilot', title: 'AI Copilot', component: routeComponents.CopilotPage, roles: 'all', nav: { section: 'Main', label: 'AI Copilot', icon: HiOutlineChatBubbleLeftRight } },
   { path: '/orders', title: 'Orders', component: routeComponents.OrdersPage, roles: RESTAURANT_ROLES, nav: { section: 'Operations', label: 'Orders', icon: HiOutlineShoppingCart } },
   { path: '/notifications', title: 'Notifications', component: routeComponents.NotificationsPage, roles: RESTAURANT_ROLES, nav: { section: 'Insights', label: 'Notifications', icon: HiOutlineBell } },
   { path: '/profile', title: 'Profile', component: routeComponents.ProfilePage, roles: 'all' },
