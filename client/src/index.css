@@ -193,7 +193,7 @@ body {
 /* ── Landing Page Scoped Styles & Animations ── */
 .landing-page {
   font-family: 'Inter', sans-serif;
-  background-color: #fcf8f8;
+  background-color: #FAF8FF !important;
   color: #1c1b1b;
 
   /* Redefine surface containers as light purple shades */
@@ -208,6 +208,27 @@ body {
 
   --surface-container-highest: #D8B4FE;
   --color-surface-container-highest: #D8B4FE;
+}
+
+/* Explicit background overrides to override Tailwind utilities */
+.landing-page .bg-surface-container-low {
+  background-color: #F5F3FF !important;
+}
+
+.landing-page .bg-surface-container {
+  background-color: #EDE9FE !important;
+}
+
+.landing-page .bg-surface-container-high {
+  background-color: #E9D5FF !important;
+}
+
+.landing-page .bg-surface-container-highest {
+  background-color: #D8B4FE !important;
+}
+
+.landing-page .bg-background {
+  background-color: #FAF8FF !important;
 }
 
 .landing-page .font-display-lg {
@@ -261,11 +282,11 @@ body {
 }
 
 .landing-page .glass-card {
-  background: rgba(243, 232, 255, 0.45);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(216, 180, 254, 0.3);
-  box-shadow: 0px 4px 20px rgba(139, 92, 246, 0.05);
-  transition: all 0.3s ease;
+  background: rgba(243, 232, 255, 0.55) !important;
+  backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(216, 180, 254, 0.4) !important;
+  box-shadow: 0px 4px 20px rgba(139, 92, 246, 0.05) !important;
+  transition: all 0.3s ease !important;
 }
 
 .landing-page .glass-card:hover {
