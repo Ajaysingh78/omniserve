@@ -1,8 +1,8 @@
 {
   "info": {
-    "_postman_id": "b8d29b20-df70-496a-8b89-a29bc8110b9f",
-    "name": "FoodMesh - Complete Reference",
-    "description": "Complete, production-ready Postman collection covering all 146 endpoints of the FoodMesh platform, structured by functional domains.",
+    "_postman_id": "a8d29b20-df70-496a-8b89-a29bc8110b9f",
+    "name": "OmniServe - Smoke Tests",
+    "description": "Automated happy-path regression flow to test the core lifecycle of online ordering, website cart-checkout, and dine-in QR ordering.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -32,7 +32,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"admin_1267@foodmesh.com\",\n  \"password\": \"Password123!\",\n  \"firstName\": \"System\",\n  \"lastName\": \"Admin\",\n  \"tenantName\": \"FoodMesh Enterprise\"\n}",
+              "raw": "{\n  \"email\": \"admin_1411@omniserve.com\",\n  \"password\": \"Password123!\",\n  \"firstName\": \"System\",\n  \"lastName\": \"Admin\",\n  \"tenantName\": \"OmniServe Enterprise\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -75,7 +75,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"admin_test@foodmesh.com\",\n  \"password\": \"Password123!\"\n}",
+              "raw": "{\n  \"email\": \"admin_test@omniserve.com\",\n  \"password\": \"Password123!\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -189,71 +189,6 @@
               }
             }
           }
-        },
-        {
-          "name": "Change Password",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{JWT_TOKEN}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{BASE_URL}}/auth/change-password",
-              "host": [
-                "{{BASE_URL}}"
-              ],
-              "path": [
-                "auth",
-                "change-password"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"oldPassword\": \"Password123!\",\n  \"newPassword\": \"NewPassword123!\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "Revoke All User Tokens",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{JWT_TOKEN}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{BASE_URL}}/auth/revoke-all",
-              "host": [
-                "{{BASE_URL}}"
-              ],
-              "path": [
-                "auth",
-                "revoke-all"
-              ]
-            }
-          }
         }
       ]
     },
@@ -333,99 +268,6 @@
               ],
               "path": [
                 "restaurants"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Get Single Restaurant Details",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{JWT_TOKEN}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{BASE_URL}}/restaurants/{{RESTAURANT_ID}}",
-              "host": [
-                "{{BASE_URL}}"
-              ],
-              "path": [
-                "restaurants",
-                "{{RESTAURANT_ID}}"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Update Restaurant Settings",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{JWT_TOKEN}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{BASE_URL}}/restaurants/{{RESTAURANT_ID}}",
-              "host": [
-                "{{BASE_URL}}"
-              ],
-              "path": [
-                "restaurants",
-                "{{RESTAURANT_ID}}"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Burger Palace Premier\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "Delete Restaurant",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{JWT_TOKEN}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{BASE_URL}}/restaurants/{{RESTAURANT_ID}}",
-              "host": [
-                "{{BASE_URL}}"
-              ],
-              "path": [
-                "restaurants",
-                "{{RESTAURANT_ID}}"
               ]
             }
           }
@@ -1054,7 +896,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"order_id\": \"SW-MOCK-6249\",\n  \"outlet_id\": \"{{OUTLET_ID}}\",\n  \"customer\": {\n    \"name\": \"Swiggy Buyer\",\n    \"phone\": \"9988776655\"\n  },\n  \"items\": [\n    {\n      \"item_id\": \"MOCK-1\",\n      \"name\": \"Cheese Burger\",\n      \"quantity\": 2,\n      \"price\": 150\n    }\n  ]\n}",
+              "raw": "{\n  \"order_id\": \"SW-MOCK-1753\",\n  \"outlet_id\": \"{{OUTLET_ID}}\",\n  \"customer\": {\n    \"name\": \"Swiggy Buyer\",\n    \"phone\": \"9988776655\"\n  },\n  \"items\": [\n    {\n      \"item_id\": \"MOCK-1\",\n      \"name\": \"Cheese Burger\",\n      \"quantity\": 2,\n      \"price\": 150\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1093,7 +935,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"orderId\": \"ZO-MOCK-4053\",\n  \"outletCode\": \"{{OUTLET_ID}}\",\n  \"customerDetails\": {\n    \"customerName\": \"Zomato Buyer\",\n    \"customerPhone\": \"8877665544\"\n  },\n  \"cart\": {\n    \"items\": [\n      {\n        \"itemId\": \"MOCK-2\",\n        \"title\": \"Veg Pizza\",\n        \"qty\": 1,\n        \"rate\": 250\n      }\n    ]\n  }\n}",
+              "raw": "{\n  \"orderId\": \"ZO-MOCK-8474\",\n  \"outletCode\": \"{{OUTLET_ID}}\",\n  \"customerDetails\": {\n    \"customerName\": \"Zomato Buyer\",\n    \"customerPhone\": \"8877665544\"\n  },\n  \"cart\": {\n    \"items\": [\n      {\n        \"itemId\": \"MOCK-2\",\n        \"title\": \"Veg Pizza\",\n        \"qty\": 1,\n        \"rate\": 250\n      }\n    ]\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1352,7 +1194,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"customerName\": \"Vipul Goel\",\n  \"customerPhone\": \"9998887776\",\n  \"guestCount\": 2,\n  \"reservationTime\": \"2026-07-02T19:01:09.568Z\",\n  \"outletId\": \"{{OUTLET_ID}}\",\n  \"tableId\": \"{{TABLE_ID}}\"\n}",
+              "raw": "{\n  \"customerName\": \"Vipul Goel\",\n  \"customerPhone\": \"9998887776\",\n  \"guestCount\": 2,\n  \"reservationTime\": \"2026-07-02T19:01:09.570Z\",\n  \"outletId\": \"{{OUTLET_ID}}\",\n  \"tableId\": \"{{TABLE_ID}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"

@@ -1,6 +1,6 @@
 # End-to-End Workflows
 
-This document outlines the step-by-step API flows representing core business operations in the **FoodMesh Platform**.
+This document outlines the step-by-step API flows representing core business operations in the **OmniServe Platform**.
 
 ---
 

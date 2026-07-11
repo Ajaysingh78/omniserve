@@ -28,7 +28,7 @@ export class SubscriptionEventPublisher {
     if (!owner) return;
 
     const title = `Subscription Expiring in ${daysRemaining} Days`;
-    const message = `Your FoodMesh SaaS subscription plan will expire in ${daysRemaining} days. Please upgrade or renew to keep your features active.`;
+    const message = `Your OmniServe SaaS subscription plan will expire in ${daysRemaining} days. Please upgrade or renew to keep your features active.`;
 
     // 1. Create In-App Notification
     await Notification.create({
@@ -43,7 +43,7 @@ export class SubscriptionEventPublisher {
     try {
       await EmailService.sendMail({
         to: owner.email,
-        subject: `[FoodMesh] Subscription Expiry Warning - ${daysRemaining} Days`,
+        subject: `[OmniServe] Subscription Expiry Warning - ${daysRemaining} Days`,
         text: message,
         html: `<p>${message}</p>`,
       });
@@ -78,7 +78,7 @@ export class SubscriptionEventPublisher {
 
     const title = locked ? "Subscription Locked (EXPIRED)" : "Subscription Expired - Grace Period Started";
     const message = locked
-      ? "Your grace period has ended. Your FoodMesh account is now READ-ONLY. Please upgrade immediately to unlock features."
+      ? "Your grace period has ended. Your OmniServe account is now READ-ONLY. Please upgrade immediately to unlock features."
       : "Your active billing period has ended. A 7-day grace period has started to prevent immediate interruption.";
 
     await Notification.create({
@@ -92,7 +92,7 @@ export class SubscriptionEventPublisher {
     try {
       await EmailService.sendMail({
         to: owner.email,
-        subject: `[FoodMesh] ${title}`,
+        subject: `[OmniServe] ${title}`,
         text: message,
         html: `<p>${message}</p>`,
       });
@@ -140,7 +140,7 @@ export class SubscriptionEventPublisher {
     try {
       await EmailService.sendMail({
         to: owner.email,
-        subject: `[FoodMesh] Billing Update: ${title}`,
+        subject: `[OmniServe] Billing Update: ${title}`,
         text: message,
         html: `<p>${message}</p>`,
       });
@@ -174,7 +174,7 @@ export class SubscriptionEventPublisher {
     if (!owner) return;
 
     const title = `Subscription Plan ${action}`;
-    const message = `Excellent news! Your FoodMesh plan has been successfully ${action.toLowerCase()} to the ${planName}. All subscription limits and features are active.`;
+    const message = `Excellent news! Your OmniServe plan has been successfully ${action.toLowerCase()} to the ${planName}. All subscription limits and features are active.`;
 
     await Notification.create({
       tenantId: new Types.ObjectId(tenantId),
@@ -187,7 +187,7 @@ export class SubscriptionEventPublisher {
     try {
       await EmailService.sendMail({
         to: owner.email,
-        subject: `[FoodMesh] Plan Updated - ${planName}`,
+        subject: `[OmniServe] Plan Updated - ${planName}`,
         text: message,
         html: `<p>${message}</p>`,
       });

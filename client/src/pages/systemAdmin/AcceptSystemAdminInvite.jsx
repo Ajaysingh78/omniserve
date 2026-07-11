@@ -89,9 +89,9 @@ export default function AcceptSystemAdminInvite() {
         
         {/* Brand */}
         <div className="flex flex-col items-center gap-2">
-          <img src="/logo.png" alt="FoodMesh Logo" className="w-12 h-12 object-contain rounded-xl" />
+          <img src="/logo.png" alt="OmniServe Logo" className="w-12 h-12 object-contain rounded-xl" />
           <h1 className="font-hanken text-2xl font-black text-primary dark:text-primary-fixed-dim tracking-tight mt-1">
-            FoodMesh Operations OS
+            OmniServe Operations OS
           </h1>
           <span className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest bg-primary/5 px-2 py-0.5 rounded border border-primary/10">
             Platform Setup
