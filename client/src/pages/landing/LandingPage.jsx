@@ -116,7 +116,7 @@ export default function LandingPage() {
   return (
     <div className="landing-page bg-background text-on-surface font-body-lg overflow-x-hidden selection:bg-secondary-container selection:text-on-secondary-container">
       {/* TopNavBar */}
-      <nav className="fixed top-0 w-full z-50 bg-purple-50/70 backdrop-blur-lg border-b border-purple-200/40 shadow-xs transition-all duration-500">
+      <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-lg border-b border-[#6311f4]/10 shadow-xs transition-all duration-500">
         <div className="flex justify-between items-center h-20 px-margin-desktop max-w-container-max mx-auto">
           <div className="font-headline-lg text-headline-lg font-bold text-on-surface tracking-tight">OmniServe</div>
           <div className="hidden md:flex items-center space-x-10">
@@ -126,7 +126,7 @@ export default function LandingPage() {
             <a href="#contact" className="text-on-surface hover:text-brand-accent transition-colors duration-300 font-body-md text-body-md">Contact</a>
           </div>
           <div className="flex items-center space-x-4">
-            <Link to="/login" className="px-8 py-3 bg-on-surface text-white rounded-full font-bold transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg">Let's Get Started</Link>
+            <Link to="/login" className="px-8 py-3 bg-[#6311f4] text-white rounded-full font-bold transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg">Let's Get Started</Link>
           </div>
         </div>
       </nav>
@@ -135,9 +135,9 @@ export default function LandingPage() {
       <section className="relative pt-40 pb-section-gap overflow-hidden">
         <div className="max-w-container-max mx-auto px-margin-desktop grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <div className="reveal">
-            <div className="inline-flex items-center space-x-2 bg-secondary-container px-4 py-1.5 rounded-full mb-8">
-              <span className="w-2 h-2 rounded-full bg-brand-accent animate-pulse"></span>
-              <span className="text-secondary font-semibold text-label-sm uppercase tracking-widest">Enterprise Ready</span>
+            <div className="inline-flex items-center space-x-2 bg-[#fc8a63]/10 px-4 py-1.5 rounded-full mb-8">
+              <span className="w-2 h-2 rounded-full bg-[#fc8a63] animate-pulse"></span>
+              <span className="text-[#fc8a63] font-semibold text-label-sm uppercase tracking-widest">Enterprise Ready</span>
             </div>
             <h1 className="font-display-lg text-display-lg leading-[1.1] mb-8 text-on-surface">
               One Platform.<br />
@@ -148,7 +148,7 @@ export default function LandingPage() {
               Unify your front-of-house, kitchen, inventory, and delivery aggregators into a single, canonical data stream. Scale with OmniServe.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-              <Link to="/login" className="px-10 py-5 bg-on-surface text-white rounded-2xl font-bold flex items-center justify-center space-x-2 hover:translate-y-[-2px] transition-transform shadow-xl">
+              <Link to="/login" className="px-10 py-5 bg-[#6311f4] text-white rounded-2xl font-bold flex items-center justify-center space-x-2 hover:bg-[#520dd4] transition-transform shadow-xl">
                 <span>Let's Get Started</span>
                 <ArrowRight className="w-5 h-5" />
               </Link>
@@ -261,7 +261,7 @@ export default function LandingPage() {
       </section>
 
       {/* Product Screen Preview / Operations Cockpit */}
-      <section className="py-section-gap bg-on-surface text-white overflow-hidden">
+      <section className="py-section-gap bg-[#0b1f4a] text-white overflow-hidden">
         <div className="max-w-container-max mx-auto px-margin-desktop grid grid-cols-1 lg:grid-cols-2 gap-24 items-center">
           <div className="reveal">
             <h2 className="font-headline-xl text-headline-xl mb-8">The Operations Cockpit</h2>
@@ -409,7 +409,7 @@ export default function LandingPage() {
       {/* Why OmniServe */}
       <section className="py-section-gap bg-surface-container">
         <div className="max-w-container-max mx-auto px-margin-desktop grid grid-cols-1 md:grid-cols-2 gap-12 reveal">
-          <div className="bg-purple-50 p-12 rounded-[2.5rem] shadow-xs">
+          <div className="bg-[#f7f6fc] p-12 rounded-[2.5rem] shadow-xs">
             <h3 className="font-headline-lg text-headline-lg mb-8 text-on-surface/40">Traditional System</h3>
             <ul className="space-y-6">
               <li className="flex items-start space-x-4">
@@ -488,7 +488,7 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
-          <div className="glass-card p-10 rounded-[2rem] bg-on-surface text-white">
+          <div className="glass-card p-10 rounded-[2rem] bg-[#0b1f4a] text-white">
             <div className="flex text-brand-accent mb-6 space-x-1">
               {[...Array(5)].map((_, i) => <Star key={i} className="fill-current w-4 h-4" />)}
             </div>
@@ -589,7 +589,7 @@ export default function LandingPage() {
                   </div>
                   <input className="w-full px-6 py-4 rounded-xl border border-outline-variant focus:ring-brand-accent focus:border-brand-accent bg-white" placeholder="Work Email" type="email" />
                   <textarea className="w-full px-6 py-4 rounded-xl border border-outline-variant focus:ring-brand-accent focus:border-brand-accent bg-white" placeholder="How can we help?" rows="4"></textarea>
-                  <button className="w-full py-5 bg-on-surface text-white rounded-xl font-bold hover:bg-brand-accent transition-colors shadow-lg" type="submit">Send Message</button>
+                  <button className="w-full py-5 bg-[#6311f4] text-white rounded-xl font-bold hover:bg-[#520dd4] transition-colors shadow-lg" type="submit">Send Message</button>
                 </form>
               </div>
             </div>
@@ -599,13 +599,13 @@ export default function LandingPage() {
 
       {/* Final CTA */}
       <section className="py-section-gap max-w-container-max mx-auto px-margin-desktop reveal">
-        <div className="bg-on-surface rounded-[3rem] p-16 md:p-24 text-center text-white relative overflow-hidden">
+        <div className="bg-[#0b1f4a] rounded-[3rem] p-16 md:p-24 text-center text-white relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-brand-accent/20 to-transparent"></div>
           <div className="relative z-10 max-w-2xl mx-auto">
             <h2 className="font-display-lg text-display-lg mb-8">Ready to modernize?</h2>
             <p className="text-xl text-white mb-12">Join 1,200+ restaurant groups worldwide using OmniServe to orchestrate their operations.</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link className="px-12 py-6 bg-white text-on-surface rounded-2xl font-bold text-lg hover:scale-105 transition-transform shadow-xl" to="/login">Let's Get Started</Link>
+              <Link className="px-12 py-6 bg-white text-[#6311f4] rounded-2xl font-bold text-lg hover:scale-105 transition-transform shadow-xl" to="/login">Let's Get Started</Link>
               <button className="px-12 py-6 bg-white/10 backdrop-blur-md rounded-2xl font-bold text-lg border border-white/20 hover:bg-white/20 transition-all">Schedule a Call</button>
             </div>
           </div>

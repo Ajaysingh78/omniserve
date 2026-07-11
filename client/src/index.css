@@ -59,7 +59,7 @@
   --color-dark-hover: #2a2d45;
   --color-glass-border: rgba(99, 102, 241, 0.15);
   --color-glass-bg: rgba(26, 29, 46, 0.65);
-  --color-brand-accent: #8b5cf6;
+  --color-brand-accent: #6311f4;
 
   --spacing-gutter: 2rem;
   --spacing-section-gap: 8rem;
@@ -196,39 +196,39 @@ body {
   background-color: #FAF8FF !important;
   color: #1c1b1b;
 
-  /* Redefine surface containers as light purple shades */
-  --surface-container-low: #F5F3FF;
-  --color-surface-container-low: #F5F3FF;
+  /* Redefine surface containers as UrbanPiper style light slate/lavender */
+  --surface-container-low: #f3f5f8;
+  --color-surface-container-low: #f3f5f8;
 
-  --surface-container: #EDE9FE;
-  --color-surface-container: #EDE9FE;
+  --surface-container: #f7f6fc;
+  --color-surface-container: #f7f6fc;
 
-  --surface-container-high: #E9D5FF;
-  --color-surface-container-high: #E9D5FF;
+  --surface-container-high: #e4e4e4;
+  --color-surface-container-high: #e4e4e4;
 
-  --surface-container-highest: #D8B4FE;
-  --color-surface-container-highest: #D8B4FE;
+  --surface-container-highest: #c8c8c8;
+  --color-surface-container-highest: #c8c8c8;
 }
 
 /* Explicit background overrides to override Tailwind utilities */
 .landing-page .bg-surface-container-low {
-  background-color: #F5F3FF !important;
+  background-color: #f3f5f8 !important;
 }
 
 .landing-page .bg-surface-container {
-  background-color: #EDE9FE !important;
+  background-color: #f7f6fc !important;
 }
 
 .landing-page .bg-surface-container-high {
-  background-color: #E9D5FF !important;
+  background-color: #e4e4e4 !important;
 }
 
 .landing-page .bg-surface-container-highest {
-  background-color: #D8B4FE !important;
+  background-color: #c8c8c8 !important;
 }
 
 .landing-page .bg-background {
-  background-color: #FAF8FF !important;
+  background-color: #ffffff !important;
 }
 
 .landing-page .font-display-lg {
@@ -282,16 +282,16 @@ body {
 }
 
 .landing-page .glass-card {
-  background: rgba(243, 232, 255, 0.55) !important;
-  backdrop-filter: blur(16px) !important;
-  border: 1px solid rgba(216, 180, 254, 0.4) !important;
-  box-shadow: 0px 4px 20px rgba(139, 92, 246, 0.05) !important;
+  background: #ffffff !important;
+  border: 1px solid #e4e8ef !important;
+  box-shadow: 0px 8px 24px rgba(62, 73, 95, 0.04) !important;
   transition: all 0.3s ease !important;
 }
 
 .landing-page .glass-card:hover {
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 0px 8px 30px rgba(0, 0, 0, 0.06);
+  transform: translateY(-2px) scale(1.01) !important;
+  box-shadow: 0px 12px 30px rgba(99, 17, 244, 0.08) !important;
+  border-color: rgba(99, 17, 244, 0.2) !important;
 }
 
 @keyframes float {
