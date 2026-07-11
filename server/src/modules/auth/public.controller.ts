@@ -29,6 +29,7 @@ import { BillingService } from "../order/billing.service.js";
 import { WaiterTaskService } from "../order/waiter-task.service.js";
 import Payment from "../../models/payment.model.js";
 import { PaymentMethod, PaymentStatus } from "../../models/enums.js";
+import { CouponService } from "../coupon/coupon.service.js";
 
 
 export class PublicController {
@@ -946,12 +947,56 @@ export class PublicController {
   }
 
   /**
+   * GET /api/public/o/:outletSlug/coupons/validate
+   * Validates a coupon code and calculates discount for an outlet
+   */
+  static async validateCoupon(req: Request, res: Response): Promise<void> {
+    try {
+      const { outletSlug } = req.params;
+      const { code, subtotal } = req.query;
+
+      if (!code || !subtotal) {
+        ApiResponseHandler.badRequest(res, "Coupon code and subtotal are required");
+        return;
+      }
+
+      // Check if outlet exists
+      const outlet = await Outlet.findOne({ slug: outletSlug, isDeleted: false });
+      if (!outlet) {
+        ApiResponseHandler.notFound(res, "Outlet not found");
+        return;
+      }
+
+      const validation = await CouponService.validateCoupon(
+        outlet.tenantId.toString(),
+        outlet._id.toString(),
+        code as string,
+        Number(subtotal)
+      );
+
+      if (!validation.isValid) {
+        ApiResponseHandler.badRequest(res, validation.reason || "Invalid coupon code");
+        return;
+      }
+
+      ApiResponseHandler.success(res, 200, "Coupon is valid", {
+        code: validation.coupon?.code,
+        discount: validation.discount,
+        discountType: validation.coupon?.discountType,
+        discountValue: validation.coupon?.discountValue,
+      });
+    } catch (error: any) {
+      ApiResponseHandler.internalError(res, error.message || "Failed to validate coupon");
+    }
+  }
+
+  /**
    * POST /api/public/checkout
    * Checkout endpoint converting cart to CanonicalOrder, executing ingestion, and creating timeline/checkout session
    */
   static async checkoutCart(req: Request, res: Response): Promise<void> {
     try {
-      const { cartId, customer, fulfillment, payment } = req.body;
+      const { cartId, customer, fulfillment, payment, couponCode } = req.body;
 
       if (!cartId || !customer || !customer.name || !customer.phone) {
         ApiResponseHandler.badRequest(res, "cartId, customer name, and phone are required");
@@ -1054,7 +1099,22 @@ export class PublicController {
 
       const tax = Number((subtotal * 0.05).toFixed(2)); // 5% mock tax
       const deliveryFee = fulfillment?.type === "DELIVERY" ? 50 : 0;
-      const discount = 0; // promotions handled in Phase 8C
+      
+      let discount = 0;
+      if (couponCode) {
+        const validation = await CouponService.validateCoupon(
+          cart.tenantId ? cart.tenantId.toString() : "",
+          cart.outletId ? cart.outletId.toString() : null,
+          couponCode,
+          subtotal
+        );
+        if (!validation.isValid) {
+          ApiResponseHandler.badRequest(res, validation.reason || "Invalid coupon code");
+          return;
+        }
+        discount = validation.discount;
+      }
+      
       const totalAmount = subtotal + tax + deliveryFee - discount;
 
       // 3. Resolve Delivery address if applicable
@@ -1072,6 +1132,7 @@ export class PublicController {
       const rawPayload = {
         orderId: generatedOrderId,
         outletId: cart.outletId.toString(),
+        couponCode: couponCode || undefined,
         customer: {
           name: customer.name,
           phone: customer.phone,

@@ -8,7 +8,7 @@ I am building a multi-tenant food ordering platform inspired by UrbanPiper. The 
 
 The backend is built with Node.js, Express, TypeScript, MongoDB, Mongoose, JWT authentication, cookies, and Redis. It handles user authentication, role-based access, tenant-based data, subscription plans, and protected API routes.
 
-The frontend is built with React and Vite. It currently shows a food ordering interface named FoodMesh, with restaurant cards, search UI, and a simple landing experience for customers.
+The frontend is built with React and Vite. It currently shows a food ordering interface named OmniServe, with restaurant cards, search UI, and a simple landing experience for customers.
 
 ## Current Project Structure
 
@@ -139,7 +139,7 @@ DELETE /api/subscriptions/:id
 
 ### Frontend demo
 
-I also created a simple React frontend demo named FoodMesh. It shows the user-facing idea of the food ordering platform with:
+I also created a simple React frontend demo named OmniServe. It shows the user-facing idea of the food ordering platform with:
 
 - Navigation
 - Hero section

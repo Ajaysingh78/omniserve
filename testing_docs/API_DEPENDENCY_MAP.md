@@ -1,6 +1,6 @@
 # API Dependency Map
 
-This map outlines the flow of business logic and execution pipelines across services for key operations in the **FoodMesh Platform**.
+This map outlines the flow of business logic and execution pipelines across services for key operations in the **OmniServe Platform**.
 
 ---
 

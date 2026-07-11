@@ -10,12 +10,12 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   const [rememberMe, setRememberMe] = useState(() => {
-    return localStorage.getItem('foodmesh_remember_me') === 'true';
+    return localStorage.getItem('omniserve_remember_me') === 'true';
   });
 
   const [form, setForm] = useState({
-    email: localStorage.getItem('foodmesh_remember_me') === 'true'
-      ? localStorage.getItem('foodmesh_remembered_email') || ''
+    email: localStorage.getItem('omniserve_remember_me') === 'true'
+      ? localStorage.getItem('omniserve_remembered_email') || ''
       : '',
     password: ''
   });
@@ -34,10 +34,10 @@ export default function LoginPage() {
     const checked = e.target.checked;
     setRememberMe(checked);
     if (!checked) {
-      localStorage.removeItem('foodmesh_remembered_email');
-      localStorage.setItem('foodmesh_remember_me', 'false');
+      localStorage.removeItem('omniserve_remembered_email');
+      localStorage.setItem('omniserve_remember_me', 'false');
     } else {
-      localStorage.setItem('foodmesh_remember_me', 'true');
+      localStorage.setItem('omniserve_remember_me', 'true');
     }
   };
 
@@ -46,11 +46,11 @@ export default function LoginPage() {
     const result = await login(form);
     if (result.meta?.requestStatus === 'fulfilled') {
       if (rememberMe) {
-        localStorage.setItem('foodmesh_remembered_email', form.email);
-        localStorage.setItem('foodmesh_remember_me', 'true');
+        localStorage.setItem('omniserve_remembered_email', form.email);
+        localStorage.setItem('omniserve_remember_me', 'true');
       } else {
-        localStorage.removeItem('foodmesh_remembered_email');
-        localStorage.setItem('foodmesh_remember_me', 'false');
+        localStorage.removeItem('omniserve_remembered_email');
+        localStorage.setItem('omniserve_remember_me', 'false');
       }
       navigate('/dashboard');
     }

@@ -4,6 +4,7 @@ import { SubscriptionRepository } from "./subscription.repository.js";
 import { SubscriptionService } from "./subscription.service.js";
 import { subscribeSchema } from "./subscription.validator.js";
 import { ApiResponseHandler } from "../../utils/apiResponse.js";
+import { CouponService } from "../coupon/coupon.service.js";
 
 export class RestaurantSubscriptionController {
   /**
@@ -102,6 +103,7 @@ export class RestaurantSubscriptionController {
         validated.planId,
         validated.billingCycle,
         validated.paymentProvider,
+        validated.couponCode,
         userId
       );
 
@@ -132,6 +134,7 @@ export class RestaurantSubscriptionController {
         validated.planId,
         validated.billingCycle,
         validated.paymentProvider,
+        validated.couponCode,
         userId
       );
 
@@ -195,11 +198,47 @@ export class RestaurantSubscriptionController {
         return;
       }
 
-      const subscription = await SubscriptionService.renewSubscription(tenantId, userId);
+      const subscription = await SubscriptionService.renewSubscription(tenantId, req.body.couponCode, userId);
       ApiResponseHandler.success(res, 200, "Subscription renewed successfully", { subscription });
     } catch (error: any) {
       console.error("[RestaurantSubscriptionController] renew error:", error);
       ApiResponseHandler.badRequest(res, error.message || "Failed to renew subscription");
+    }
+  }
+
+  /**
+   * POST /validate-coupon
+   * Validates a promotional subscription coupon code
+   */
+  static async validateSubscriptionCoupon(req: Request, res: Response): Promise<void> {
+    try {
+      const { code, subtotal } = req.body;
+
+      if (!code || subtotal === undefined || isNaN(Number(subtotal))) {
+        ApiResponseHandler.badRequest(res, "code and subtotal are required");
+        return;
+      }
+
+      const result = await CouponService.validateSubscriptionCoupon(code as string, Number(subtotal));
+
+      if (!result.isValid) {
+        ApiResponseHandler.success(res, 200, result.reason || "Invalid coupon", {
+          isValid: false,
+          discount: 0,
+          reason: result.reason,
+        });
+        return;
+      }
+
+      ApiResponseHandler.success(res, 200, "Coupon validated successfully", {
+        isValid: true,
+        discount: result.discount,
+        code: result.coupon?.code,
+        discountType: result.coupon?.discountType,
+        discountValue: result.coupon?.discountValue,
+      });
+    } catch (error: any) {
+      ApiResponseHandler.badRequest(res, error.message || "Failed to validate coupon");
     }
   }
 }

@@ -1,6 +1,6 @@
 # API Health Report
 
-This report provides a comprehensive audit of the complete API surface for the **FoodMesh Platform** as of July 2, 2026.
+This report provides a comprehensive audit of the complete API surface for the **OmniServe Platform** as of July 2, 2026.
 
 ---
 

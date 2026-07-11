@@ -17,6 +17,7 @@ import {
   HiOutlineSquares2X2,
   HiOutlineQueueList,
   HiOutlineShieldCheck,
+  HiOutlineChatBubbleLeftRight,
 } from 'react-icons/hi2';
 import { USER_ROLES } from '../../utils/constants';
 
@@ -57,6 +58,7 @@ export const routeComponents = {
   AuditLogsPage: createLazyPage(() => import('../../pages/audit/AuditLogsPage')),
   WebhookLogsPage: createLazyPage(() => import('../../pages/audit/WebhookLogs')),
   UsersPage: createLazyPage(() => import('../../pages/users/UsersPage')),
+  CouponsPage: createLazyPage(() => import('../../pages/coupon/CouponsPage')),
   ProfilePage: createLazyPage(() => import('../../pages/profile/ProfilePage')),
   IntegrationsDashboardPage: createLazyPage(() => import('../../pages/integrations/IntegrationsDashboard')),
   MappingReviewPage: createLazyPage(() => import('../../pages/integrations/MappingReview')),
@@ -77,6 +79,7 @@ export const routeComponents = {
   AcceptSystemAdminInvite: createLazyPage(() => import('../../pages/systemAdmin/AcceptSystemAdminInvite')),
   FloorManagementPage: createLazyPage(() => import('../../pages/operations/FloorManagement')),
   MenuManagementPage: createLazyPage(() => import('../../pages/menu/MenuManagement')),
+  CopilotPage: createLazyPage(() => import('../../pages/copilot/CopilotPage')),
 };
 
 export const NAV_PERMISSIONS = {
@@ -100,6 +103,7 @@ export const authRoutes = [
 
 export const dashboardRoutes = [
   { path: '/dashboard', title: 'Dashboard', component: routeComponents.DashboardPage, roles: 'all', nav: { section: 'Main', label: 'Dashboard', icon: HiOutlineHome } },
+  { path: '/copilot', title: 'AI Copilot', component: routeComponents.CopilotPage, roles: 'all', nav: { section: 'Main', label: 'AI Copilot', icon: HiOutlineChatBubbleLeftRight } },
   { path: '/orders', title: 'Orders', component: routeComponents.OrdersPage, roles: RESTAURANT_ROLES, nav: { section: 'Operations', label: 'Orders', icon: HiOutlineShoppingCart } },
   { path: '/notifications', title: 'Notifications', component: routeComponents.NotificationsPage, roles: RESTAURANT_ROLES, nav: { section: 'Insights', label: 'Notifications', icon: HiOutlineBell } },
   { path: '/profile', title: 'Profile', component: routeComponents.ProfilePage, roles: 'all' },
@@ -114,6 +118,7 @@ export const dashboardRoutes = [
   
   // Menu Management Unified Workspace
   { path: '/menu-management', title: 'Menu Management', component: routeComponents.MenuManagementPage, roles: [SUPER_ADMIN, RESTAURANT_OWNER, OUTLET_MANAGER], nav: { section: 'Management', label: 'Menu Management', icon: HiOutlineSquares2X2 } },
+  { path: '/coupons', title: 'Subscription Coupons', component: routeComponents.CouponsPage, roles: [SYSTEM_ADMIN], nav: { section: 'System Admin', label: 'Subscription Coupons', icon: HiOutlineTag } },
   
   // Standalone paths (no longer in sidebar, but still routable)
   { path: '/categories', title: 'Categories', component: routeComponents.CategoriesPage, roles: [SUPER_ADMIN, RESTAURANT_OWNER, OUTLET_MANAGER] },
@@ -154,7 +159,7 @@ export const publicWebsiteRoutes = [
 ];
 
 export function getPageTitle(pathname) {
-  return dashboardRoutes.find((route) => route.path === pathname)?.title || 'FoodMesh';
+  return dashboardRoutes.find((route) => route.path === pathname)?.title || 'OmniServe';
 }
 
 export function getSidebarSections(userRole) {
