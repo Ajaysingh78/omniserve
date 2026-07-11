@@ -1,5 +1,4 @@
-import { configDotenv } from 'dotenv';
-configDotenv();
+import 'dotenv/config';
 
 import dns from 'dns';
 try {

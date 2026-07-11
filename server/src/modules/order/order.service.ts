@@ -9,7 +9,7 @@ import Variant from "../../models/variant.model.js";
 import Addon from "../../models/addon.model.js";
 import Inventory from "../../models/inventory.model.js";
 import Payment from "../../models/payment.model.js";
-import { OrderStatus, PaymentStatus, NotificationType } from "../../models/enums.js";
+import { OrderStatus, PaymentStatus, NotificationType, PaymentMethod } from "../../models/enums.js";
 import { NotificationService } from "../notification/notification.service.js";
 import { EventBusService } from "../../events/eventBus.js";
 import { WaiterTaskService } from "./waiter-task.service.js";
@@ -471,6 +471,9 @@ export class OrderService {
           updateFields.completedAt = new Date();
         }
 
+        // Automatically set order paymentStatus to SUCCESS
+        updateFields.paymentStatus = PaymentStatus.SUCCESS;
+
         // CUSTOMER STATISTICS updates (prevent double counting)
         if (currentStatus !== OrderStatus.DELIVERED && currentStatus !== OrderStatus.COMPLETED) {
           await Customer.updateOne(
@@ -478,6 +481,39 @@ export class OrderService {
             { $inc: { totalOrders: 1, totalSpent: order.totalAmount } },
             { session }
           );
+        }
+
+        // Auto-payment recording logic within transaction session
+        const existingPayment = await Payment.findOne({
+          orderId: order._id,
+          tenantId: order.tenantId,
+          isDeleted: false
+        }).session(session);
+
+        if (!existingPayment) {
+          let paymentMethod = PaymentMethod.CASH; // default offline
+          let gatewayRemark = "Auto-paid via offline order completion";
+
+          const isExternalChannel = ["SWIGGY", "ZOMATO", "ONLINE", "DELIVERY", "TAKEAWAY", "ONDC", "WHATSAPP"].includes(order.source);
+          if (isExternalChannel) {
+            paymentMethod = PaymentMethod.UPI; // default online channel
+            gatewayRemark = `Auto-paid via channel (${order.source}) delivery confirmation`;
+          }
+
+          const payment = new Payment({
+            tenantId: order.tenantId,
+            orderId: order._id,
+            transactionId: `TXN-AUTO-${order.orderNumber || order._id}`,
+            paymentMethod,
+            amount: order.totalAmount,
+            currency: "INR",
+            status: PaymentStatus.SUCCESS,
+            gatewayResponse: { remark: gatewayRemark },
+            createdBy: userId ? new Types.ObjectId(userId) : null,
+            updatedBy: userId ? new Types.ObjectId(userId) : null,
+          });
+
+          await payment.save({ session });
         }
       }
 

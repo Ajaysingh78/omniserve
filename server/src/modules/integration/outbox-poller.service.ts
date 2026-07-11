@@ -12,7 +12,6 @@ export class OutboxPollerService {
    */
   static start(pollIntervalMs = 5000): void {
     if (this.pollInterval) return;
-    console.log(`[OutboxPollerService] Starting outbox poller on nodeId: ${this.nodeId} (interval: ${pollIntervalMs}ms)`);
     
     // Poll loop
     this.pollInterval = setInterval(() => this.poll(), pollIntervalMs);
@@ -33,7 +32,6 @@ export class OutboxPollerService {
       clearInterval(this.recoveryInterval);
       this.recoveryInterval = null;
     }
-    console.log(`[OutboxPollerService] Stopped outbox poller`);
   }
 
   /**
@@ -115,7 +113,6 @@ export class OutboxPollerService {
       );
 
       if (result.modifiedCount > 0) {
-        console.log(`[OutboxPollerService] Poller safety recovery reset ${result.modifiedCount} stuck event(s) back to PENDING.`);
       }
     } catch (error: any) {
       console.error(`[OutboxPollerService] Error in poller safety recovery job: ${error.message}`);
