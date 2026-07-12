@@ -38,6 +38,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import ProductShowcase from '../../components/landing/ProductShowcase';
+import api from '../../api/axios';
 
 const TwitterIcon = (props) => (
   <svg
@@ -550,15 +551,18 @@ export default function LandingPage() {
       return;
     }
 
+    setFormStatus('submitting');
     setFormError('');
 
-    const mailto = `mailto:ajaygurjar78692@gmail.com?subject=${encodeURIComponent(`OmniServe demo request from ${payload.firstName}`)}&body=${encodeURIComponent(
-      `Name: ${payload.firstName} ${payload.lastName}\nEmail: ${payload.email}\n\n${payload.message}`
-    )}`;
-
-    window.location.href = mailto;
-    setSubmittedEmail(payload.email);
-    setFormStatus('success');
+    try {
+      await api.post('/public/contact', payload);
+      setSubmittedEmail(payload.email);
+      setFormStatus('success');
+    } catch (err) {
+      console.error(err);
+      setFormError('We could not send your message right now. Please try again in a moment.');
+      setFormStatus('error');
+    }
   };
 
   const scrollToContact = () => {
@@ -771,20 +775,13 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="relative reveal delay-200">
-            <div className="absolute -inset-10 bg-indigo-500/10 blur-[120px] rounded-full z-0 pointer-events-none"></div>
-            <div className="terminal-frame relative rounded-3xl overflow-hidden max-w-[580px] mx-auto">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
-                <div className="flex gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-white/10"></span>
-                  <span className="w-2.5 h-2.5 rounded-full bg-white/10"></span>
-                  <span className="w-2.5 h-2.5 rounded-full bg-white/10"></span>
-                </div>
-                <span className="text-[10px] text-slate-500 font-mono">omniserve.io/ops</span>
-                <span className="w-12"></span>
-              </div>
-              <div className="aspect-[16/11]">
-                <HeroDashboardMock />
-              </div>
+            <div className="absolute -inset-10 bg-indigo-500/10 blur-[100px] rounded-full z-0 pointer-events-none"></div>
+            <div className="relative rounded-3xl border border-zinc-200/50 dark:border-zinc-800/60 overflow-hidden bg-white/5 backdrop-blur-md shadow-2xl max-w-[580px] mx-auto">
+              <img
+                src="/images/landingpage/omniserve_hub.png"
+                alt="OmniServe Operations Hub Connections"
+                className="w-full h-auto object-contain rounded-3xl"
+              />
             </div>
           </div>
         </div>
@@ -838,7 +835,7 @@ export default function LandingPage() {
               <div
                 key={mod.id}
                 onClick={() => setActiveBentoModule(isHighlighted ? null : mod.id)}
-                className={`${mod.size.includes('col-span-2') ? 'glass-card' : 'surface-card'} p-8 rounded-3xl cursor-pointer select-none transition-all duration-300 ${mod.size} ${
+                className={`glass-card p-8 rounded-3xl cursor-pointer select-none transition-all duration-300 ${mod.size} ${
                   isHighlighted ? 'ring-2 ring-[#6311f4] bg-indigo-500/5' : ''
                 }`}
               >
@@ -1157,7 +1154,7 @@ export default function LandingPage() {
             {techStackGroups.map((group, index) => {
               const IconComponent = group.icon;
               return (
-                <div key={index} className="surface-card p-8 rounded-3xl">
+                <div key={index} className="glass-card p-8 rounded-3xl">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="p-2.5 rounded-xl bg-[#6311f4]/10 text-[#6311f4] dark:text-indigo-400">
                       <IconComponent className="w-5 h-5" />
@@ -1256,7 +1253,7 @@ export default function LandingPage() {
       <section className="py-24 bg-surface-container-low border-y border-lp-border">
         <div className="max-w-container-max mx-auto px-margin-desktop grid grid-cols-1 md:grid-cols-3 gap-8 reveal">
           {/* Review 1: 5 Stars */}
-          <div className="outline-card p-10 rounded-[2rem] flex flex-col justify-between">
+          <div className="glass-card p-10 rounded-[2rem] flex flex-col justify-between">
             <div>
               <div className="flex mb-6 space-x-1">
                 {[...Array(5)].map((_, i) => (
@@ -1277,7 +1274,7 @@ export default function LandingPage() {
           </div>
 
           {/* Review 2: 5 Stars */}
-          <div className="outline-card p-10 rounded-[2rem] flex flex-col justify-between">
+          <div className="glass-card p-10 rounded-[2rem] flex flex-col justify-between">
             <div>
               <div className="flex mb-6 space-x-1">
                 {[...Array(5)].map((_, i) => (
@@ -1298,7 +1295,7 @@ export default function LandingPage() {
           </div>
 
           {/* Review 3: 4 Stars */}
-          <div className="outline-card p-10 rounded-[2rem] flex flex-col justify-between">
+          <div className="glass-card p-10 rounded-[2rem] flex flex-col justify-between">
             <div>
               <div className="flex mb-6 space-x-1">
                 {[...Array(4)].map((_, i) => (
@@ -1348,7 +1345,7 @@ export default function LandingPage() {
             ].map((faq, index) => {
               const isOpen = !!faqOpen[index];
               return (
-                <div key={index} className="outline-card rounded-2xl overflow-hidden border border-lp-border">
+                <div key={index} className="glass-card rounded-2xl overflow-hidden border border-lp-border">
                   <button
                     className="w-full p-6 text-left font-bold flex justify-between items-center hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors text-on-surface focus:outline-hidden"
                     onClick={() => toggleFaq(index)}
@@ -1416,9 +1413,9 @@ export default function LandingPage() {
                     <div className="w-16 h-16 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
                       <CheckCheck className="w-8 h-8" />
                     </div>
-                    <h3 className="font-bold text-xl mb-3 text-on-surface">Email Draft Opened</h3>
+                    <h3 className="font-bold text-xl mb-3 text-on-surface">Message Sent!</h3>
                     <p className="text-on-surface-variant text-sm leading-relaxed max-w-sm mx-auto">
-                      Please send the prepared email from your mail app. Our enterprise team will reply to <span className="font-semibold">{submittedEmail}</span>.
+                      Thank you for contacting OmniServe support. Our enterprise team will reply to <span className="font-semibold">{submittedEmail}</span>.
                     </p>
                     <button
                       onClick={() => {
@@ -1438,7 +1435,7 @@ export default function LandingPage() {
                         <label className="block text-[10px] uppercase font-bold text-on-surface-variant mb-1.5">First Name *</label>
                         <input
                           className="w-full px-4 py-3 rounded-xl border border-lp-border dark:border-zinc-800 focus:outline-hidden focus:ring-1 focus:ring-[#6311f4] bg-slate-50/50 dark:bg-zinc-900/50 text-on-surface text-sm"
-                          placeholder="Yusuf"
+                          placeholder="First Name"
                           type="text"
                           required
                           disabled={formStatus === 'submitting'}
@@ -1450,7 +1447,7 @@ export default function LandingPage() {
                         <label className="block text-[10px] uppercase font-bold text-on-surface-variant mb-1.5">Last Name</label>
                         <input
                           className="w-full px-4 py-3 rounded-xl border border-lp-border dark:border-zinc-800 focus:outline-hidden focus:ring-1 focus:ring-[#6311f4] bg-slate-50/50 dark:bg-zinc-900/50 text-on-surface text-sm"
-                          placeholder="Khan"
+                          placeholder="Second Name"
                           type="text"
                           disabled={formStatus === 'submitting'}
                           value={formData.lastName}
