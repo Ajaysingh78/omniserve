@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { Types } from "mongoose";
+import mongoose, { Types } from "mongoose";
 import Outlet from "../../models/outlet.model.js";
 import Table from "../../models/table.model.js";
 import DiningArea from "../../models/diningarea.model.js";
@@ -30,6 +30,8 @@ import { WaiterTaskService } from "../order/waiter-task.service.js";
 import Payment from "../../models/payment.model.js";
 import { PaymentMethod, PaymentStatus } from "../../models/enums.js";
 import { CouponService } from "../coupon/coupon.service.js";
+import GuestSession from "../../models/guestsession.model.js";
+import Coupon from "../../models/coupon.model.js";
 
 
 export class PublicController {
@@ -604,11 +606,11 @@ export class PublicController {
 
   /**
    * GET /api/public/cart
-   * Retrieves the active cart associated with the session token
+   * Retrieves the active cart associated with the guest session token or table session token
    */
   static async getCart(req: Request, res: Response): Promise<void> {
     try {
-      const sessionToken = req.headers["x-session-token"];
+      const sessionToken = req.headers["x-guest-session-token"] || req.headers["x-session-token"];
       if (!sessionToken) {
         ApiResponseHandler.badRequest(res, "Session token is required");
         return;
@@ -618,6 +620,15 @@ export class PublicController {
         status: "ACTIVE",
         isDeleted: false,
       });
+
+      if (cart) {
+        await cart.populate([
+          { path: "items.menuItemId" },
+          { path: "items.variantId" },
+          { path: "items.addons.addonId" }
+        ]);
+      }
+
       ApiResponseHandler.success(res, 200, "Cart retrieved successfully", cart || { items: [] });
     } catch (error: any) {
       ApiResponseHandler.internalError(res, error.message || "Failed to retrieve cart");
@@ -894,6 +905,7 @@ export class PublicController {
         return;
       }
 
+      cart.items.splice(itemIndex, 1);
       cart.lastActivityAt = new Date();
       await cart.save();
       await cart.populate([
@@ -1480,12 +1492,14 @@ export class PublicController {
 
   /**
    * GET /api/public/qr/resolve/:tableToken
-   * Resolves table by QR token, creates/joins active QRSession, sets table to OCCUPIED,
-   * and returns outlet slug & session details.
+   * Resolves table by QR token, creates/joins active QRSession, manages guest sessions,
+   * handles "Join Existing Table" vs "Start New Group" selection, and returns session tokens.
    */
   static async resolveQrCode(req: Request, res: Response): Promise<void> {
     try {
       const { tableToken } = req.params;
+      const { action } = req.query; // 'join' or 'new'
+      const clientGuestToken = req.headers["x-guest-session-token"];
 
       const table = await Table.findOne({ qrToken: tableToken, isDeleted: false });
       if (!table || table.status !== "ACTIVE") {
@@ -1499,11 +1513,63 @@ export class PublicController {
         return;
       }
 
-      let session = null;
+      let session: any = null;
       if (table.activeSessionId) {
         session = await QRSession.findById(table.activeSessionId);
       }
 
+      const hasActiveSession = session && session.status !== "CLOSED" && session.status !== "EXPIRED";
+
+      // 1. Check for existing active guests to prompt join vs new group
+      if (hasActiveSession && !action) {
+        const activeGuests = await GuestSession.find({
+          qrsessionId: session._id,
+          status: "ACTIVE"
+        });
+
+        // If other guests are active at this table, require explicit confirmation
+        if (activeGuests.length > 0) {
+          // If the user already has a valid active GuestSession token matching this table, allow auto-rejoin
+          let existingGuest = null;
+          if (clientGuestToken) {
+            existingGuest = await GuestSession.findOne({
+              qrsessionId: session._id,
+              guestSessionToken: String(clientGuestToken),
+              status: "ACTIVE"
+            });
+          }
+
+          if (!existingGuest) {
+            ApiResponseHandler.success(res, 200, "Active group session exists. Prompt join flow.", {
+              promptRequired: true,
+              activeGuestsCount: activeGuests.length,
+              activeGuestsNames: activeGuests.map(g => g.name),
+              outletSlug: outlet.slug,
+              tableNumber: table.tableNumber
+            });
+            return;
+          }
+        }
+      }
+
+      // 2. Handle Action: Start New Group
+      if (action === "new" && hasActiveSession) {
+        // Close existing QRSession
+        session.status = "CLOSED";
+        session.closedAt = new Date();
+        await session.save();
+
+        // Archive open BillSession without marking as SETTLED (no payment was received).
+        // Use VOIDED status so the finance audit trail clearly shows these were force-closed.
+        await BillSession.updateMany(
+          { sessionId: session._id, status: { $in: ["OPEN", "REQUESTED"] } },
+          { status: "VOIDED", voidedAt: new Date(), voidReason: "SESSION_FORCE_CLOSED" }
+        );
+
+        session = null;
+      }
+
+      // 3. Resolve or initialize QRSession
       if (!session || session.status === "CLOSED" || session.status === "EXPIRED") {
         session = await QRSession.create({
           tenantId: table.tenantId,
@@ -1534,14 +1600,62 @@ export class PublicController {
         { sourceSystem: "QR" }
       );
 
+      // 4. Resolve or initialize GuestSession (Host vs Member)
+      let guestSession = null;
+      if (clientGuestToken) {
+        guestSession = await GuestSession.findOne({
+          qrsessionId: session._id,
+          guestSessionToken: String(clientGuestToken),
+          status: "ACTIVE"
+        });
+      }
+
+      if (!guestSession) {
+        const activeGuestsCount = await GuestSession.countDocuments({
+          qrsessionId: session._id,
+          status: "ACTIVE"
+        });
+
+        const guestSessionToken = "GUEST-SESS-" + Math.random().toString(36).substring(2, 15).toUpperCase() + "-" + Date.now();
+        guestSession = await GuestSession.create({
+          qrsessionId: session._id,
+          guestSessionToken,
+          name: "Guest",
+          role: activeGuestsCount === 0 ? "HOST" : "MEMBER",
+          status: "ACTIVE",
+          joinedAt: new Date(),
+          lastSeenAt: new Date()
+        });
+      } else {
+        guestSession.lastSeenAt = new Date();
+        await guestSession.save();
+      }
+
+      // Fetch dining area name if available
+      let diningAreaName = "Dine-In";
+      if (table.diningAreaId) {
+        const da = await DiningArea.findById(table.diningAreaId);
+        if (da) diningAreaName = da.name;
+      }
+
       ApiResponseHandler.success(res, 200, "QR Code resolved successfully", {
         outletSlug: outlet.slug,
+        outletName: outlet.name,
+        outletAddress: outlet.address,
         tenantId: table.tenantId.toString(),
         outletId: table.outletId.toString(),
         tableId: table._id.toString(),
         tableNumber: table.tableNumber,
+        diningAreaName,
         sessionToken: session.sessionToken,
-        sessionId: session._id.toString()
+        sessionId: session._id.toString(),
+        guestSessionToken: guestSession.guestSessionToken,
+        guestSession: {
+          name: guestSession.name,
+          role: guestSession.role,
+          seatNumber: guestSession.seatNumber,
+          guestCount: guestSession.guestCount
+        }
       });
     } catch (error: any) {
       console.error("[PublicController] resolveQrCode error:", error);
@@ -1662,14 +1776,30 @@ export class PublicController {
         finalPaymentMethod = PaymentMethod.UPI;
       }
 
-      // Create Payment Document in DB
+      // Calculate correct payment amount matching seat split if active
+      let paymentAmount = billData.billSession.outstandingBalance;
+      if (seatNumber && billData.billSession.splits && billData.billSession.splits.length > 0) {
+        const split = billData.billSession.splits.find((s: any) => s.seatNumber === seatNumber);
+        if (split) {
+          paymentAmount = split.amount;
+        }
+      }
+
+      // Create a single Payment document representing the full session payment.
+      // Link to the first order for FK consistency; all orders share the same billSession.
       const transactionId = `TXN-QR-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+      const primaryOrderId = billData.billSession.orderIds?.[0];
+      if (!primaryOrderId) {
+        ApiResponseHandler.badRequest(res, "Bill session has no associated orders");
+        return;
+      }
       const paymentDoc = await Payment.create({
         tenantId: session.tenantId,
-        orderId: billData.billSession.orderIds[0], // link to one of the orders in session
+        orderId: primaryOrderId,         // FK to first order; billSessionId links the aggregate
+        billSessionId: billData.billSession._id,
         transactionId,
         paymentMethod: finalPaymentMethod,
-        amount: billData.billSession.outstandingBalance,
+        amount: paymentAmount,
         currency: "INR",
         status: PaymentStatus.SUCCESS
       });
@@ -1684,6 +1814,245 @@ export class PublicController {
     } catch (error: any) {
       console.error("[PublicController] payQrSessionBill error:", error);
       ApiResponseHandler.internalError(res, error.message || "Failed to process payment");
+    }
+  }
+
+  /**
+   * POST /api/public/qr/session/:sessionToken/bill/split
+   * Triggers bill session splitting by EQUAL, BY_SEAT, or CUSTOM strategy
+   */
+  static async splitQrSessionBill(req: Request, res: Response): Promise<void> {
+    try {
+      const { sessionToken } = req.params;
+      const { splitType, customSplits } = req.body; // splitType: 'EQUAL' | 'BY_SEAT' | 'CUSTOM'
+
+      const session = await QRSession.findOne({ sessionToken, isDeleted: false });
+      if (!session) {
+        ApiResponseHandler.notFound(res, "Active session not found");
+        return;
+      }
+
+      const billData = await BillingService.getSessionBill(session.tenantId, session._id.toString());
+      if (!billData.billSession) {
+        ApiResponseHandler.badRequest(res, "No active bill session found to split");
+        return;
+      }
+
+      const result = await BillingService.splitBill(
+        session.tenantId,
+        billData.billSession._id.toString(),
+        splitType,
+        customSplits
+      );
+
+      ApiResponseHandler.success(res, 200, "Bill split successfully", result);
+    } catch (error: any) {
+      console.error("[PublicController] splitQrSessionBill error:", error);
+      ApiResponseHandler.internalError(res, error.message || "Failed to split bill");
+    }
+  }
+
+  /**
+   * PATCH /api/public/qr/guest/session
+   * Updates guest name, phone, seat number, and guest count in active GuestSession
+   */
+  static async updateGuestSession(req: Request, res: Response): Promise<void> {
+    try {
+      const guestSessionToken = req.headers["x-guest-session-token"];
+      if (!guestSessionToken) {
+        ApiResponseHandler.badRequest(res, "Guest session token is required");
+        return;
+      }
+
+      const { name, phone, seatNumber, guestCount } = req.body;
+
+      const guestSession = await GuestSession.findOne({ 
+        guestSessionToken: String(guestSessionToken),
+        status: "ACTIVE"
+      });
+
+      if (!guestSession) {
+        ApiResponseHandler.notFound(res, "Active guest session not found");
+        return;
+      }
+
+      if (name !== undefined) guestSession.name = name;
+      if (phone !== undefined) guestSession.phone = phone;
+      if (seatNumber !== undefined) guestSession.seatNumber = seatNumber;
+      if (guestCount !== undefined) guestSession.guestCount = Number(guestCount);
+      guestSession.lastSeenAt = new Date();
+
+      await guestSession.save();
+
+      ApiResponseHandler.success(res, 200, "Guest session updated successfully", guestSession);
+    } catch (error: any) {
+      console.error("[PublicController] updateGuestSession error:", error);
+      ApiResponseHandler.internalError(res, error.message || "Failed to update guest session");
+    }
+  }
+
+  /**
+   * POST /api/public/qr/guest/session/leave
+   * Marks the current guest session as LEFT. If no other active guest sessions remain, closes the table session.
+   */
+  static async leaveGuestSession(req: Request, res: Response): Promise<void> {
+    try {
+      const guestSessionToken = req.headers["x-guest-session-token"];
+      if (!guestSessionToken) {
+        ApiResponseHandler.badRequest(res, "Guest session token is required");
+        return;
+      }
+
+      const guestSession = await GuestSession.findOne({ 
+        guestSessionToken: String(guestSessionToken),
+        status: "ACTIVE"
+      });
+
+      if (!guestSession) {
+        ApiResponseHandler.notFound(res, "Active guest session not found");
+        return;
+      }
+
+      guestSession.status = "LEFT";
+      await guestSession.save();
+
+      // Check if other active guest sessions exist for this QRSession
+      const remainingActive = await GuestSession.countDocuments({
+        qrsessionId: guestSession.qrsessionId,
+        status: "ACTIVE"
+      });
+
+      if (remainingActive === 0) {
+        const qrSession = await QRSession.findById(guestSession.qrsessionId);
+        if (qrSession && qrSession.status !== "CLOSED" && qrSession.status !== "EXPIRED") {
+          qrSession.status = "CLOSED";
+          qrSession.closedAt = new Date();
+          await qrSession.save();
+
+          // Reset table operational status
+          const table = await Table.findById(qrSession.tableId);
+          if (table) {
+            table.operationalStatus = "AVAILABLE";
+            table.activeSessionId = null;
+            await table.save();
+
+            // Publish WebSocket updates/Events
+            await EventBusService.publishTableOccupied(
+              table.tenantId,
+              table.outletId,
+              table._id,
+              {
+                tableId: table._id.toString(),
+                tableNumber: table.tableNumber,
+                status: "AVAILABLE",
+                updatedAt: new Date()
+              },
+              { sourceSystem: "QR" }
+            );
+          }
+        }
+      }
+
+      ApiResponseHandler.success(res, 200, "Left guest session successfully", { remainingActive });
+    } catch (error: any) {
+      console.error("[PublicController] leaveGuestSession error:", error);
+      ApiResponseHandler.internalError(res, error.message || "Failed to leave guest session");
+    }
+  }
+
+  /**
+   * GET /api/public/qr/session/:sessionToken/guests
+   * Lists all active guest sessions for a table session
+   */
+  static async getQrSessionGuests(req: Request, res: Response): Promise<void> {
+    try {
+      const { sessionToken } = req.params;
+      const qrSession = await QRSession.findOne({ sessionToken, isDeleted: false });
+      if (!qrSession) {
+        ApiResponseHandler.notFound(res, "Active QR session not found");
+        return;
+      }
+
+      const guests = await GuestSession.find({
+        qrsessionId: qrSession._id,
+        status: "ACTIVE"
+      });
+
+      ApiResponseHandler.success(res, 200, "Active guests retrieved successfully", guests);
+    } catch (error: any) {
+      console.error("[PublicController] getQrSessionGuests error:", error);
+      ApiResponseHandler.internalError(res, error.message || "Failed to retrieve guest sessions");
+    }
+  }
+
+  /**
+   * GET /api/public/o/:outletSlug/coupons
+   * Lists all active coupons applicable for this outlet
+   */
+  static async listOutletCoupons(req: Request, res: Response): Promise<void> {
+    try {
+      const { outletSlug } = req.params;
+      const outlet = await Outlet.findOne({ slug: outletSlug, isDeleted: false });
+      if (!outlet) {
+        ApiResponseHandler.notFound(res, "Outlet not found");
+        return;
+      }
+
+      // Find active coupons matching conditions matching ICoupon schema
+      const coupons = await Coupon.find({
+        isActive: true,
+        isDeleted: false,
+        $or: [
+          { expirationDate: null },
+          { expirationDate: { $gt: new Date() } }
+        ]
+      });
+
+      ApiResponseHandler.success(res, 200, "Coupons retrieved successfully", coupons);
+    } catch (error: any) {
+      console.error("[PublicController] listOutletCoupons error:", error);
+      ApiResponseHandler.internalError(res, error.message || "Failed to retrieve coupons");
+    }
+  }
+
+  /**
+   * POST /api/public/qr/session/:sessionToken/feedback
+   * Submits diner rating and feedback review, inserting it into ReviewAnalytics database
+   */
+  static async submitQrSessionFeedback(req: Request, res: Response): Promise<void> {
+    try {
+      const { sessionToken } = req.params;
+      const { rating, reviewText } = req.body;
+
+      if (!rating || Number(rating) < 1 || Number(rating) > 5) {
+        ApiResponseHandler.badRequest(res, "A valid rating between 1 and 5 is required");
+        return;
+      }
+
+      const session = await QRSession.findOne({ sessionToken, isDeleted: false });
+      if (!session) {
+        ApiResponseHandler.notFound(res, "Active session not found");
+        return;
+      }
+
+      // Import ReviewAnalytics model dynamically to use it
+      const ReviewAnalytics = mongoose.model("ReviewAnalytics");
+
+      const feedback = await ReviewAnalytics.create({
+        tenantId: session.tenantId,
+        outletId: session.outletId,
+        source: "INTERNAL",
+        rating: Number(rating),
+        reviewText: reviewText || "",
+        sentimentScore: Number(rating) >= 4 ? 0.8 : Number(rating) <= 2 ? -0.8 : 0.0,
+        sentimentLabel: Number(rating) >= 4 ? "POSITIVE" : Number(rating) <= 2 ? "NEGATIVE" : "NEUTRAL",
+        reviewDate: new Date()
+      });
+
+      ApiResponseHandler.success(res, 201, "Feedback submitted successfully", feedback);
+    } catch (error: any) {
+      console.error("[PublicController] submitQrSessionFeedback error:", error);
+      ApiResponseHandler.internalError(res, error.message || "Failed to submit feedback");
     }
   }
 }
