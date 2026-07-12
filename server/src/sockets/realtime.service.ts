@@ -6,6 +6,9 @@ import { TokenBlacklistService } from "../modules/auth/tokenblacklist.service.js
 import { RealtimeEvent } from "../types/socket-events.js";
 import connectRedis from "../config/redis.js";
 
+import GuestSession from "../models/guestsession.model.js";
+import QRSession from "../models/qrsession.model.js";
+
 export class RealtimeService {
   private static io: SocketIOServer | null = null;
 
@@ -44,7 +47,27 @@ export class RealtimeService {
           return next(new Error("Authentication error: No token provided"));
         }
 
-        // Verify token revocation
+        // 1. Handle Guest Session Tokens
+        if (typeof token === "string" && (token.startsWith("GUEST-SESS-") || token.startsWith("WEB-SESS-"))) {
+          const guestSession = await GuestSession.findOne({ guestSessionToken: token, status: "ACTIVE" });
+          if (!guestSession) {
+            return next(new Error("Authentication error: Invalid or expired guest session"));
+          }
+          const qrSession = await QRSession.findOne({ _id: guestSession.qrsessionId, status: "ACTIVE" });
+          if (!qrSession) {
+            return next(new Error("Authentication error: QR Table session is closed"));
+          }
+
+          socket.data = {
+            role: "CUSTOMER",
+            sessionId: qrSession._id.toString(),
+            tenantId: qrSession.tenantId.toString(),
+            outletId: qrSession.outletId.toString()
+          };
+          return next();
+        }
+
+        // 2. Handle Admin / Staff Access Tokens
         const isBlacklisted = await TokenBlacklistService.isBlacklisted(token);
         if (isBlacklisted) {
           return next(new Error("Authentication error: Token is blacklisted"));
@@ -65,7 +88,6 @@ export class RealtimeService {
           email: decoded.email,
           role: decoded.role,
           status: decoded.status,
-          // If customer/guest, decode sessionId too
           sessionId: (decoded as any).sessionId || null
         };
 

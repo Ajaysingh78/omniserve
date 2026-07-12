@@ -34,6 +34,15 @@ export async function realtimeSyncWorker(event: IIntegrationEventQueue): Promise
     case RealtimeEvent.WAITER_TASK_COMPLETED:
     case RealtimeEvent.WAITER_TASK_CANCELLED:
     case RealtimeEvent.WAITER_TASK_ESCALATED:
+      if (outletId) {
+        RealtimeService.sendToOutlet(tenantId, outletId, eventType as RealtimeEvent, messagePayload);
+      }
+      const taskSessionId = (payload as any)?.sessionId;
+      if (taskSessionId) {
+        RealtimeService.sendToSession(taskSessionId, eventType as RealtimeEvent, messagePayload);
+      }
+      break;
+
     case RealtimeEvent.QR_ASSISTANCE_REQUESTED:
     case RealtimeEvent.DINING_AREA_CREATED:
     case RealtimeEvent.DINING_AREA_UPDATED:
