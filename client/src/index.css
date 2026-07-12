@@ -321,3 +321,72 @@ body {
   opacity: 1;
   transform: translateY(0);
 }
+
+/* ── Guest Ordering Scoped Styles ── */
+.guest-ordering {
+  font-family: 'Inter', sans-serif;
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  --on-surface: #000000 !important;
+  --color-on-surface: #000000 !important;
+}
+
+.guest-ordering .bg-surface {
+  background-color: #ffffff !important;
+}
+
+.guest-ordering .text-muted {
+  color: #71717a !important;
+}
+
+.guest-ordering .border-light {
+  border-color: #f1f3f7 !important;
+}
+
+.guest-ordering .guest-card {
+  background: #ffffff;
+  border: 1px solid #f1f3f7;
+  border-radius: 1.25rem;
+  box-shadow: 0 4px 20px rgba(99, 17, 244, 0.02);
+  transition: all 0.25s ease;
+}
+
+.guest-ordering .guest-card:hover {
+  box-shadow: 0 8px 30px rgba(99, 17, 244, 0.05);
+}
+
+.guest-ordering .btn-guest-primary {
+  background-color: #6311f4 !important;
+  color: #ffffff !important;
+  border-radius: 0.75rem;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.guest-ordering .btn-guest-primary:hover {
+  background-color: #520dd4 !important;
+  transform: translateY(-1px);
+}
+
+.guest-ordering .veg-dot {
+  width: 14px;
+  height: 14px;
+  border: 1px solid #22c55e;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-center: center;
+  padding: 2px;
+}
+
+.guest-ordering .nonveg-dot {
+  width: 14px;
+  height: 14px;
+  border: 1px solid #ef4444;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-center: center;
+  padding: 2px;
+}
+
