@@ -204,8 +204,10 @@ export class OrderGatewayService {
     );
 
     try {
+      // DEV/TEST ONLY: chaos mode simulation via rawPayload._chaosMode field.
+      // This block is intentionally disabled in production to prevent accidental error injection.
       const rawPay = externalOrder.rawPayload as any;
-      if (rawPay && rawPay._chaosMode) {
+      if (process.env.NODE_ENV !== "production" && rawPay && rawPay._chaosMode) {
         if (rawPay._chaosMode === "VALIDATION_ERROR") {
           throw new Error("ValidationError: Chaos mode active - invalid payload fields");
         } else if (rawPay._chaosMode === "MAPPING_ERROR") {
@@ -274,7 +276,14 @@ export class OrderGatewayService {
             input.actorUserId ? input.actorUserId.toString() : undefined
           );
         } catch (payError: any) {
-          console.error("Failed to automatically record integrated order payment:", payError);
+          // Idempotency: ignore duplicate transaction ID errors (both MongoDB 11000 and
+          // PaymentService's manual uniqueness check) — payment was already recorded.
+          const isDuplicate =
+            payError?.code === 11000 ||
+            (payError?.message && payError.message.includes("transaction ID already exists"));
+          if (!isDuplicate) {
+            console.error("Failed to automatically record integrated order payment:", payError);
+          }
         }
       }
 

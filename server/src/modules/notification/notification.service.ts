@@ -1,4 +1,4 @@
-import { Types } from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 import Notification, { INotification } from "../../models/notification.model.js";
 import User from "../../models/user.model.js";
 import { NotificationType, UserStatus } from "../../models/enums.js";
@@ -85,6 +85,12 @@ export class NotificationService {
     createdByUserId?: string
   ): Promise<INotification[]> {
     try {
+      // Guard: if the DB connection is closed (e.g. during test teardown), skip silently.
+      // readyState: 0=disconnected, 1=connected, 2=connecting, 3=disconnecting
+      if (mongoose.connection.readyState !== 1) {
+        return [];
+      }
+
       const activeUsers = await User.find({
         tenantId: new Types.ObjectId(tenantId),
         status: UserStatus.ACTIVE,
