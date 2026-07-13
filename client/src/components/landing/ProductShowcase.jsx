@@ -1,8 +1,14 @@
+
 import React from 'react';
 import { Lock } from 'lucide-react';
+import { useResolvedTheme } from '../../hooks/useResolvedTheme';
+import ThemedImage from './ThemedImage';
 
-export default function ProductShowcase({ src, alt, variant = 'light' }) {
-  const isDark = variant === 'dark';
+export default function ProductShowcase({ src, lightSrc, darkSrc, alt, variant }) {
+  const resolvedTheme = useResolvedTheme();
+  
+  // If variant is not explicitly provided, adapt to resolvedTheme.
+  const isDark = variant !== undefined ? variant === 'dark' : resolvedTheme === 'dark';
 
   return (
     <div
@@ -42,10 +48,12 @@ export default function ProductShowcase({ src, alt, variant = 'light' }) {
       </div>
 
       <div className="relative flex aspect-[16/10] items-center justify-center overflow-hidden bg-[#0f172a]">
-        <img
+        <ThemedImage
           src={src}
+          lightSrc={lightSrc}
+          darkSrc={darkSrc}
           alt={alt}
-          className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.01]"
+          className="h-full w-full object-fill transition duration-700 group-hover:scale-[1.01]"
           loading="eager"
         />
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(0,0,0,0.1))]"></div>

@@ -38,6 +38,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import ProductShowcase from '../../components/landing/ProductShowcase';
+import ThemedImage from '../../components/landing/ThemedImage';
 import api from '../../api/axios';
 
 const TwitterIcon = (props) => (
@@ -173,8 +174,6 @@ function HeroDashboardMock() {
 }
 
 function IntegrationsDeviceMockup() {
-  const { theme } = useTheme();
-
   return (
     <div className="relative w-full max-w-[580px] mx-auto py-6 select-none">
       {/* Laptop Mockup Wrapper */}
@@ -186,10 +185,11 @@ function IntegrationsDeviceMockup() {
 
         {/* Viewport Screen */}
         <div className="w-full h-full bg-slate-900 overflow-hidden relative">
-          <img
-            src="/images/landingpage/integrations_dark.png"
-            alt="OmniServe Integrations Dark Dashboard"
-            className="w-full h-full object-cover object-top hover:scale-[1.02] transition-transform duration-700"
+          <ThemedImage
+            lightSrc="/images/landingpage/integrations_light.png"
+            darkSrc="/images/landingpage/integrations_dark.png"
+            alt="OmniServe Integrations Dashboard"
+            className="w-full h-full object-fill hover:scale-[1.02] transition-transform duration-700"
           />
           {/* Subtle reflection overlay */}
           <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-white/10 pointer-events-none"></div>
@@ -211,9 +211,10 @@ function IntegrationsDeviceMockup() {
 
         {/* Viewport Screen: displays Light mode screenshot */}
         <div className="w-full h-full bg-slate-900 relative overflow-hidden">
-          <img
-            src="/images/landingpage/integrations_light.png"
-            alt="OmniServe Integrations Light Mobile Mock"
+          <ThemedImage
+            lightSrc="/images/landingpage/integrations_light.png"
+            darkSrc="/images/landingpage/integrations_dark.png"
+            alt="OmniServe Integrations Mobile Mock"
             className="w-full h-full object-cover object-left-top hover:scale-[1.02] transition-transform duration-700"
           />
           {/* Subtle reflection overlay */}
@@ -487,6 +488,7 @@ export default function LandingPage() {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
+    phone: '',
     email: '',
     message: ''
   });
@@ -541,6 +543,7 @@ export default function LandingPage() {
     const payload = {
       firstName: formData.firstName.trim(),
       lastName: formData.lastName.trim(),
+      phone: formData.phone.trim(),
       email: formData.email.trim(),
       message: formData.message.trim(),
     };
@@ -567,6 +570,11 @@ export default function LandingPage() {
 
   const scrollToContact = () => {
     document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const scrollToTop = (event) => {
+    event.preventDefault();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const teamMembers = [
@@ -666,7 +674,7 @@ export default function LandingPage() {
       }`}>
         <div className="flex justify-between items-center h-full px-4 sm:px-6 lg:px-margin-desktop max-w-container-max mx-auto">
           {/* Logo & Wordmark */}
-          <Link to="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity duration-200 no-underline">
+          <Link to="/" onClick={scrollToTop} className="flex items-center gap-3 hover:opacity-90 transition-opacity duration-200 no-underline">
             <img src="/logo.png" alt="OmniServe Logo" className="w-8 h-8 object-contain rounded-xl shadow-xs" />
             <div className="flex flex-col">
               <span className="font-hanken font-bold text-lg tracking-tight text-on-surface transition-colors">OmniServe</span>
@@ -777,8 +785,9 @@ export default function LandingPage() {
           <div className="relative reveal delay-200">
             <div className="absolute -inset-10 bg-indigo-500/10 blur-[100px] rounded-full z-0 pointer-events-none"></div>
             <div className="relative rounded-3xl border border-zinc-200/50 dark:border-zinc-800/60 overflow-hidden bg-white/5 backdrop-blur-md shadow-2xl max-w-[580px] mx-auto">
-              <img
-                src="/images/landingpage/omniserve_hub.png"
+              <ThemedImage
+                lightSrc="/images/landingpage/omniserve_hub.png"
+                darkSrc="/images/landingpage/omniserve_hub_dark.png"
                 alt="OmniServe Operations Hub Connections"
                 className="w-full h-auto object-contain rounded-3xl"
               />
@@ -900,10 +909,12 @@ export default function LandingPage() {
 
                 {/* Viewport Screen */}
                 <div className="w-full h-full bg-slate-900 overflow-hidden relative">
-                  <img
+                  <ThemedImage
+                    lightSrc="/images/landingpage/operations-light.png"
+                    darkSrc="/images/landingpage/operations-dark.png"
                     src="/images/landingpage/operations_cockpit.png"
                     alt="OmniServe Operations Cockpit"
-                    className="w-full h-full object-cover object-top hover:scale-[1.02] transition-transform duration-700"
+                    className="w-full h-full object-fill hover:scale-[1.02] transition-transform duration-700"
                   />
                   <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-white/10 pointer-events-none"></div>
                 </div>
@@ -932,10 +943,12 @@ export default function LandingPage() {
 
                 {/* Viewport Screen */}
                 <div className="w-full h-full bg-slate-900 overflow-hidden relative">
-                  <img
+                  <ThemedImage
+                    lightSrc="/images/landingpage/analytics-light.png"
+                    darkSrc="/images/landingpage/analytics-dark.png"
                     src="/images/landingpage/super_admin.png"
                     alt="OmniServe Super Admin Dashboard"
-                    className="w-full h-full object-cover object-top hover:scale-[1.02] transition-transform duration-700"
+                    className="w-full h-full object-fill hover:scale-[1.02] transition-transform duration-700"
                   />
                   <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-white/10 pointer-events-none"></div>
                 </div>
@@ -1130,6 +1143,8 @@ export default function LandingPage() {
           </div>
           <div className="lg:col-span-7 reveal delay-200">
             <ProductShowcase
+              lightSrc="/images/landingpage/staff-light.png"
+              darkSrc="/images/landingpage/staff-dark.png"
               src="/images/landingpage/staff.png"
               alt="OmniServe staff management directory with role badges and outlet assignments"
             />
@@ -1392,7 +1407,7 @@ export default function LandingPage() {
                     </div>
                     <div>
                       <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">Email Us</p>
-                      <a className="text-base font-bold text-[#6311f4] dark:text-indigo-400 hover:underline no-underline" href="mailto:ajaygurjar78692@gmail.com">ajaygurjar78692@gmail.com</a>
+                      <a className="text-base font-bold text-[#6311f4] dark:text-indigo-400 hover:underline no-underline" href="mailto:yusuf.rgpv@gmail.com">yusuf.rgpv@gmail.com</a>
                     </div>
                   </div>
                   <div className="flex items-center space-x-5">
@@ -1419,7 +1434,7 @@ export default function LandingPage() {
                     </p>
                     <button
                       onClick={() => {
-                        setFormData({ firstName: '', lastName: '', email: '', message: '' });
+                        setFormData({ firstName: '', lastName: '', phone: '', email: '', message: '' });
                         setSubmittedEmail('');
                         setFormStatus('idle');
                       }}
@@ -1456,10 +1471,21 @@ export default function LandingPage() {
                       </div>
                     </div>
                     <div>
+                      <label className="block text-[10px] uppercase font-bold text-on-surface-variant mb-1.5">Mobile Number</label>
+                      <input
+                        className="w-full px-4 py-3 rounded-xl border border-lp-border dark:border-zinc-800 focus:outline-hidden focus:ring-1 focus:ring-[#6311f4] bg-slate-50/50 dark:bg-zinc-900/50 text-on-surface text-sm"
+                        placeholder="e.g. +91 99396 08743"
+                        type="tel"
+                        disabled={formStatus === 'submitting'}
+                        value={formData.phone || ''}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      />
+                    </div>
+                    <div>
                       <label className="block text-[10px] uppercase font-bold text-on-surface-variant mb-1.5">Email Address *</label>
                       <input
                         className="w-full px-4 py-3 rounded-xl border border-lp-border dark:border-zinc-800 focus:outline-hidden focus:ring-1 focus:ring-[#6311f4] bg-slate-50/50 dark:bg-zinc-900/50 text-on-surface text-sm"
-                        placeholder="yusuf@omniserve.io"
+                        placeholder="xyz@omniserve.io"
                         type="email"
                         required
                         disabled={formStatus === 'submitting'}

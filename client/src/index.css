@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 @plugin "daisyui";
 @custom-variant dark (&:where(.dark, .dark *));
@@ -188,6 +187,20 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Referenced on <body> in index.html but previously undefined — a very
+   quiet dot-grid so the base app doesn't read as a flat, empty fill. */
+.bg-pattern {
+  background-image: radial-gradient(circle, var(--color-on-surface-variant) 1px, transparent 1px);
+  background-size: 28px 28px;
+  background-position: -14px -14px;
+}
+
+@supports (background: color-mix(in srgb, red, blue)) {
+  .bg-pattern {
+    background-image: radial-gradient(circle, color-mix(in srgb, var(--color-on-surface-variant) 10%, transparent) 1px, transparent 1px);
+  }
 }
 
 /* ── Landing Page Scoped Styles & Animations ── */
